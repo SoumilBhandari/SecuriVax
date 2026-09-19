@@ -23,6 +23,7 @@ def offline_weather(monkeypatch):
     monkeypatch.setattr(get_settings(), "weather_offline", True)
     monkeypatch.setattr(get_settings(), "xai_api_key", "")
     monkeypatch.setattr(get_settings(), "gemini_api_key", "")
+    monkeypatch.setattr(get_settings(), "typesafe_api_key", "")
     weather.clear_cache()
     twin_service.clear_cache()
     climate_service.clear_cache()

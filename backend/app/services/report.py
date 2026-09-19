@@ -163,17 +163,40 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["label_check"] = check.model_dump() if check else None
     data["learned_rate"] = asdict(learned)
     from app.services.climate import leg_environment  # avoids an import cycle
+    from app.services.jev import leg_summary, likely_cause
 
     carried = box.initial_budget_used  # budget already used when each leg starts
     zones = {n.id: n.timezone for n in session.exec(select(Node)).all()}
     for seg, result in zip(data["segments"], report.segments):
         seg["tz"] = zones.get(seg["node_id"])
-        seg["environment"] = asdict(leg_environment(result, PRODUCTS_BY_ID[box.product_id]))
+        env = leg_environment(result, PRODUCTS_BY_ID[box.product_id])
+        seg["environment"] = asdict(env)
+        # What most likely went wrong on this leg. Named after the verdict is
+        # decided, and never part of deciding it.
+        seg["cause"] = asdict(
+            likely_cause(
+                leg_summary(
+                    env,
+                    carrier=seg["node_label"],
+                    peak_c=seg["max_temp_c"],
+                    min_c=seg["min_temp_c"],
+                    minutes_to_min=_minutes_to_min(seg),
+                ),
+                env.code,
+            )
+        )
         seg["route"] = _thin(seg["route"], lambda p: p["status"] != "ok")
         for point in seg["series"]:
             point["budget"] = round(carried + point["budget"], 5)  # box-level, for the scrubber
         carried += result.budget_used
         seg["series"] = _thin(seg["series"])
+    # The leg that cost the most is the one worth naming under the reasons.
+    blamed = max(
+        (s for s in data["segments"] if s["cause"]["cause"] != "none"),
+        key=lambda s: s["budget_used"],
+        default=None,
+    )
+    data["likely_cause"] = blamed["cause"] if blamed else None
     open_seg = next((s for s in report.segments if s.end_ts is None), None)
     data["box"] = box.model_dump()
     data["product"] = {**asdict(profile), "has_vvm": profile.has_vvm}
@@ -181,6 +204,15 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["places"] = cached_places(session, key_points(report))
     data["history"] = box_history(session, box.id)
     return data
+
+
+def _minutes_to_min(seg: dict) -> float | None:
+    """How long after the leg started it reached its coldest reading."""
+    series = seg.get("series") or []
+    if not series:
+        return None
+    coldest = min(series, key=lambda p: p["temp_c"])
+    return round((coldest["ts"] - seg["start_ts"]) / 60, 1)
 
 
 HISTORY_ACTIONS = {"load", "transfer", "unload", "checkpoint", "receive"}

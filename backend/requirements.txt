@@ -5,6 +5,7 @@ pydantic>=2.12,<3
 pydantic-settings>=2.10
 psycopg[binary]>=3.2
 google-genai>=2.24,<3
+typesafe-sdk>=0.7,<1  # Jev: the likely cause of a leg, never the verdict
 httpx>=0.28
 numpy>=2.1
 tzdata>=2024.1  # time zones for zoneinfo in the slim image

@@ -13,7 +13,7 @@ from pathlib import Path
 
 from evals.core import SuiteResult, fmt
 
-SUITES = ["verdicts", "confidence", "twin", "vvm", "crosscheck", "learning", "ingest", "api"]
+SUITES = ["verdicts", "confidence", "twin", "vvm", "crosscheck", "learning", "ingest", "jev", "api"]
 ROOT = Path(__file__).resolve().parents[2]
 
 

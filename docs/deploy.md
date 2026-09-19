@@ -19,6 +19,7 @@ Postgres 16 database, both in Render's Virginia region.
 | `NODE_KEY` | The ESP32's key: make up a long random string. The same value goes in `firmware/include/config.h`. Until it's set, no node can upload. |
 | `GEMINI_API_KEY` | Location agent, place names and the VVM second opinion. |
 | `XAI_API_KEY` | Grok writes the report. |
+| `TYPESAFE_API_KEY` | Jev names the likely cause of a leg. Without it the rules name it instead. |
 
 4. Check the plans and price it shows, then **Apply**. The first build takes a few
    minutes, and the first start seeds the demo (about a minute more).

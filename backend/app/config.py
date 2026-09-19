@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash"
     # Grok writes the plain-language report for the health worker.
     xai_api_key: str = ""
+
+    # Jev names the likely cause of a leg. Without it the rules answer instead.
+    typesafe_api_key: str = ""
     grok_model: str = "grok-4.6"
     # Seconds to wait on either model before falling back to templates.
     ai_timeout_s: float = 12.0
@@ -58,7 +61,7 @@ class Settings(BaseSettings):
     def show_api_docs(self) -> bool:
         return self.api_docs if self.api_docs is not None else not self.static_dir
 
-    @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", "session_secret", mode="before")
+    @field_validator("gemini_api_key", "xai_api_key", "typesafe_api_key", "node_key", "operator_token", "session_secret", mode="before")
     @classmethod
     def _tidy_pasted_secret(cls, value: object, info) -> object:
         """Secrets get pasted into dashboards with extras: spaces, a line break,

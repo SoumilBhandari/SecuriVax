@@ -60,6 +60,17 @@ export interface LegEnvironment {
   ambient: [number, number][];
 }
 
+/** What most likely went wrong on a leg. Named after the verdict, never part of it. */
+export interface Cause {
+  cause: string;
+  label: string;
+  source: "jev" | "rules";
+  probability: number | null;
+  confidence: number | null;
+  ms: number | null;
+  probabilities: Record<string, number>;
+}
+
 export interface Segment {
   node_id: string;
   node_label: string;
@@ -90,6 +101,7 @@ export interface Segment {
   freeze_guard_c: number;
   tz?: string | null; // the carrier or cold room's zone
   environment?: LegEnvironment;
+  cause?: Cause;
 }
 
 export interface Product {
@@ -159,6 +171,7 @@ export interface Report {
   hours_out_of_range: number;
   logger: LoggerView;
   learned_rate?: LearnedRate;
+  likely_cause?: Cause | null;
 }
 
 export interface LoggerView {

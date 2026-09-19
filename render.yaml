@@ -33,6 +33,8 @@ services:
         sync: false
       - key: XAI_API_KEY
         sync: false
+      - key: TYPESAFE_API_KEY
+        sync: false
 
 databases:
   - name: securivax-db

@@ -8,7 +8,7 @@ photos, a simulated node on a lossy link. The carrier twin has not yet seen a
 real cooler, and the VVM reader has not yet seen real label photos; drop real
 `stageN_*.jpg` photos in a folder and run `python -m evals.calibrate_vvm --photos DIR`.
 
-**8 of 8 suites pass.**
+**9 of 9 suites pass.**
 
 ## verdicts ✅
 
@@ -122,17 +122,29 @@ Node-to-server ingest over a lossy, reordering link, with reboots, unset clocks 
 | rows written by the stranger | 0 | ≤ 0 | ✅ |
 | batches sent · 57 lost on the way, 37 acks lost, 13 delivered late | 230 | context |  |
 
+## jev ✅
+
+Naming the cause of a trip, against the backtest's own known causes
+
+| Metric | Value | Target | |
+| --- | --- | --- | --- |
+| The rules name the true cause | 0.954 | ≥ 0.7 | ✅ |
+| Trips scored (one cause each) | 326 | context |  |
+| Trips left out (no single cause the readings show) | 34 | context |  |
+| Hot-vehicle trips that leave a mark of their own · The backtest's hot vehicle adds heat the ice absorbs, so inside rarely runs hotter than outside for long. That cause is therefore barely scored here: it is not evidence either way about naming it in the field. | 0 | context |  |
+| Legs Jev answered · No TYPESAFE_API_KEY: the rules answered every leg, which is the fallback the app ships with. | 0 | context |  |
+
 ## api ✅
 
 API latency and payload size on the nine-lane demo with full history (in-process, laptop)
 
 | Metric | Value | Target | |
 | --- | --- | --- | --- |
-| box list, p95 (ms) | 61.9 | ≤ 250 | ✅ |
-| fleet summary, p95 (ms) | 59.9 | ≤ 250 | ✅ |
-| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 32.7 | ≤ 400 | ✅ |
-| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 31.1 | ≤ 3e+03 | ✅ |
-| carrier forecast, cached, p95 (ms) | 2.77 | ≤ 100 | ✅ |
-| stores at risk, p95 (ms) | 47.1 | ≤ 1.5e+03 | ✅ |
-| VVM photo read + cross-check, p95 (ms) · Gemini off | 48.2 | ≤ 1.5e+03 | ✅ |
-| largest box report, gzipped (KB) · 113 KB raw | 16.4 | ≤ 40 | ✅ |
+| box list, p95 (ms) | 67.5 | ≤ 250 | ✅ |
+| fleet summary, p95 (ms) | 67.2 | ≤ 250 | ✅ |
+| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 35.5 | ≤ 400 | ✅ |
+| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 73.9 | ≤ 3e+03 | ✅ |
+| carrier forecast, cached, p95 (ms) | 2.92 | ≤ 100 | ✅ |
+| stores at risk, p95 (ms) | 50.7 | ≤ 1.5e+03 | ✅ |
+| VVM photo read + cross-check, p95 (ms) · Gemini off | 26.6 | ≤ 1.5e+03 | ✅ |
+| largest box report, gzipped (KB) · 115 KB raw | 17.1 | ≤ 40 | ✅ |

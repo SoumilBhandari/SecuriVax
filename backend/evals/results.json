@@ -1,10 +1,10 @@
 {
- "generated": 1789798609,
+ "generated": 1789859772,
  "suites": [
   {
    "name": "verdicts",
    "description": "Verdict vs ground truth on synthetic boxes (sensor bias, noise, dropped readings)",
-   "seconds": 8.4,
+   "seconds": 8.7,
    "passed": true,
    "metrics": [
     {
@@ -101,7 +101,7 @@
   {
    "name": "confidence",
    "description": "Monte Carlo verdict confidence: consistency with the engine and calibration",
-   "seconds": 12.1,
+   "seconds": 12.7,
    "passed": true,
    "metrics": [
     {
@@ -148,7 +148,7 @@
   {
    "name": "twin",
    "description": "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration, then on carriers from different physics than it assumes",
-   "seconds": 3.9,
+   "seconds": 4.1,
    "passed": true,
    "metrics": [
     {
@@ -322,7 +322,7 @@
   {
    "name": "vvm",
    "description": "Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare, shadow, colour cast, JPEG)",
-   "seconds": 20.6,
+   "seconds": 21.2,
    "passed": true,
    "metrics": [
     {
@@ -459,7 +459,7 @@
   {
    "name": "crosscheck",
    "description": "Camera vs temperature record: planted disagreements (unrecorded heat, wrong witness) against honest boxes",
-   "seconds": 21.8,
+   "seconds": 22.4,
    "passed": true,
    "metrics": [
     {
@@ -526,7 +526,7 @@
   {
    "name": "learning",
    "description": "Crowdsourced calibration: learning a product's real degradation speed from confirmed VVM photos",
-   "seconds": 21.4,
+   "seconds": 22.0,
    "passed": true,
    "metrics": [
     {
@@ -616,7 +616,7 @@
   {
    "name": "ingest",
    "description": "Node-to-server ingest over a lossy, reordering link, with reboots, unset clocks and sensor glitches",
-   "seconds": 1.0,
+   "seconds": 1.1,
    "passed": true,
    "metrics": [
     {
@@ -689,14 +689,84 @@
    }
   },
   {
+   "name": "jev",
+   "description": "Naming the cause of a trip, against the backtest's own known causes",
+   "seconds": 0.2,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "The rules name the true cause",
+     "value": 0.9539877300613497,
+     "target": 0.7,
+     "higher_is_better": true,
+     "unit": "share",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "Trips scored (one cause each)",
+     "value": 326.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "trips",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "Trips left out (no single cause the readings show)",
+     "value": 34.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "trips",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "Hot-vehicle trips that leave a mark of their own",
+     "value": 0.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "share",
+     "note": "The backtest's hot vehicle adds heat the ice absorbs, so inside rarely runs hotter than outside for long. That cause is therefore barely scored here: it is not evidence either way about naming it in the field.",
+     "passed": true
+    },
+    {
+     "name": "Legs Jev answered",
+     "value": 0.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "legs",
+     "note": "No TYPESAFE_API_KEY: the rules answered every leg, which is the fallback the app ships with.",
+     "passed": true
+    }
+   ],
+   "details": {
+    "asked": false,
+    "confusion": {
+     "ice_ran_out": {
+      "ice_ran_out": 67,
+      "none": 9,
+      "hot_vehicle": 6
+     },
+     "none": {
+      "none": 189
+     },
+     "unconditioned_packs": {
+      "unconditioned_packs": 55
+     }
+    },
+    "calibration": {}
+   }
+  },
+  {
    "name": "api",
    "description": "API latency and payload size on the nine-lane demo with full history (in-process, laptop)",
-   "seconds": 2.8,
+   "seconds": 3.2,
    "passed": true,
    "metrics": [
     {
      "name": "box list, p95 (ms)",
-     "value": 61.85733760103176,
+     "value": 67.46093739930075,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -705,7 +775,7 @@
     },
     {
      "name": "fleet summary, p95 (ms)",
-     "value": 59.874529203079874,
+     "value": 67.21116250118939,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -714,7 +784,7 @@
     },
     {
      "name": "box report (verdict + Monte Carlo), p95 (ms)",
-     "value": 32.655710697690665,
+     "value": 35.518783997395076,
      "target": 400.0,
      "higher_is_better": false,
      "unit": "",
@@ -723,7 +793,7 @@
     },
     {
      "name": "carrier forecast, first call (ms)",
-     "value": 31.067374999111053,
+     "value": 73.90474999556318,
      "target": 3000.0,
      "higher_is_better": false,
      "unit": "",
@@ -732,7 +802,7 @@
     },
     {
      "name": "carrier forecast, cached, p95 (ms)",
-     "value": 2.767808000135119,
+     "value": 2.9198250012996136,
      "target": 100.0,
      "higher_is_better": false,
      "unit": "",
@@ -741,7 +811,7 @@
     },
     {
      "name": "stores at risk, p95 (ms)",
-     "value": 47.055768449718016,
+     "value": 50.70527469870285,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -750,7 +820,7 @@
     },
     {
      "name": "VVM photo read + cross-check, p95 (ms)",
-     "value": 48.206316999858245,
+     "value": 26.571741397492588,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -759,20 +829,21 @@
     },
     {
      "name": "largest box report, gzipped (KB)",
-     "value": 16.404296875,
+     "value": 17.1474609375,
      "target": 40.0,
      "higher_is_better": false,
      "unit": "",
-     "note": "113 KB raw",
+     "note": "115 KB raw",
      "passed": true
     }
    ],
    "details": {
-    "boxes": 10,
+    "boxes": 11,
     "carriers": [
      "CD-TRK",
      "ET-TRK",
      "GH-TRK",
+     "KO-VC",
      "NG-TRK",
      "TZ-TRK"
     ],

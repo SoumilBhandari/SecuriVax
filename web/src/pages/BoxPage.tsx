@@ -22,12 +22,12 @@ import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
 import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
-import { demoRate, time } from "../lib/format";
+import { demoRate, pct, time } from "../lib/format";
 import { refreshScroll } from "../lib/motion";
 import { clearArm, getArm, setArm, takeFlag, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
-import type { CarrierForecast, NodeSummary, Report } from "../types";
+import type { CarrierForecast, Cause, NodeSummary, Report } from "../types";
 
 // The route map pulls in Leaflet: loaded only when it's shown.
 const RouteMap = lazy(() => import("../components/RouteMap"));
@@ -274,6 +274,7 @@ export default function BoxPage() {
             <Reveal>
               <SectionTitle>Why</SectionTitle>
               <Reasons reasons={report.reasons} />
+              <LikelyCause cause={report.likely_cause} />
             </Reveal>
 
             {fc && inside && (
@@ -352,6 +353,26 @@ export default function BoxPage() {
       )}
       <Toast message={toast} onDone={hideToast} />
     </Layout>
+  );
+}
+
+/**
+ * What most likely caused it, under the reasons. Jev names it with a
+ * probability; without it the rules' own reading stands, and either way the
+ * verdict above was already decided without this line.
+ */
+function LikelyCause({ cause }: { cause?: Cause | null }) {
+  if (!cause || cause.cause === "none") return null;
+  const parts = [
+    cause.label,
+    cause.probability != null ? pct(cause.probability) : null,
+    cause.ms != null ? `${cause.ms} ms` : null,
+    cause.source === "jev" ? "Jev" : "from the rules",
+  ].filter((p): p is string => Boolean(p));
+  return (
+    <p className="ui-caption m-0 mt-4">
+      <span className="font-semibold text-text">Likely cause:</span> {parts.join(" · ")}
+    </p>
   );
 }
 
