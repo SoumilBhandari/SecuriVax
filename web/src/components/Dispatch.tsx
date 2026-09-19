@@ -59,6 +59,9 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
     <div>
       {rec && (
         <section className="card-soft mb-3 p-4">
+          <p className="mono-label m-0 mb-2">
+            {advice!.source === "gemini" ? `Answered by Gemini · ${advice!.steps.length} tool calls` : "Answered by the fallback rules"}
+          </p>
           <p className="m-0 mb-2 font-display text-[22px] font-semibold leading-7 tracking-[-0.02em]">
             {title(rec)}
             {rec.action === "DIVERT" && rec.eta_min != null && <span className="font-sans text-base font-normal text-neutral-500"> · {rec.eta_min} min</span>}
