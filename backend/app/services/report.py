@@ -109,8 +109,17 @@ def cached_places(session: Session, points: list[tuple[float, float]]) -> dict[s
 
 
 def report_json(session: Session, box: Box, now: int | None = None) -> dict:
-    report = evaluate_box(session, box, now)
+    from app.engine.uncertainty import verdict_confidence
+
+    now = int(time.time()) if now is None else now
+    profile = PRODUCTS_BY_ID[box.product_id]
+    segments = box_segments(session, box.id, now)
+    report = evaluate(profile, segments, now, box.initial_budget_used)
     data = asdict(report)
+    forced = any(r.code in ("HISTORY_GAP", "NODE_OFFLINE") for r in report.reasons)
+    data["confidence"] = asdict(
+        verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced)
+    )
     from app.services.climate import leg_environment  # avoids an import cycle
 
     for seg, result in zip(data["segments"], report.segments):

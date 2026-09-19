@@ -180,18 +180,29 @@ def carrier_performance(session: Session, now: int | None = None) -> list[dict]:
             weather = wx.weather_for(list(positions.values()) or [DEFAULT_SITE])
             ambient = _ambient_fn(weather, positions, next(iter(positions.values()), DEFAULT_SITE))
             measured = [(r.ts, r.temp_c) for r in readings]
-            effective, how = cm.effective_cold_life(measured, ambient, 8.0)
+            # The particle-filter twin gives cold life with a spread; the simple
+            # breach-time estimate is kept as a cross-check.
+            from app.services.twin import leg_cold_life
+
+            fit = leg_cold_life(session, node.id, start, end)
+            heuristic, _ = cm.effective_cold_life(measured, ambient, 8.0)
+            effective, how = (fit[0][1], "twin") if fit else (heuristic, "heuristic")
             predicted = cm.first_breach(cm.simulate(ambient, start, end, RATED), 8.0)
             actual = cm.first_breach(measured, 8.0)
             froze = any(c <= -0.5 for _, c in measured)
             legs.append({
                 "start_ts": start, "end_ts": end, "hours": round((end - start) / HOUR, 1),
                 "effective_cold_life_h": effective, "how": how,
+                "cold_life_range_h": [fit[0][0], fit[0][2]] if fit else None,
+                "fit_rmse_c": round(fit[1], 2) if fit else None,
+                "heuristic_cold_life_h": heuristic,
                 "predicted_breach_ts": predicted, "actual_breach_ts": actual,
                 "froze": froze, "outside_max_c": round(max(ambient(t) for t, _ in measured[:: max(1, len(measured) // 48)]), 1),
                 "source": _source(weather.values()),
             })
-        fitted = [leg["effective_cold_life_h"] for leg in legs if leg["how"] == "fitted"]
+        # Legs where the carrier never warmed up only give a lower bound; the
+        # twin still estimates them, but "held" legs don't count against it.
+        fitted = [leg["effective_cold_life_h"] for leg in legs if leg["actual_breach_ts"] and leg["effective_cold_life_h"] is not None]
         worst = min(fitted) if fitted else None
         if worst is None:
             rating, note = ("untested", "No completed trips yet.") if not legs else ("as rated", "Never left the safe range on any trip.")
@@ -238,9 +249,11 @@ def plan_trips(
     if cold_life_h is not None:
         life, spec_note = cold_life_h, f"{cold_life_h:g} h cold life"
     elif carrier_id:
-        perf = next((c for c in carrier_performance(session, now) if c["node_id"] == carrier_id), None)
-        if perf and perf["effective_cold_life_h"] is not None and perf["rating"] != "as rated":
-            life = perf["effective_cold_life_h"]
+        from app.services.twin import track_record
+
+        measured = track_record(session, carrier_id, now)
+        if measured is not None and measured < RATED.cold_life_h:
+            life = round(measured, 1)
             spec_note = f"{carrier_id}'s measured {life:g} h cold life (rated {RATED.cold_life_h:g} h)"
     spec = cm.CarrierSpec(cold_life_h=max(life, 0.1))
 

@@ -7,7 +7,8 @@ the live API deliberately can't do). Each box tells a different story:
 
     BOX-0001 penta   froze against frozen ice packs on the road   -> QUARANTINE (shake test)
     BOX-0003 MR      same carrier, same freeze, not sensitive     -> USE
-    BOX-0002 OPV     three hot outreach days                      -> QUARANTINE (check VVM)
+    BOX-0002 OPV     three outreach days in CAR-02, packs run out  -> QUARANTINE (check VVM)
+    BOX-0006/0007    on the road in CAR-02 right now               -> live forecast
     BOX-0005 OPV     carrier left in a parked car for two days    -> DISCARD
     BOX-0004 HPV     textbook trip, located by a SmartTag (no GPS) -> USE
     BOX-0101/0102    RDTs in a hot, humid clinic store            -> USE + advisories
@@ -22,7 +23,9 @@ from collections.abc import Callable
 from sqlmodel import Session, SQLModel
 
 from app.db import engine, init_db
+from app.engine import twin
 from app.models import Custody, LocationPoint, Node, Reading, Scan
+from app.services import weather as wx
 from app.seed import seed
 from simulator.common import (
     KISUMU_STORE,
@@ -84,12 +87,27 @@ def parked(point: tuple[float, float]) -> Callable[[float], tuple[float, float]]
     return lambda _frac: along([point, point], 0, jitter=0.00005)
 
 
-def outreach_temp(t: int) -> float:
-    """Ice packs hold until noon; by mid-afternoon the carrier is warm."""
-    hour = ((t / 3600) + 3) % 24
-    if 12 <= hour < 18:
-        return 5 + 29 * math.sin((hour - 12) / 6 * math.pi) + random.gauss(0, 0.4)
-    return cold_box_temp(t)
+def carrier_physics(start: int, end: int, cold_life_h: float, gain_c: float, where) -> Callable[[int], float]:
+    """Inside temperature of a carrier with this much ice, driven by the real
+    outside temperature along its route: the same physics the twin assumes,
+    so the twin can be checked against a known truth."""
+    lat, lon = where(0.5)
+    weather = wx.weather_for([(lat, lon)])[wx.cell(lat, lon)]
+    fallback = wx.model_weather(*wx.cell(lat, lon))
+
+    def outside(ts: int) -> float:
+        got = weather.at(ts) or fallback.at(ts)
+        return got[0] if got else 25.0
+
+    import numpy as np
+
+    truth = twin.Particles(*(np.array([v]) for v in (5.0, cold_life_h * twin.DEG_PER_RATED_HOUR, 4.5, 1.0, gain_c, 1.2, 0.0, 1.0)))
+    temps, t = {start: 5.0}, start
+    while t < end:
+        twin.step(truth, outside(t + STEP), STEP / 3600, None)
+        t += STEP
+        temps[t] = float(truth.temp[0])
+    return lambda ts: temps.get(ts, temps[max(k for k in temps if k <= ts)]) + random.gauss(0, 0.15)
 
 
 def backfill(session: Session, now: int) -> None:
@@ -100,13 +118,19 @@ def backfill(session: Session, now: int) -> None:
     write_readings(session, "CAR-01", start, end, lambda t: ambient_temp(t, 30, 44), parked(KISUMU_TO_KOMBEWA[3]))
     custody(session, "BOX-0005", "CAR-01", start, end, "found in parked vehicle")
 
-    # BOX-0002: three outreach days, 4 -> 1 days ago.
-    start, end = now - 4 * D, now - 1 * D
-    write_readings(
-        session, "CAR-02", start, end, outreach_temp,
-        lambda f: along(KISUMU_TO_KOMBEWA[3:], abs(math.sin(f * 3 * math.pi))),
-    )
-    custody(session, "BOX-0002", "CAR-02", start, end, "back at district store")
+    # BOX-0002: three outreach days in CAR-02. The packs are repacked every
+    # morning but never fully frozen: about 3 h of cold at the rated +43 C.
+    today_0600 = (now // D) * D + 3 * H  # 06:00 East Africa Time
+    for day in (4, 3, 2):
+        start = today_0600 - day * D
+        end = start + 11 * H
+
+        def outreach_route(f: float) -> tuple[float, float]:
+            return along(KISUMU_TO_KOMBEWA[3:], abs(math.sin(f * math.pi)))
+
+        temp = carrier_physics(start, end, cold_life_h=3.2, gain_c=2.0, where=outreach_route)
+        write_readings(session, "CAR-02", start, end, temp, outreach_route)
+        custody(session, "BOX-0002", "CAR-02", start, end, "back in the district store fridge")
 
     # BOX-0004: a textbook trip on CAR-02, 10 -> 7 hours ago.
     start, end = now - 10 * H, now - 7 * H
@@ -125,6 +149,13 @@ def backfill(session: Session, now: int) -> None:
     write_readings(session, "CAR-01", start, end, frozen_packs, road)
     custody(session, "BOX-0001", "CAR-01", start, end, "Kombewa health centre fridge")
     custody(session, "BOX-0003", "CAR-01", start, end, "Kombewa health centre fridge")
+
+    # BOX-0006 + BOX-0007: CAR-02 left two hours ago with the same weak packs.
+    start = now - 2 * H - 10 * 60
+    temp = carrier_physics(start, now, cold_life_h=2.8, gain_c=3.0, where=road)
+    write_readings(session, "CAR-02", start, now - 60, temp, lambda f: along(KISUMU_TO_KOMBEWA, f * 0.4))
+    custody(session, "BOX-0006", "CAR-02", start, None)
+    custody(session, "BOX-0007", "CAR-02", start, None)
 
     # RDTs: five days in the clinic store room, which runs hot and humid.
     start, end = now - 5 * D, now - 10 * 60

@@ -54,3 +54,13 @@ def get_node(node_id: str, session: Session = Depends(get_session)) -> dict:
         ],
         "uploads": [u.model_dump() for u in uploads],
     }
+
+
+@router.get("/{node_id}/forecast")
+def node_forecast(node_id: str, session: Session = Depends(get_session)) -> dict:
+    """Particle-filter twin of the carrier, rolled forward through the weather ensemble."""
+    from app.services.twin import carrier_forecast
+
+    if session.get(Node, node_id) is None:
+        raise HTTPException(404, f"no node {node_id}")
+    return carrier_forecast(session, node_id)
