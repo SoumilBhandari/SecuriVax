@@ -58,10 +58,14 @@ branch. Change the file when a decision changes.
 
 ## Landing page
 
-- **Hero object: a rendered 3D carrier**, delivered as pre-rendered frame
-  sequences scrubbed on a canvas, Apple's own method. The hardware is
-  idealised: a designed sensor puck, a clean carrier, a generic tag. The brief
-  is `docs/hero-3d-brief.md` and runs through Codex CLI and Blender.
+- **Hero object: the node itself** — the team's Onshape CAD, assembled into
+  `web/public/hero/models/device.glb` (see `web/hero-src/device/README.md`),
+  rendered live and taken apart as the reader scrolls: the lid lifts, the cell
+  and the board come out, the base settles. The product is the thing that goes
+  in the vaccine box, not the box, so no carrier is modelled. Frame sequences
+  are still the eventual delivery (the loader prefers them when a manifest
+  appears); `docs/hero-3d-brief.md` is the brief for that, and its invented
+  hardware is superseded by the CAD.
 - **The hero moves before the reader does.** On load the headline's lines rise
   out of a mask and the scene fades up; at rest the carrier sways and bobs
   (dying out on scroll); two glass chips float beside it with the newest live
@@ -75,11 +79,11 @@ branch. Change the file when a decision changes.
   no new copy: the three steps keep their text, and the Two witnesses and
   twin chapters were taken out (19 September) because they had only new,
   technical wording.
-- **Live 3D until the render lands.** The objects are built from geometry in
-  `web/src/landing/three/objects.tsx` (a filleted carrier with an open cavity,
-  lid, latches, handle, gasket and badge; the carton; the sensor puck; the tag;
-  the vial) with physically based materials, and rendered by Three.js in each
-  chapter, driven by the same scroll progress. Free CC0 models from Poly Pizza
+- **Live 3D until the render lands.** The node is the CAD; the vaccine carton
+  is still built from geometry in `web/src/landing/three/objects.tsx`. Both
+  carry physically based materials — Onshape exports flat fills, so the node's
+  surfaces are restyled in `web/src/landing/three/device.tsx` — and Three.js
+  renders them in each chapter, driven by the same scroll progress. Free CC0 models from Poly Pizza
   were evaluated (a cooler, cardboard boxes, vials) and rejected: low-poly
   game assets with uncontrolled interiors read worse than clean geometry.
   Each chapter picks, in order: the render's frames if

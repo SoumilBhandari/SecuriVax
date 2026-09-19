@@ -5,7 +5,8 @@ import { Group, MathUtils, PMREMGenerator, type PerspectiveCamera as Cam, Vector
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import type { Anchor, Ground } from "../placeholders";
-import { between, Carrier, Carton, Puck, Vial, type Drive } from "./objects";
+import { Device } from "./device";
+import { between, Carton, type Drive } from "./objects";
 
 export interface ObjectViewHandle {
   set(progress: number, at: Anchor, extra?: { spin?: number; bob?: number }): void;
@@ -27,15 +28,15 @@ interface Shot {
 
 const SHOTS: Record<string, Shot> = {
   A: {
-    radius: 0.62,
-    centre: [0, 0.44, 0],
+    radius: 0.38,
+    centre: [0, 0.11, 0],
     orbit: [
-      [0.55, 0.32],
-      [0.35, 0.62],
+      [0.55, 0.26],
+      [0.34, 0.6],
     ],
-    dolly: [1.05, 1.25],
+    dolly: [1.02, 1.3],
     fov: 30,
-    render: (d) => <Carrier drive={d} open={(p) => between(p, 0.15, 0.85)} />,
+    render: (d) => <Device drive={d} open={(p) => between(p, 0.14, 0.86)} />,
   },
   B: {
     radius: 0.62,
@@ -49,48 +50,26 @@ const SHOTS: Record<string, Shot> = {
     render: () => <Carton scale={1} position={[0, 0, 0]} />,
   },
   C: {
-    radius: 0.62,
-    centre: [0, 0.25, 0],
+    radius: 0.58,
+    centre: [0, 0.22, 0],
     orbit: [
-      [0.4, 0.5],
-      [0.95, 0.42],
+      [0.4, 0.38],
+      [0.95, 0.5],
     ],
     dolly: [1.05, 1.0],
     fov: 28,
-    render: (d) => <Puck drive={d} explode={(p) => between(p, 0.1, 0.9)} />,
-  },
-  D: {
-    radius: 0.55,
-    centre: [0, 0.45, 0],
-    orbit: [
-      [0.08, 0.06],
-      [-0.08, 0.06],
-    ],
-    dolly: [1.0, 0.94],
-    fov: 24,
-    render: (d) => <Vial drive={d} darken={(p) => between(p, 0.15, 0.85)} />,
-  },
-  E: {
-    radius: 0.62,
-    centre: [0, 0.48, 0],
-    orbit: [
-      [0.18, 0.4],
-      [0.06, 0.5],
-    ],
-    dolly: [1.1, 1.05],
-    fov: 28,
-    render: (d) => <Carrier drive={d} open={() => 0.75} cutaway iceLeft={(p) => 1 - between(p, 0.1, 0.9)} />,
+    render: (d) => <Device drive={d} open={(p) => between(p, 0.06, 0.94)} />,
   },
   F: {
-    radius: 0.62,
-    centre: [0, 0.45, 0],
+    radius: 0.33,
+    centre: [0, 0.075, 0],
     orbit: [
-      [0.32, 0.2],
-      [0.14, 0.28],
+      [0.32, 0.22],
+      [0.14, 0.3],
     ],
-    dolly: [1.0, 1.12],
+    dolly: [1.0, 1.16],
     fov: 30,
-    render: (d) => <Carrier drive={d} open={() => 0} />,
+    render: (d) => <Device drive={d} open={() => 0} />,
   },
 };
 

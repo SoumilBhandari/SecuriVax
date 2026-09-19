@@ -1,5 +1,13 @@
 # SecuriVax landing page: 3D hero brief
 
+> **Superseded in part, 19 September 2026.** The node exists in CAD now, so
+> the page renders the team's own Onshape parts (`web/hero-src/device/`) and
+> nothing here invents the hardware: no designed puck, and no carrier at all —
+> the product is what goes in the vaccine box, not the box. What still stands
+> is the method: pre-rendered frame sequences, the studio look, the output
+> spec and the checks. Model the CAD, not the objects described below.
+
+
 Run this with Codex CLI from the repo root:
 
 ```
