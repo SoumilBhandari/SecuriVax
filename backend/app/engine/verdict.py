@@ -168,7 +168,7 @@ def evaluate(
     scales = [rd.time_scale for s in segments for rd in s.readings]
     time_scale = max(scales, default=1.0)
     provisional = bool(
-        open_seg and open_seg.data_through is not None and now - open_seg.data_through > FRESH_S
+        open_seg and (open_seg.data_through is None or now - open_seg.data_through > FRESH_S)
     )
 
     return Report(

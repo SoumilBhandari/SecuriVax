@@ -127,7 +127,9 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
     real = [p for p in points if p.ts >= seg.start_ts]
 
     if not points:
-        res.gaps.append(Gap(seg.node_id, seg.start_ts, end, ongoing=seg.end_ts is None))
+        # A box loaded moments ago is just waiting for the node's next upload.
+        if seg.end_ts is not None or end - seg.start_ts > MAX_GAP_S:
+            res.gaps.append(Gap(seg.node_id, seg.start_ts, end, ongoing=seg.end_ts is None))
         return res
 
     res.reading_count = len(real)

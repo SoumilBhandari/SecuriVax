@@ -165,3 +165,10 @@ def test_route_marks_excursion_points():
     rs = readings([5.0, 5.0, 12.0, -1.0])
     route = evaluate(PENTA, [seg(rs)], now=rs[-1].ts).segments[0].route
     assert [p.status for p in route] == ["ok", "ok", "heat", "freeze"]
+
+
+def test_just_loaded_box_waits_for_first_reading():
+    waiting = evaluate(PENTA, [Segment("CAR-01", "Carrier CAR-01", T0, None, [])], now=T0 + 30)
+    assert waiting.verdict == USE and waiting.provisional
+    silent = evaluate(PENTA, [Segment("CAR-01", "Carrier CAR-01", T0, None, [])], now=T0 + MAX_GAP_S + 1)
+    assert "NODE_OFFLINE" in codes(silent)
