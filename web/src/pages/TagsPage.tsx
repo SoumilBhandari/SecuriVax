@@ -33,7 +33,11 @@ export default function TagsPage() {
       </Card>
       <Card title="VVM test card">
         <p className="mb-2 text-sm text-slate-600">
-          Print this and stick one VVM on the demo bottle to try the camera check.
+          Print this and stick one VVM on the demo bottle to try the camera check. Or open the{" "}
+          <a href="/vvm-target.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+            single-VVM test target
+          </a>{" "}
+          on a laptop and point the phone at it: pick a stage, or slide through every shade.
         </p>
         <a href="/vvm-card.svg" target="_blank" rel="noreferrer">
           <img src="/vvm-card.svg" alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-lg border border-slate-200" />

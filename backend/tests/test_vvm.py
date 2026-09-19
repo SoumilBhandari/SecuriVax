@@ -143,3 +143,13 @@ def test_bad_uploads(client):
     body = client.post("/api/boxes/BOX-0004/vvm", json={"image": base64.b64encode(blank.getvalue()).decode()}).json()
     assert body["found"] is False
 
+
+
+def test_dev_can_keep_photos_and_label_them(client, tmp_path, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "vvm_save_dir", str(tmp_path))
+    res = client.post("/api/boxes/BOX-0004/vvm", json=photo_payload(0.5)).json()
+    assert (tmp_path / f"check{res['check_id']}_BOX-0004.jpg").is_file()
+    client.post(f"/api/boxes/BOX-0004/vvm/{res['check_id']}/confirm", json={"stage": 2})
+    assert (tmp_path / "labelled" / f"stage2_{res['check_id']}.jpg").is_file()

@@ -6,7 +6,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000"
+        "cd backend && VVM_SAVE_DIR=../vvm-photos .venv/bin/uvicorn app.main:app --reload --port 8000"
       ],
       "port": 8000
     },
@@ -18,6 +18,17 @@
         "web",
         "run",
         "dev"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "web-phone",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "web",
+        "run",
+        "dev:phone"
       ],
       "port": 5173
     },

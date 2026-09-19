@@ -7,7 +7,8 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:phone": "sh scripts/dev-cert.sh && vite --config vite.phone.config.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -25,3 +25,7 @@ dist/
 # OS / editors
 .DS_Store
 .idea/
+
+# Local dev HTTPS certificate and saved test photos
+web/.cert/
+vvm-photos/

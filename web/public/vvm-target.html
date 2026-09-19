@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VVM test target</title>
+<style>
+  :root { --paper: #ece7dc; --ink: #48346f; --text: #222; }
+  html, body { margin: 0; height: 100%; background: var(--paper); color: var(--text); font: 15px/1.4 system-ui, sans-serif; }
+  main { min-height: 100%; display: grid; grid-template-rows: 1fr auto; }
+  .stage { display: grid; place-items: center; }
+  .vvm { width: min(38vmin, 320px); aspect-ratio: 1; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+  .square { width: 60%; aspect-ratio: 1; }
+  .controls { padding: 12px 16px 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+  button { font: inherit; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #b9b2a4; background: #f7f3ea; cursor: pointer; }
+  button[aria-pressed="true"] { background: #222; color: #fff; border-color: #222; }
+  input[type=range] { width: min(320px, 80vw); }
+  output { font-variant-numeric: tabular-nums; min-width: 9ch; }
+</style>
+</head>
+<body>
+<main>
+  <div class="stage"><div class="vvm"><div class="square" id="square"></div></div></div>
+  <div class="controls">
+    <button data-p="0.1">Stage 1</button>
+    <button data-p="0.55">Stage 2</button>
+    <button data-p="1.0">Stage 3</button>
+    <button data-p="1.25">Stage 4</button>
+    <input id="progress" type="range" min="0" max="1.4" step="0.01" value="0.55" aria-label="Heat progress">
+    <output id="label"></output>
+  </div>
+</main>
+<script>
+  // One VVM on label-coloured paper, for testing the phone camera against a
+  // screen. The square is mixed from paper to ink by progress (0 fresh, 1 =
+  // matches the ring: the discard point, beyond 1 darker than the ring).
+  const paper = [236, 231, 220], ink = [72, 52, 111];
+  const square = document.getElementById("square"), range = document.getElementById("progress"), label = document.getElementById("label");
+  function show(p) {
+    const c = paper.map((v, i) => Math.max(0, Math.round(v + (ink[i] - v) * p)));
+    square.style.background = `rgb(${c})`;
+    const stage = p < 0.25 ? 1 : p < 1 ? 2 : p < 1.15 ? 3 : 4;
+    label.textContent = `${Math.round(p * 100)}% · stage ${stage}`;
+    document.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(Math.abs(+b.dataset.p - p) < 0.005)));
+    range.value = p;
+  }
+  document.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => show(+b.dataset.p)));
+  range.addEventListener("input", () => show(+range.value));
+  show(+(new URLSearchParams(location.search).get("p") ?? 0.55));
+</script>
+</body>
+</html>

@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 
 from sqlalchemy.exc import IntegrityError
 
+from app.config import get_settings
 from app.db import get_session
 from app.engine.profiles import PRODUCTS_BY_ID
 from app.engine.uncertainty import verdict_confidence
@@ -194,6 +195,7 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     reading = await run_in_threadpool(read_vvm, image)
     gemini = await gemini_vvm(jpeg)
     if not reading.found:
+        _save_photo(jpeg, f"notfound_{int(time.time())}_{box_id}", {"reading": asdict(reading), "gemini": gemini})
         return {"found": False, "message": reading.message, "gemini": gemini}
 
     record = await run_in_threadpool(_record_prediction, session, box)
@@ -212,7 +214,36 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     session.add(check)
     session.commit()
     session.refresh(check)
+    _save_photo(jpeg, f"check{check.id}_{box_id}", {"reading": asdict(reading), "witnesses": asdict(witnesses), "gemini": gemini})
     return {"found": True, "check_id": check.id, "reading": asdict(reading), "witnesses": asdict(witnesses), "gemini": gemini}
+
+
+def _save_photo(jpeg: bytes, name: str, meta: dict) -> None:
+    """Dev only (VVM_SAVE_DIR): keep the photo and what the reader made of it."""
+    folder = get_settings().vvm_save_dir
+    if not folder:
+        return
+    import json
+    from pathlib import Path
+
+    out = Path(folder)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{name}.jpg").write_bytes(jpeg)
+    (out / f"{name}.json").write_text(json.dumps(meta, indent=1, default=str))
+
+
+def _label_saved_photo(check_id: int, box_id: str, stage: int) -> None:
+    """Once a person confirms the stage, file a copy as labelled data."""
+    folder = get_settings().vvm_save_dir
+    if not folder:
+        return
+    import shutil
+    from pathlib import Path
+
+    src = Path(folder) / f"check{check_id}_{box_id}.jpg"
+    if src.is_file():
+        (Path(folder) / "labelled").mkdir(exist_ok=True)
+        shutil.copyfile(src, Path(folder) / "labelled" / f"stage{stage}_{check_id}.jpg")
 
 
 def _record_prediction(session: Session, box: Box) -> dict:
@@ -253,6 +284,7 @@ def confirm_vvm(box_id: str, check_id: int, body: VvmConfirmIn, session: Session
     check.confirmed = True
     session.add(check)
     session.commit()
+    _label_saved_photo(check.id, box_id, check.stage)
     # Crowdsourced calibration: this photo is now evidence about the product's real speed.
     product_id = session.get(Box, box_id).product_id
     learning.invalidate(product_id)

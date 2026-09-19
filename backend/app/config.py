@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # When set, custody changes, VVM checks and dispatch decisions need this
     # code (the web app asks for it once per device). Empty: open, for dev.
     operator_token: str = ""
+    # Dev only: save each VVM photo and what the reader made of it here, and a
+    # stage-labelled copy once confirmed (input for evals.calibrate_vvm --photos).
+    vvm_save_dir: str = ""
     version: str = "dev"  # set to the commit on deploy (App Platform: ${_self.COMMIT_HASH})
     max_body_bytes: int = 8 * 1024 * 1024
     # Gemini names places along the route (Google Maps grounding).

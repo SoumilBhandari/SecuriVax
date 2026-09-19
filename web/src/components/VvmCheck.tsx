@@ -118,6 +118,13 @@ export function VvmCheck({
             The camera compares the inner square's brightness with the ring around it. Lighter than the ring: usable. As
             dark or darker: discard point. It then checks the result against what the temperature record predicts.
           </p>
+          <p className="mt-2 text-xs text-muted">
+            No VVM to hand? Open the{" "}
+            <a href="/vvm-target.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              test target
+            </a>{" "}
+            on another screen, or print the test card from the Tags page.
+          </p>
         </div>
       ) : null}
       <input ref={cameraApp} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => fromFile(e.target)} />
