@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" font-family="Helvetica, Arial, sans-serif">
-  <title>Vialtality VVM test card: print and stick on the demo bottle</title>
+  <title>SecuriVax VVM test card: print and stick on the demo bottle</title>
   <rect width="800" height="300" fill="#ece7dc"/>
   <text x="400" y="36" text-anchor="middle" font-size="20" fill="#222">VVM test card (print, cut, stick on the demo bottle)</text>
   <g transform="translate(100 140)"><circle r="70" fill="#48346f"/><rect x="-42" y="-42" width="84" height="84" fill="#eee9dc"/><text y="110" text-anchor="middle" font-size="16" fill="#222">Stage 1: fresh</text></g>

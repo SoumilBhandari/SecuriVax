@@ -1,1 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0f172a"/><path d="M32 12v40M14.7 22l34.6 20M14.7 42l34.6-20" stroke="#7dd3fc" stroke-width="5" stroke-linecap="round"/><circle cx="32" cy="32" r="7" fill="#0f172a" stroke="#34d399" stroke-width="4"/></svg>
+<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+<title>SecuriVax app icon (dark, square)</title>
+<rect width="1024" height="1024" fill="#0B2545"></rect>
+<path transform="translate(194 194) scale(5.3)" fill="#35D0C3" fill-rule="evenodd" d="M60 8 C60 8 22 50 22 74 A38 38 0 0 0 98 74 C98 50 60 8 60 8 Z M53.89 79.14 L51 94 L69 94 L66.11 79.14 A11 11 0 1 0 53.89 79.14 Z"></path>
+</svg>

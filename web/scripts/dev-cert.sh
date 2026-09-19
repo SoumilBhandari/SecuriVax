@@ -10,7 +10,7 @@ if [ -f .cert/dev.crt ] && openssl x509 -in .cert/dev.crt -noout -text | grep -q
   :
 else
   openssl req -x509 -newkey rsa:2048 -nodes -days 30 -keyout .cert/dev.key -out .cert/dev.crt \
-    -subj "/CN=Vialtality dev" -addext "subjectAltName=IP:$IP,IP:127.0.0.1,DNS:localhost" 2>/dev/null
+    -subj "/CN=SecuriVax dev" -addext "subjectAltName=IP:$IP,IP:127.0.0.1,DNS:localhost" 2>/dev/null
 fi
 echo ""
 echo "  On your phone (same Wi-Fi):  https://$IP:5173"

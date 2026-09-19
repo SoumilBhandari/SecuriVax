@@ -3,13 +3,6 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import type { AgentAdvice, Facility } from "../types";
 
-const TONE: Record<AgentAdvice["recommendation"]["action"], { bg: string; fg: string }> = {
-  CONTINUE: { bg: "var(--color-good-tint)", fg: "var(--color-good-fg)" },
-  DIVERT: { bg: "var(--color-warn-tint)", fg: "var(--color-warn-fg)" },
-  HOLD: { bg: "var(--color-bad-tint)", fg: "var(--color-bad-fg)" },
-  UNKNOWN: { bg: "var(--color-neutral-900)", fg: "var(--color-neutral-200)" },
-};
-
 const TOOL_LABEL: Record<string, string> = {
   get_carrier_status: "checked the carrier and its forecast",
   find_facilities: "looked up nearby fridges",
@@ -60,31 +53,30 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
   };
 
   const rec = advice?.recommendation;
-  const tone = rec ? TONE[rec.action] : null;
   return (
     <div>
-      {rec && tone && (
-        <section className="mb-2.5 rounded-[14px] px-[22px] py-5" style={{ background: tone.bg, color: tone.fg }}>
-          <p className="m-0 mb-2 text-[22px] font-semibold leading-[1.15] tracking-[-0.025em]">
+      {rec && (
+        <section className="card-soft mb-3 p-4">
+          <p className="m-0 mb-2 font-display text-[22px] font-semibold leading-7 tracking-[-0.02em]">
             {title(rec)}
-            {rec.action === "DIVERT" && rec.eta_min != null && <span className="text-base font-normal opacity-80"> · {rec.eta_min} min</span>}
+            {rec.action === "DIVERT" && rec.eta_min != null && <span className="font-sans text-base font-normal text-neutral-500"> · {rec.eta_min} min</span>}
           </p>
-          <p className="m-0 mb-3 text-base leading-[1.45] [text-wrap:pretty]">{rec.summary}</p>
+          <p className="m-0 mb-3 [text-wrap:pretty]">{rec.summary}</p>
           {rec.reasons.length > 0 && (
-            <ul className="m-0 mb-4 list-disc pl-5 text-sm opacity-85">
+            <ul className="ui-caption m-0 mb-4 list-disc pl-5">
               {rec.reasons.map((r) => (
                 <li key={r}>{r}</li>
               ))}
             </ul>
           )}
           {accepted ? (
-            <p className="m-0 text-sm font-medium">{accepted}</p>
+            <p className="m-0 font-bold">{accepted}</p>
           ) : (
-            <button onClick={accept} disabled={accepting || rec.action === "UNKNOWN"} className="btn-outline">
+            <button onClick={accept} disabled={accepting || rec.action === "UNKNOWN"} className="btn-primary">
               {accepting ? "Logging…" : "Accept and log"}
             </button>
           )}
-          <details className="mt-3 text-[13px] opacity-80">
+          <details className="ui-caption mt-3">
             <summary className="cursor-pointer">
               What the {advice!.source === "gemini" ? "Gemini agent" : "fallback rule"} looked at ({advice!.steps.length} steps)
             </summary>
@@ -109,19 +101,19 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
           className="select-pill flex-1"
           aria-label="Heading to"
         >
-          <option value="">Heading to…</option>
+          <option value="">Heading to (optional)</option>
           {facilities.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
             </option>
           ))}
         </select>
-        <button onClick={ask} disabled={busy} className={rec ? "btn-quiet" : "btn-outline"}>
+        <button onClick={ask} disabled={busy} className={rec ? "btn-secondary" : "btn-primary !w-auto"}>
           {busy ? "Thinking…" : rec ? "Ask again" : "Ask the agent"}
         </button>
       </div>
       {failure && (
-        <p role="alert" className="m-0 mt-2 text-sm" style={{ color: "var(--color-bad)" }}>
+        <p role="alert" className="m-0 mt-2 font-bold">
           {failure}
         </p>
       )}

@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 
-import { ErrorNote, Layout, SectionTitle, Spinner } from "../components/Layout";
+import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner } from "../components/Layout";
 import { api } from "../lib/api";
 import { time, weatherSource } from "../lib/format";
 import type { Facility, NodeSummary, Product, TripOption, TripPlan } from "../types";
@@ -59,13 +59,14 @@ export default function PlanPage() {
 
   return (
     <Layout>
-      <h1 className="m-0 mb-2 mt-[26px] text-[34px] leading-[1.05]">Trip planner</h1>
-      <p className="m-0 mb-5 text-[15px] leading-[1.45] text-neutral-300">
-        The weather forecast and a carrier's real cold life, run for every daylight departure over the next two days to
-        every clinic.
-      </p>
+      <PageTitle
+        top
+        eyebrow="Plan"
+        title="Trip planner"
+        sub="The weather forecast and a carrier's real cold life, run for every daylight departure over the next two days to every clinic."
+      />
 
-      <section className="panel grid grid-cols-2 gap-3 p-5">
+      <section className="panel grid grid-cols-2 gap-3 p-4">
         <Field label="Product" wide>
           <select className="select-pill w-full" value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })}>
             {products.map((p) => (
@@ -103,7 +104,7 @@ export default function PlanPage() {
             ))}
           </select>
         </Field>
-        <button onClick={run} disabled={busy} className="btn-accent col-span-2 mt-1">
+        <button onClick={run} disabled={busy} className="btn-primary col-span-2 mt-1">
           {busy ? "Forecasting…" : "Plan trips"}
         </button>
       </section>
@@ -117,7 +118,7 @@ export default function PlanPage() {
 
 function Field({ label, wide = false, children }: { label: string; wide?: boolean; children: ReactNode }) {
   return (
-    <label className={`flex flex-col gap-1.5 text-xs text-neutral-400 ${wide ? "col-span-2" : ""}`}>
+    <label className={`eyebrow flex flex-col gap-2 ${wide ? "col-span-2" : ""}`}>
       {label}
       {children}
     </label>
@@ -128,43 +129,43 @@ function PlanResult({ plan }: { plan: TripPlan }) {
   return (
     <>
       <SectionTitle aside={plan.product.name}>Recommendation</SectionTitle>
-      <section className="rounded-[14px] bg-accent-900 p-[22px] text-accent-200">
-        {plan.recommendations.map((r) => (
-          <p key={r} className="m-0 mb-2 text-base leading-[1.45] last:mb-0">
+      <section className="card-soft p-4">
+        {plan.recommendations.map((r, i) => (
+          <p key={r} className={i === 0 ? "ui-heading m-0 mb-2" : "m-0 mb-2 last:mb-0"}>
             {r}
           </p>
         ))}
         {plan.stock_advice.length > 0 && (
-          <div className="mt-3 rounded-lg p-3" style={{ background: "var(--color-warn-tint)", color: "var(--color-warn-fg)" }}>
+          <div className="mt-3 rounded-xl border-[1.5px] border-line-strong p-3">
             {plan.stock_advice.map((a) => (
-              <p key={a} className="m-0 text-sm">
+              <p key={a} className="m-0 font-bold">
                 {a}
               </p>
             ))}
           </div>
         )}
-        <p className="m-0 mt-3 text-xs opacity-75">
+        <p className="ui-caption m-0 mt-3">
           {weatherSource(plan.source)} · {plan.assumptions}
         </p>
       </section>
 
-      <SectionTitle aside="green: stays in range">Every departure</SectionTitle>
-      <div className="flex flex-col gap-2.5">
+      <SectionTitle aside="pale: stays in range · darker: more heat">Every departure</SectionTitle>
+      <div className="flex flex-col gap-3">
         {plan.destinations.map((d) => (
-          <div key={d.id} className="panel px-[18px] py-4">
+          <div key={d.id} className="panel p-4">
             <div className="flex items-baseline justify-between gap-3">
-              <p className="m-0 text-[15px] font-semibold">{d.name}</p>
-              <p className="m-0 whitespace-nowrap text-xs text-neutral-400">
+              <p className="m-0 font-display font-semibold tracking-[-0.01em]">{d.name}</p>
+              <p className="ui-caption m-0 whitespace-nowrap">
                 {d.km} km · {d.travel_h} h drive
               </p>
             </div>
             <Strip options={d.options} best={d.best} />
-            <p className="m-0 mt-2 text-[13px] text-neutral-300">
+            <p className="m-0 mt-2 text-[15px]">
               Best: leave {time(d.best.depart_ts)}, max {d.best.max_inside_c.toFixed(1)} °C inside, +{(d.best.budget_used * 100).toFixed(1)}% budget
               {d.best.breach_ts ? `, above ${plan.product.storage_max_c} °C from ${time(d.best.breach_ts)}` : ""}
             </p>
             {d.rated_best && d.best.breach_ts && !d.rated_best.breach_ts && (
-              <p className="m-0 mt-1 text-[13px]" style={{ color: "var(--color-good)" }}>
+              <p className="ui-caption m-0 mt-1">
                 A carrier at its rated cold life would stay in range on this run.
               </p>
             )}
@@ -175,14 +176,14 @@ function PlanResult({ plan }: { plan: TripPlan }) {
   );
 }
 
-/** Every departure as one block: green stays in range, then warmer colours for more heat. */
+/** Every departure as one block: pale Glacier stays in range, then darker Ink for more heat. */
 function Strip({ options, best }: { options: TripOption[]; best: TripOption }) {
   const worst = Math.max(...options.map((o) => o.budget_used), 1e-6);
   return (
     <div className="mt-2 flex gap-[3px]" role="list" aria-label="Departure options">
       {options.map((o) => {
         const heat = o.budget_used / worst;
-        const color = o.breach_ts ? (heat > 0.66 ? "var(--color-bad)" : heat > 0.33 ? "var(--color-hot)" : "var(--color-warn)") : "var(--color-good)";
+        const color = o.breach_ts ? (heat > 0.66 ? "var(--text)" : heat > 0.33 ? "var(--ink-500)" : "var(--ink-300)") : "var(--ring-track)";
         const isBest = o.depart_ts === best.depart_ts;
         return (
           <div
@@ -191,7 +192,7 @@ function Strip({ options, best }: { options: TripOption[]; best: TripOption }) {
             aria-label={`${time(o.depart_ts)}: +${(o.budget_used * 100).toFixed(1)}% budget, max ${o.max_inside_c} °C${isBest ? ", best" : ""}`}
             title={`${time(o.depart_ts)}: +${(o.budget_used * 100).toFixed(1)}%, max ${o.max_inside_c} °C`}
             className="h-6 flex-1 rounded-[4px]"
-            style={{ background: color, boxShadow: isBest ? "0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent-300)" : undefined }}
+            style={{ background: color, outline: isBest ? "2px solid var(--text)" : undefined, outlineOffset: 2 }}
           />
         );
       })}

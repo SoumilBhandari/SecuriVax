@@ -82,7 +82,7 @@ export function VvmCheck({
     <div id="vvm">
       {latest && !result && !camera && <LatestLabel latest={latest} />}
       {highlight && !result && !camera && (
-        <p className="mb-3 rounded-xl p-3 text-sm" style={{ background: "var(--color-warn-tint)", color: "var(--color-warn-fg)" }}>
+        <p className="mb-3 rounded-xl border-[1.5px] border-line-strong p-3 font-bold">
           The temperature record is borderline. A photo of the VVM label settles it.
         </p>
       )}
@@ -104,11 +104,11 @@ export function VvmCheck({
       ) : !result ? (
         <div>
           {noLiveCamera ? (
-            <button onClick={() => cameraApp.current?.click()} className="btn-accent">
+            <button onClick={() => cameraApp.current?.click()} className="btn-primary">
               Open the camera
             </button>
           ) : (
-            <button onClick={() => setCamera(true)} className="btn-accent">
+            <button onClick={() => setCamera(true)} className="btn-primary">
               Scan the VVM label
             </button>
           )}
@@ -130,7 +130,7 @@ export function VvmCheck({
       ) : null}
       <input ref={cameraApp} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => fromFile(e.target)} />
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => fromFile(e.target)} />
-      {error && <p role="alert" className="mt-2 text-sm" style={{ color: "var(--color-bad)" }}>{error}</p>}
+      {error && <p role="alert" className="mt-2 font-bold">{error}</p>}
       {result && <Result result={result} busy={busy} onConfirm={confirm} onRetry={() => setResult(null)} />}
     </div>
   );
@@ -138,15 +138,15 @@ export function VvmCheck({
 
 function LatestLabel({ latest }: { latest: LabelCheck }) {
   return (
-    <div className="tile mb-3 !p-3 text-sm">
+    <div className="tile mb-3 text-[15px]">
       <p>
         Last confirmed label: <b>{STAGES[latest.stage]}</b>
-        {latest.rho != null && <span className="text-neutral-400"> (square/ring {latest.rho.toFixed(2)})</span>}
+        {latest.rho != null && <span className="text-neutral-500"> (square/ring {latest.rho.toFixed(2)})</span>}
       </p>
-      <p className="text-xs text-neutral-400">
+      <p className="ui-caption">
         The record said {pct(latest.sensor_budget)}
         {latest.predicted_stage != null && `, stage ${latest.predicted_stage}`} ·{" "}
-        {latest.flagged ? <span className="font-semibold" style={{ color: "var(--color-warn)" }}>flagged: they disagreed</span> : "they agreed"}
+        {latest.flagged ? <span className="font-bold text-text">flagged: they disagreed</span> : "they agreed"}
       </p>
     </div>
   );
@@ -166,9 +166,9 @@ function Result({
   const [correcting, setCorrecting] = useState(false);
   if (!result.found) {
     return (
-      <div role="alert" className="rounded-xl p-3" style={{ background: "var(--color-warn-tint)", color: "var(--color-warn-fg)" }}>
-        <p className="m-0 text-sm">{result.message}</p>
-        <button onClick={onRetry} className="mt-1 font-semibold underline underline-offset-2">
+      <div role="alert" className="rounded-xl border-[1.5px] border-line-strong p-3">
+        <p className="m-0">{result.message}</p>
+        <button onClick={onRetry} className="mt-1 font-bold underline underline-offset-2">
           Try again
         </button>
       </div>
@@ -180,24 +180,24 @@ function Result({
   const span = w.predicted_stages[0] === w.predicted_stages[1] ? `${w.predicted_stages[0]}` : `${w.predicted_stages[0]}–${w.predicted_stages[1]}`;
   return (
     <div className="space-y-3">
-      <div role="status" className="rounded-xl p-3" style={w.flagged ? { background: "var(--color-warn-tint)", color: "var(--color-warn-fg)" } : { background: "var(--color-good-tint)", color: "var(--color-good-fg)" }}>
-        <p className="font-semibold">{w.flagged ? "Camera and record disagree" : "Camera and record agree"}</p>
-        <p className="mt-0.5 text-sm leading-snug">{w.text}</p>
+      <div role="status" className={`rounded-xl p-3 ${w.flagged ? "border-[1.5px] border-line-strong" : "border border-line"}`}>
+        <p className="ui-heading">{w.flagged ? "Camera and record disagree" : "Camera and record agree"}</p>
+        <p className="mt-1">{w.text}</p>
       </div>
 
-      <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-line text-sm">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-line">
         <div className="p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-accent-300">Camera sees</p>
-          <p className="mt-1 font-semibold">{STAGES[reading.stage]}</p>
-          <p className="text-xs text-neutral-400">
+          <p className="eyebrow">Camera sees</p>
+          <p className="mt-1 font-bold">{STAGES[reading.stage]}</p>
+          <p className="ui-caption">
             Square {reading.past_endpoint ? "as dark as" : "lighter than"} the ring · {reading.rho.toFixed(2)}
             {reading.near_cutoff && " · close to the line"}
           </p>
         </div>
         <div className="border-l border-line p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-[#8fb3ff]">Record predicts</p>
-          <p className="mt-1 font-semibold">Stage {span}</p>
-          <p className="text-xs text-neutral-400">
+          <p className="eyebrow">Record predicts</p>
+          <p className="mt-1 font-bold">Stage {span}</p>
+          <p className="ui-caption">
             {pct(w.sensor)} of the budget ({pct(w.sensor_range[0])}–{pct(w.sensor_range[1])})
           </p>
         </div>
@@ -205,34 +205,34 @@ function Result({
       <RatioScale witnesses={w} />
 
       {gemini && gemini.stage != null && (
-        <p className="text-xs text-neutral-400">
+        <p className="ui-caption">
           Gemini's second look: {STAGES[gemini.stage]} ({pct(gemini.confidence)} sure)
-          {gemini.stage !== reading.stage && <span className="font-semibold" style={{ color: "var(--color-warn)" }}> · differs from the camera, look carefully</span>}
+          {gemini.stage !== reading.stage && <span className="font-bold text-text"> · differs from the camera, look carefully</span>}
         </p>
       )}
 
       {!correcting ? (
         <div className="flex gap-2">
-          <button onClick={() => onConfirm()} disabled={busy} className="btn-accent flex-1">
-            Confirm: the label looks like this
+          <button onClick={() => onConfirm()} disabled={busy} className="btn-primary flex-1 !text-base">
+            Confirm the reading
           </button>
-          <button onClick={() => setCorrecting(true)} className="btn-quiet">
+          <button onClick={() => setCorrecting(true)} className="btn-secondary">
             It's different
           </button>
         </div>
       ) : (
         <div>
-          <p className="mb-2 text-sm">Which stage does the label show?</p>
+          <p className="mb-2">Which stage does the label show?</p>
           <div className="grid grid-cols-2 gap-2">
             {[1, 2, 3, 4].map((s) => (
-              <button key={s} onClick={() => onConfirm(s)} disabled={busy} className="btn-quiet !px-2 text-sm">
+              <button key={s} onClick={() => onConfirm(s)} disabled={busy} className="btn-secondary !px-2 !text-sm">
                 {STAGES[s]}
               </button>
             ))}
           </div>
         </div>
       )}
-      <button onClick={onRetry} className="w-full text-sm text-neutral-400 underline-offset-2 hover:underline">
+      <button onClick={onRetry} className="w-full text-sm text-neutral-500 underline-offset-2 hover:underline">
         Retake the photo
       </button>
     </div>
@@ -249,22 +249,22 @@ function RatioScale({ witnesses: w }: { witnesses: Witnesses }) {
   return (
     <figure aria-label={`Square to ring ratio ${w.rho.toFixed(2)}; discard at ${w.cutoff} or below`}>
       <div className="relative h-8">
-        <div className="absolute inset-x-0 top-3 h-2 rounded-full" style={{ background: "var(--color-good-tint)" }} />
-        <div className="absolute left-0 top-3 h-2 rounded-l-full" style={{ width: x(w.cutoff), background: "var(--color-bad-tint)" }} />
+        <div className="absolute inset-x-0 top-3 h-2 rounded-full" style={{ background: "var(--ring-track)" }} />
+        <div className="absolute left-0 top-3 h-2 rounded-l-full" style={{ width: x(w.cutoff), background: "var(--ink-300)" }} />
         {range && (
-          <div className="absolute top-2 h-4 rounded bg-[#8fb3ff]/30 ring-1 ring-[#8fb3ff]" style={{ left: x(range[0]), width: `calc(${x(range[1])} - ${x(range[0])})` }} />
+          <div className="absolute top-2 h-4 rounded border-[1.5px] border-line-strong" style={{ left: x(range[0]), width: `calc(${x(range[1])} - ${x(range[0])})` }} />
         )}
-        <div className="absolute top-0 h-8 w-0.5" style={{ left: x(w.cutoff), background: "var(--color-bad)" }}/>
-        <div className="absolute top-1.5 h-5 w-5 -translate-x-1/2 rounded-full border-2 border-white bg-accent-500 shadow" style={{ left: x(w.rho) }} />
+        <div className="absolute top-0 h-8 w-0.5 bg-text" style={{ left: x(w.cutoff) }} />
+        <div className="absolute top-1.5 h-5 w-5 -translate-x-1/2 rounded-full border-2 border-text" style={{ left: x(w.rho), background: "var(--glacier-500)" }} />
       </div>
-      <figcaption className="mt-1 flex justify-between text-[11px] text-neutral-400">
+      <figcaption className="ui-caption mt-1 flex justify-between">
         <span>darker than ring · discard</span>
         <span>lighter · usable</span>
       </figcaption>
-      <p className="mt-1 flex flex-wrap gap-x-3 text-[11px] text-neutral-400">
-        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full bg-accent-500 align-middle" />camera</span>
-        <span><span className="mr-1 inline-block h-2.5 w-4 rounded bg-[#8fb3ff]/30 align-middle ring-1 ring-[#8fb3ff]" />record's range</span>
-        <span><span className="mr-1 inline-block h-3 w-0.5 align-middle" style={{ background: "var(--color-bad)" }} />discard line</span>
+      <p className="ui-caption mt-1 flex flex-wrap gap-x-3">
+        <span><span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-text align-middle" style={{ background: "var(--glacier-500)" }} />camera</span>
+        <span><span className="mr-1 inline-block h-2.5 w-4 rounded border-[1.5px] border-line-strong align-middle" />record's range</span>
+        <span><span className="mr-1 inline-block h-3 w-0.5 bg-text align-middle" />discard line</span>
       </p>
     </figure>
   );
@@ -350,22 +350,22 @@ function Camera({ onCapture, onCancel, onError }: { onCapture: (img: string) => 
         <video ref={video} autoPlay playsInline muted className="h-full w-full object-cover" onLoadedMetadata={() => setLight("ok")} />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div
-            className={`relative aspect-square rounded-full border-4 shadow-[0_0_0_9999px_rgba(0,0,0,0.45)] transition-colors ${light === "ok" ? "border-[oklch(80%_0.12_152)]" : light === "starting" ? "border-white/80" : "border-[oklch(85%_0.13_84)]"}`}
+            className={`relative aspect-square rounded-full border-4 shadow-[0_0_0_9999px_rgba(11,37,69,0.5)] transition-colors ${light === "ok" ? "border-[var(--glacier-500)]" : light === "starting" ? "border-white/80" : "border-dashed border-white"}`}
             style={{ width: `${GUIDE * 100}%` }}
           >
             <div className="absolute inset-[27%] rounded-sm border-2 border-dashed border-white/70" />
           </div>
         </div>
-        <p className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-center text-sm text-white" aria-live="polite">
+        <p className="absolute inset-x-0 bottom-0 px-3 py-2 text-center text-sm text-white" style={{ background: "color-mix(in srgb, var(--ink-900) 70%, transparent)" }} aria-live="polite">
           {LIGHT_TEXT[light]}
         </p>
       </div>
-      <p className="mt-2 text-center text-xs text-neutral-400">Line the VVM up inside the circle, square in the middle.</p>
+      <p className="ui-caption mt-2 text-center">Line the VVM up inside the circle, square in the middle.</p>
       <div className="mt-2 flex gap-2">
-        <button onClick={capture} disabled={light === "starting"} className="btn-accent flex-1">
+        <button onClick={capture} disabled={light === "starting"} className="btn-primary flex-1">
           Take photo
         </button>
-        <button onClick={onCancel} className="btn-quiet">
+        <button onClick={onCancel} className="btn-secondary">
           Cancel
         </button>
       </div>

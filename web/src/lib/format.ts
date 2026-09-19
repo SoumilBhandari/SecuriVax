@@ -57,12 +57,12 @@ export function placeName(
   return places[placeKey(lat, lon)] ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 }
 
-/** Each verdict: its name, a strong colour, a light text colour and a dark tint (Nocturne tokens). */
+/** Each verdict: its name and its signal (the kit has three: USE_FIRST shares USE's). */
 export const VERDICT_STYLE: Record<Verdict, { label: string; color: string; fg: string; tint: string }> = {
-  USE: { label: "Use", color: "var(--color-good)", fg: "var(--color-good-fg)", tint: "var(--color-good-tint)" },
-  USE_FIRST: { label: "Use first", color: "var(--color-warn)", fg: "var(--color-warn-fg)", tint: "var(--color-warn-tint)" },
-  QUARANTINE: { label: "Quarantine", color: "var(--color-hot)", fg: "var(--color-hot-fg)", tint: "var(--color-hot-tint)" },
-  DISCARD: { label: "Discard", color: "var(--color-bad)", fg: "var(--color-bad-fg)", tint: "var(--color-bad-tint)" },
+  USE: { label: "Use", color: "var(--signal-use)", fg: "var(--on-signal-use)", tint: "var(--signal-use)" },
+  USE_FIRST: { label: "Use first", color: "var(--signal-use)", fg: "var(--on-signal-use)", tint: "var(--signal-use)" },
+  QUARANTINE: { label: "Quarantine", color: "var(--signal-quarantine)", fg: "var(--on-signal-quarantine)", tint: "var(--signal-quarantine)" },
+  DISCARD: { label: "Discard", color: "var(--signal-discard)", fg: "var(--on-signal-discard)", tint: "var(--signal-discard)" },
 };
 
 export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE: 1, USE_FIRST: 2, USE: 3 };
@@ -70,21 +70,9 @@ export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE:
 /** Kept for older call sites: same as time(). */
 export const eat = time;
 
-/** Heat risk for a store or clinic, on the same scale as the verdicts. */
-export const RISK_STYLE: Record<string, { color: string; fg: string; tint: string }> = {
-  extreme: { color: "var(--color-bad)", fg: "var(--color-bad-fg)", tint: "var(--color-bad-tint)" },
-  high: { color: "var(--color-hot)", fg: "var(--color-hot-fg)", tint: "var(--color-hot-tint)" },
-  moderate: { color: "var(--color-warn)", fg: "var(--color-warn-fg)", tint: "var(--color-warn-tint)" },
-  low: { color: "var(--color-good)", fg: "var(--color-good-fg)", tint: "var(--color-good-tint)" },
-};
-
-/** For drawing on the map, where CSS variables don't reach. */
-export const RISK_COLOR: Record<string, string> = {
-  extreme: "#e5534b",
-  high: "#e8814a",
-  moderate: "#d9a441",
-  low: "#4fb286",
-};
+/** Heat risk isn't a verdict, so it gets no signal colour: an outlined word in lists,
+ * Ink shades on the map (styled by class in index.css). */
+export const RISK_ORDER: Record<string, number> = { extreme: 0, high: 1, moderate: 2, low: 3 };
 
 export function weatherSource(source: string): string {
   if (source === "open-meteo") return "Weather: Open-Meteo";

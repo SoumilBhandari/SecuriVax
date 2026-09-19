@@ -1,11 +1,11 @@
 {
-  "name": "Vialtality",
-  "short_name": "Vialtality",
-  "description": "Verdicts, not alarms: is this vial still good?",
+  "name": "SecuriVax",
+  "short_name": "SecuriVax",
+  "description": "Potency in every drop: one verdict for each box, at the moment of use.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f7fa",
-  "theme_color": "#0e1a28",
+  "background_color": "#f5f8fa",
+  "theme_color": "#0b2545",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },

@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { pct } from "../lib/format";
 import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast } from "../types";
+import { DataList } from "./Brand";
 
 function until(ts: number | null | undefined): string {
   if (!ts) return "soon";
@@ -35,28 +36,30 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
   if (!data.available) return <Note>{data.reason}</Note>;
   const { state, forecast, fit, prior } = data;
   if (!state || !forecast || !prior) return <Note>Forecast incomplete.</Note>;
-  const risk = forecastAtRisk(data);
   const box = data.boxes?.find((b) => b.box_id === boxId);
-  const tone = risk ? { bg: "var(--color-bad-tint)", fg: "var(--color-bad-fg)" } : { bg: "var(--color-good-tint)", fg: "var(--color-good-fg)" };
 
   return (
-    <section className="rounded-[14px] px-[22px] pb-[18px] pt-[22px]" style={{ background: tone.bg, color: tone.fg }}>
-      <p className="m-0 mb-1.5 text-[13px] uppercase tracking-[0.1em] opacity-80">How long the cold lasts</p>
-      <p className="m-0 mb-4 text-[19px] font-semibold leading-[1.3] tracking-[-0.02em] [text-wrap:pretty]">{forecastLine(data)}</p>
+    <section className="card-soft p-4">
+      <p className="eyebrow m-0 mb-2">Forecast{forecastAtRisk(data) ? " · at risk" : ""}</p>
+      <p className="ui-heading m-0 mb-4">{forecastLine(data)}</p>
       <Fan data={data} />
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] opacity-85">
+      <div className="ui-caption mt-2 flex flex-wrap gap-x-3 gap-y-1">
         <span>— inside</span>
         <span>- - outside</span>
         <span>▬ likely range</span>
-        <span>▬ green: 2–{data.storage_max_c ?? 8} °C</span>
+        <span>▬ 2–{data.storage_max_c ?? 8} °C</span>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <Fact k="Ice left" v={`${state.ice_left_h[1]} h`} sub={`${state.ice_left_h[0]}–${state.ice_left_h[2]} h likely`} />
-        <Fact k="Cold life" v={`${state.effective_cold_life_h[1]} h`} sub={`rated ${state.rated_cold_life_h ?? 20} h`} />
-        <Fact k="Outside" v={`${state.outside_c.toFixed(0)} °C`} sub="right now" />
+      <div className="mt-3">
+        <DataList
+          rows={[
+            { label: "Ice left", value: `${state.ice_left_h[1]} h (${state.ice_left_h[0]}–${state.ice_left_h[2]} likely)` },
+            { label: "Cold life", value: `${state.effective_cold_life_h[1]} h (rated ${state.rated_cold_life_h ?? 20})` },
+            { label: "Outside now", value: `${state.outside_c.toFixed(0)} °C` },
+          ]}
+        />
       </div>
       {box && (
-        <p className="m-0 mt-3 text-sm">
+        <p className="m-0 mt-3">
           {box.verdict_now === "DISCARD"
             ? "This box is already past its end point."
             : box.verdict_now === "QUARANTINE"
@@ -64,7 +67,7 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
               : `This box: ${pct(box.p_quarantine_or_worse)} chance it needs QUARANTINE or worse by the end of the window.`}
         </p>
       )}
-      <p className="m-0 mt-3 text-xs leading-snug opacity-70">
+      <p className="ui-caption m-0 mt-3">
         Particle filter over the carrier's hidden ice and heat leak ({data.readings} readings
         {fit?.one_step_rmse_c != null ? `, tracking to ±${fit.one_step_rmse_c.toFixed(2)} °C` : ""}; prior from {prior.from}),
         rolled forward through {data.weather_source}.
@@ -74,17 +77,7 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
 }
 
 function Note({ children }: { children: ReactNode }) {
-  return <p className="m-0 rounded-[14px] border border-neutral-800 bg-surface px-5 py-4 text-[15px] text-neutral-300">{children}</p>;
-}
-
-function Fact({ k, v, sub }: { k: string; v: string; sub: string }) {
-  return (
-    <div className="rounded-lg bg-white/5 p-3">
-      <p className="m-0 text-xs uppercase tracking-[0.06em] opacity-75">{k}</p>
-      <p className="m-0 mt-0.5 text-[22px] font-bold leading-[1.1]">{v}</p>
-      <p className="m-0 mt-0.5 text-xs opacity-75">{sub}</p>
-    </div>
-  );
+  return <p className="m-0 rounded-2xl border border-line bg-surface p-4 text-neutral-500">{children}</p>;
 }
 
 function Fan({ data }: { data: CarrierForecast }) {
@@ -106,14 +99,14 @@ function Fan({ data }: { data: CarrierForecast }) {
   return (
     <figure className="m-0">
       <svg viewBox="0 0 340 124" className="block w-full" role="img" aria-label="Forecast of the inside temperature">
-        <rect x="30" y={sy(max)} width="300" height={sy(2) - sy(max)} fill="oklch(74% 0.11 152 / .14)" />
-        <path d={band} fill="currentColor" opacity=".16" />
-        <path d={line(f.outside_p50)} fill="none" stroke="oklch(68% 0.18 24)" strokeWidth="1.5" strokeDasharray="4 3" />
-        <path d={line(f.p50)} fill="none" stroke="#e9e9ed" strokeWidth="2.25" strokeLinejoin="round" />
-        <text x="26" y={sy(max) + 4} textAnchor="end" fontSize="11" fill="currentColor">{max}°</text>
-        <text x="26" y={sy(2) + 4} textAnchor="end" fontSize="11" fill="currentColor">2°</text>
+        <rect x="30" y={sy(max)} width="300" height={sy(2) - sy(max)} fill="var(--band)" />
+        <path d={band} fill="var(--line)" opacity=".1" />
+        <path d={line(f.outside_p50)} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
+        <path d={line(f.p50)} fill="none" stroke="var(--line)" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <text x="26" y={sy(max) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)">{max}°</text>
+        <text x="26" y={sy(2) + 4} textAnchor="end" fontSize="11" fill="var(--text-muted)">2°</text>
       </svg>
-      <div className="mt-0.5 flex justify-between text-xs opacity-75">
+      <div className="ui-caption mt-0.5 flex justify-between">
         <span>now</span>
         <span>+{f.horizon_h} h</span>
       </div>

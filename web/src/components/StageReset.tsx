@@ -21,10 +21,10 @@ export function StageReset({ onDone }: { onDone?: (message: string) => void }) {
   };
   return (
     <div>
-      <button onClick={reset} disabled={busy} className="btn-quiet w-full">
+      <button onClick={reset} disabled={busy} className="btn-secondary w-full">
         {busy ? "Resetting…" : "Reset the stage demo"}
       </button>
-      {note && !onDone && <p role="status" className="m-0 mt-2 text-sm text-neutral-400">{note}</p>}
+      {note && !onDone && <p role="status" className="ui-caption m-0 mt-2">{note}</p>}
     </div>
   );
 }

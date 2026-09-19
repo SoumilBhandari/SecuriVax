@@ -92,6 +92,8 @@ export interface Segment {
 }
 
 export interface Product {
+  /** A vial monitor on the label (most COVID-19 vaccines have none). */
+  has_vvm?: boolean;
   id: string;
   name: string;
   kind: "vaccine" | "rapid_test";

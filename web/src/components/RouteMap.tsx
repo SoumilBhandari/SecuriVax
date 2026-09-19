@@ -6,7 +6,9 @@ import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-
 import { placeName, time } from "../lib/format";
 import type { PointStatus, Segment } from "../types";
 
-const COLORS: Record<PointStatus, string> = { ok: "#b5abfc", heat: "#e5534b", freeze: "#6ec6ff" };
+// Not verdicts, so no signal colours: in-range is an Ink line, heat a heavier
+// one, freezing a dashed one (styled by class in index.css), each named in the key.
+const LEGEND: Record<PointStatus, string> = { ok: "In range", heat: "Too warm", freeze: "Frozen" };
 
 /** Split a leg into runs of the same status so each run gets its colour. */
 function runs(seg: Segment) {
@@ -23,14 +25,14 @@ function runs(seg: Segment) {
 export function RouteMap({ segments, places }: { segments: Segment[]; places: Record<string, string> }) {
   const all = segments.flatMap((s) => s.route.map((p) => [p.lat, p.lon] as [number, number]));
   if (all.length === 0) {
-    return <p className="m-0 py-6 text-center text-sm text-neutral-400">No GPS fix recorded yet.</p>;
+    return <p className="ui-caption m-0 py-6 text-center">No GPS fix recorded yet.</p>;
   }
   const bounds = latLngBounds(all).pad(0.15);
   const events = segments.flatMap((s) => s.runs.filter((r) => r.lat != null && r.kind !== "humid"));
 
   return (
     <div>
-      <div className="h-64 overflow-hidden rounded-xl border border-line">
+      <div className="h-64 overflow-hidden rounded-2xl border border-line">
         <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -41,7 +43,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
               <Polyline
                 key={`${s.node_id}-${s.start_ts}-${i}`}
                 positions={r.line}
-                pathOptions={{ color: COLORS[r.status], weight: r.status === "ok" ? 4 : 6, opacity: 0.9 }}
+                pathOptions={{ className: `route-line route-${r.status}` }}
               />
             )),
           )}
@@ -53,7 +55,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
               key={`${e.kind}-${e.start_ts}`}
               center={[e.lat!, e.lon!]}
               radius={8}
-              pathOptions={{ color: "#161826", weight: 2, fillColor: e.kind === "freeze" ? COLORS.freeze : COLORS.heat, fillOpacity: 1 }}
+              pathOptions={{ className: "route-event" }}
             >
               <Tooltip>
                 {e.kind === "freeze" ? "Froze" : "Too warm"} near {placeName(places, e.lat, e.lon)}, {time(e.start_ts)}
@@ -62,15 +64,19 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
           ))}
         </MapContainer>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-neutral-400">
+      <div className="ui-caption mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {(["ok", "heat", "freeze"] as const).map((k) => (
-          <span key={k}>
-            <span className="mr-1 inline-block h-1 w-4 rounded align-middle" style={{ background: COLORS[k] }} />
-            {k === "ok" ? "In range" : k === "heat" ? "Too warm" : "Frozen"}
+          <span key={k} className="inline-flex items-center gap-1.5">
+            <svg width="20" height="8" aria-hidden="true">
+              <line x1="1" x2="19" y1="4" y2="4" className={`route-line route-${k}`} />
+            </svg>
+            {LEGEND[k]}
           </span>
         ))}
-        <span>
-          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-[#4fb286] bg-bg align-middle" />
+        <span className="inline-flex items-center gap-1.5">
+          <svg width="12" height="12" aria-hidden="true">
+            <circle cx="6" cy="6" r="4" className="route-end" />
+          </svg>
           Handoff
         </span>
       </div>
@@ -92,7 +98,7 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
             key={e.label}
             center={[e.lat!, e.lon!]}
             radius={6}
-            pathOptions={{ color: "#4fb286", weight: 3, fillColor: "#161826", fillOpacity: 1 }}
+            pathOptions={{ className: "route-end" }}
           >
             <Tooltip>
               {e.label}, {placeName(places, e.lat, e.lon)}, {time(e.ts)}

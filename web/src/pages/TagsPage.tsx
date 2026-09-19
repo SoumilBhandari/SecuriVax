@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 
-import { BackHeader, Layout, SectionTitle } from "../components/Layout";
+import { StageIcon } from "../components/Icons";
+import { BackHeader, Layout, PageTitle, SectionTitle } from "../components/Layout";
 import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
 import { asset } from "../lib/snapshot";
@@ -19,34 +21,42 @@ export default function TagsPage() {
 
   return (
     <Layout>
-      <BackHeader eyebrow="Setup" />
-      <h1 className="m-0 mb-2 text-[30px] leading-[1.08]">NFC tags</h1>
-      <p className="m-0 text-[15px] leading-[1.5] text-neutral-300">
+      <BackHeader />
+      <PageTitle eyebrow="Setup" title="NFC tags" />
+      <p className="m-0 -mt-3 text-neutral-300">
         Write each URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Tapping a sticker
         opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it. Print the same URL as a
         QR code for phones without NFC.
       </p>
 
       <SectionTitle aside="DEMO-01 · BOX-9001/9002">Stage demo</SectionTitle>
-      <section className="panel p-5">
-        <p className="m-0 mb-3 text-sm leading-[1.45] text-neutral-300">
-          Between rehearsals: clear the stage carrier's readings and put both stage boxes back to fresh. The eight lanes are
+      <section className="panel flex flex-col gap-3 p-4">
+        <p className="m-0">
+          Put the stage screen on the projector: the carrier's live temperature and both stage boxes, updating with every
+          reading.
+        </p>
+        <Link to="/stage" className="btn-primary">
+          <StageIcon size={22} />
+          Open the stage screen
+        </Link>
+        <p className="ui-caption m-0">
+          Between rehearsals: clear the stage carrier's readings and put both stage boxes back to fresh. The other lanes are
           not touched.
         </p>
         <StageReset />
       </section>
 
       <SectionTitle>VVM test card</SectionTitle>
-      <section className="panel p-5">
-        <p className="m-0 mb-3 text-sm leading-[1.45] text-neutral-300">
+      <section className="panel p-4">
+        <p className="m-0 mb-3">
           Print this and stick one VVM on the demo bottle to try the camera check. Or open the{" "}
-          <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="text-accent-400 underline underline-offset-2">
+          <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
             single-VVM test target
           </a>{" "}
           on a laptop and point the phone at it: pick a stage, or slide through every shade.
         </p>
         <a href={asset("/vvm-card.svg")} target="_blank" rel="noreferrer">
-          <img src={asset("/vvm-card.svg")} alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-lg" />
+          <img src={asset("/vvm-card.svg")} alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-xl border border-line" />
         </a>
       </section>
 
@@ -72,14 +82,14 @@ function TagList({ items }: { items: { id: string; label: string; url: string }[
   return (
     <ul className="panel m-0 list-none p-0">
       {items.map((item, i) => (
-        <li key={item.id} className={`flex items-center gap-3 px-5 py-2.5 ${i ? "border-t border-line" : ""}`}>
+        <li key={item.id} className={`flex items-center gap-3 px-4 py-3 ${i ? "border-t border-line" : ""}`}>
           <div className="min-w-0 flex-1">
-            <p className="m-0 text-sm font-medium">
-              {item.id} <span className="font-normal text-neutral-400">{item.label}</span>
+            <p className="m-0 text-sm font-bold">
+              {item.id} <span className="font-normal text-neutral-500">{item.label}</span>
             </p>
             <p className="m-0 truncate font-mono text-xs text-neutral-500">{item.url}</p>
           </div>
-          <button onClick={() => copy(item.url)} className="btn-quiet !min-h-9 shrink-0 !px-3 text-xs">
+          <button onClick={() => copy(item.url)} className="btn-secondary !min-h-10 shrink-0 !px-3 !text-sm">
             {copied === item.url ? "Copied" : "Copy"}
           </button>
         </li>

@@ -6,7 +6,7 @@ import { Custody } from "../components/Custody";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { forecastLine } from "../components/Forecast";
 import { ChevronRightIcon, ScanIcon, SparkIcon, XIcon } from "../components/Icons";
-import { BackHeader, Detail, Details, ErrorNote, Layout, SectionTitle, Spinner, Toast } from "../components/Layout";
+import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
 import { StageReset } from "../components/StageReset";
 import { TripChart } from "../components/TripChart";
@@ -89,13 +89,15 @@ export default function BoxPage() {
   if (!report) {
     return (
       <Layout>
-        <BackHeader eyebrow={id} />
+        <BackHeader />
+        <PageTitle eyebrow="Product" title={id} />
         {error ? <ErrorNote error={error} onRetry={refresh} /> : <Spinner label="Checking this box" />}
       </Layout>
     );
   }
 
   const vaccine = report.product.kind === "vaccine";
+  const hasVvm = vaccine && report.product.has_vvm !== false;
   const unit = vaccine ? "doses" : "tests";
   const inside = report.segments.find((s) => !s.end_ts);
   const fc = forecast.data?.available ? forecast.data : null;
@@ -103,49 +105,54 @@ export default function BoxPage() {
 
   return (
     <Layout>
-      <BackHeader eyebrow={report.box.id} />
-      <h1 className="m-0 mb-1 text-2xl leading-[1.15] [text-wrap:pretty]">{report.product.name}</h1>
-      <p className="m-0 mb-[18px] text-sm text-neutral-400">
-        {report.box.quantity.toLocaleString()} {unit}
-        {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : "delivered"}
-      </p>
+      <BackHeader />
+      <PageTitle
+        eyebrow="Product"
+        title={report.product.name}
+        sub={
+          <>
+            {report.box.id} · {report.box.quantity.toLocaleString()} {unit}
+            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : "delivered"}
+          </>
+        }
+      />
 
-      <VerdictHero report={report} stale={stale} onCheckLabel={() => setScanning(true)} />
+      <VerdictHero report={report} stale={stale} />
 
-      <SectionTitle>Why this verdict</SectionTitle>
+      <div className="mt-6 flex flex-col gap-3">
+        {hasVvm && (
+          <button onClick={() => setScanning(true)} className="btn-primary">
+            <ScanIcon size={22} />
+            Scan the VVM label
+          </button>
+        )}
+        {hasVvm && label && (
+          <p className="ui-caption m-0 text-center">
+            Last label confirmed {time(label.ts)}: stage {label.stage}
+            {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
+          </p>
+        )}
+        <button onClick={() => setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
+          Move this box
+        </button>
+        {moving && <MoveBox report={report} onMoved={changed} />}
+      </div>
+
+      <SectionTitle>Why</SectionTitle>
       <Reasons reasons={report.reasons} />
 
       {fc && inside && (
         <Link
           to={`/node/${inside.node_id}`}
-          className="mt-[26px] grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[14px] bg-accent-900 px-5 py-4 text-left text-accent-200 hover:bg-accent-800"
+          className="mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline hover:border-line-strong"
         >
           <span className="flex flex-col gap-1">
-            <span className="text-[13px] uppercase tracking-[0.08em] opacity-80">In {inside.node_label}</span>
-            <span className="text-base leading-[1.35]">{forecastLine(fc)}</span>
+            <span className="eyebrow">Carrier · {inside.node_label}</span>
+            <span>{forecastLine(fc)}</span>
           </span>
           <ChevronRightIcon size={22} />
         </Link>
       )}
-
-      <div className="mt-[26px] flex flex-col gap-2.5">
-        {vaccine && (
-          <button onClick={() => setScanning(true)} className="btn-accent">
-            <ScanIcon size={22} />
-            Scan the VVM label
-          </button>
-        )}
-        {vaccine && label && (
-          <p className="m-0 text-center text-[13px] text-neutral-400">
-            Last label confirmed {time(label.ts)}: stage {label.stage}
-            {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
-          </p>
-        )}
-        <button onClick={() => setMoving(!moving)} aria-expanded={moving} className="btn-quiet w-full">
-          Move this box
-        </button>
-        {moving && <MoveBox report={report} onMoved={changed} />}
-      </div>
 
       <SectionTitle>More detail</SectionTitle>
       <Details>
@@ -179,7 +186,7 @@ export default function BoxPage() {
           </Detail>
         )}
       </Details>
-      <p className="m-0 mt-[18px] text-center text-xs text-neutral-500">Decision support with a human in the loop. Not a clinical determination.</p>
+      <p className="ui-caption m-0 mt-6 text-center">Decision support with a human in the loop. Not a clinical determination.</p>
 
       {scanning && (
         <Sheet title="Check the VVM label" onClose={() => setScanning(false)}>
@@ -212,18 +219,18 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     };
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[1300] flex items-end justify-center bg-[color-mix(in_srgb,var(--color-neutral-900)_70%,transparent)] backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[1300] flex items-end justify-center" style={{ background: "color-mix(in srgb, var(--ink-900) 55%, transparent)" }} onClick={onClose}>
       <section
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-[20px] bg-surface px-5 pt-4 shadow-[0_0_0_1px_#595d6c,0_-16px_40px_rgba(0,0,0,.55)]"
+        className="max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4"
         style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="m-0 text-lg">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="grid h-11 w-11 place-items-center rounded-full text-neutral-300 hover:bg-white/5">
+          <h2 className="ui-heading m-0">{title}</h2>
+          <button onClick={onClose} aria-label="Close" className="back-btn">
             <XIcon size={20} />
           </button>
         </div>
@@ -277,17 +284,17 @@ function WorkerReport({ boxId, verdict }: { boxId: string; verdict: Report["verd
   return (
     <div className={loading ? "opacity-60" : ""}>
       {data.text.split(/\n\s*\n/).map((para, i) => (
-        <p key={i} className="m-0 mb-3 text-base leading-[1.55] [text-wrap:pretty] last:mb-0">
+        <p key={i} className="m-0 mb-3 [text-wrap:pretty] last:mb-0">
           {para}
         </p>
       ))}
-      <p className="m-0 mt-3 flex flex-wrap items-center gap-1 text-xs text-neutral-500">
+      <p className="ui-caption m-0 mt-3 flex flex-wrap items-center gap-1">
         <SparkIcon size={12} /> {source} · {places} · the verdict comes from the rule engine
-        <button onClick={run} disabled={loading} className="ml-auto !min-h-0 text-accent-400 underline-offset-2 hover:underline disabled:opacity-50">
+        <button onClick={run} disabled={loading} className="ml-auto !min-h-0 font-bold text-accent-300 underline-offset-2 hover:underline disabled:opacity-50">
           {loading ? "Writing…" : "Refresh"}
         </button>
       </p>
-      {failed && <p className="m-0 mt-1 text-xs" style={{ color: "var(--color-bad)" }}>Couldn't refresh; showing the last report.</p>}
+      {failed && <p className="ui-caption m-0 mt-1">Couldn't refresh; showing the last report.</p>}
     </div>
   );
 }

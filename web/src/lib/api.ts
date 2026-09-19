@@ -64,7 +64,7 @@ async function request<T>(path: string, init?: RequestInit, retried = false): Pr
     res = await fetch(`${BASE}${path}`, { ...init, headers, signal: init?.signal ?? AbortSignal.timeout(20000) });
   } catch (e) {
     const timeout = e instanceof DOMException && e.name === "TimeoutError";
-    throw new ApiError(0, timeout ? "The server took too long. Check your signal and try again." : "Can't reach Vialtality. Check your signal.");
+    throw new ApiError(0, timeout ? "The server took too long. Check your signal and try again." : "Can't reach SecuriVax. Check your signal.");
   }
   if (res.status === 401 && !retried) {
     const entered = window.prompt("Enter this site's operator code");
@@ -144,7 +144,8 @@ export const api = {
   facilities: () => request<Facility[]>("/api/facilities"),
   storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),
   carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
-  liveRecent: (limit = 120) => request<LiveRecent>(`/api/live/recent?limit=${limit}`),
+  liveRecent: (limit = 120, node?: string) =>
+    request<LiveRecent>(`/api/live/recent?${new URLSearchParams({ limit: String(limit), ...(node && { node }) })}`),
   /** Server-sent events of new readings; the browser reconnects and resumes on its own. */
   liveStreamUrl: ({ after, node }: { after?: number; node?: string }) =>
     `${BASE}/api/live/stream?${new URLSearchParams({ ...(after != null && { after: String(after) }), ...(node && { node }) })}`,

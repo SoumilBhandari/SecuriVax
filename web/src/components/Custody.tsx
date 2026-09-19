@@ -19,7 +19,7 @@ const UNMONITORED_S = 15 * 60;
 export function Custody({ segments, places }: { segments: Segment[]; places: Record<string, string> }) {
   const [map, setMap] = useState(false);
   if (segments.length === 0) {
-    return <p className="m-0 text-[15px] text-neutral-300">Not loaded into a monitored carrier yet.</p>;
+    return <p className="m-0 text-neutral-500">Not loaded into a monitored carrier yet.</p>;
   }
   const now = Date.now() / 1000;
   const last = segments[segments.length - 1];
@@ -36,30 +36,31 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
           return (
             <li key={`${s.node_id}-${s.start_ts}`}>
               {gap > UNMONITORED_S && <Unmonitored text={`Unmonitored for ${hours(gap / 3600)}: no temperature record`} />}
-              <div className="grid grid-cols-[20px_minmax(0,1fr)] gap-3.5">
+              <div className="grid grid-cols-[16px_minmax(0,1fr)] gap-3">
+                {/* Ink ring: finished legs are hollow, the one it's in now is filled. */}
                 <span className="flex flex-col items-center">
-                  <span className="h-3.5 w-3.5 rounded-full" style={{ background: s.end_ts ? "#595d6c" : "var(--color-good)" }} />
-                  {!isLast && <span className="my-1 w-0.5 flex-1 bg-divider" />}
+                  <span className="mt-1.5 h-3 w-3 rounded-full border-2 border-text" style={{ background: s.end_ts ? "var(--surface)" : "var(--text)" }} />
+                  {!isLast && <span className="my-1 w-px flex-1 bg-line" />}
                 </span>
-                <span className="flex flex-col gap-[3px] pb-[18px]">
-                  <span className="flex justify-between gap-2.5">
-                    <Link to={`/node/${s.node_id}`} className="text-base font-semibold text-text hover:text-accent-400">
+                <span className="flex flex-col gap-0.5 pb-4">
+                  <span className="flex justify-between gap-2">
+                    <Link to={`/node/${s.node_id}`} className="font-display font-semibold text-text no-underline hover:text-accent-300">
                       {s.node_label}
                     </Link>
-                    <span className="whitespace-nowrap text-sm text-neutral-400">{pct(s.budget_used)} of budget</span>
+                    <span className="ui-caption whitespace-nowrap leading-6">{pct(s.budget_used)} of budget</span>
                   </span>
-                  <span className="text-sm text-neutral-300">
+                  <span className="ui-caption">
                     {time(s.start_ts)} · {span} · {range}
                   </span>
-                  {s.environment && <span className="mt-0.5 text-[15px] leading-[1.4]">{s.environment.text}</span>}
+                  {s.environment && <span className="mt-0.5 text-[15px] leading-[22px]">{s.environment.text}</span>}
                   {s.gaps.map((g) => (
-                    <span key={g.start_ts} className="flex items-center gap-1.5 text-[13px]" style={{ color: "var(--color-warn)" }}>
+                    <span key={g.start_ts} className="flex items-center gap-1.5 text-sm font-bold">
                       <OfflineIcon size={13} />
                       {g.ongoing ? `No data since ${time(g.start_ts)}` : `No data ${time(g.start_ts)} to ${time(g.end_ts)}`}
                     </span>
                   ))}
                   {s.backup_label && s.backup_filled > 0 && (
-                    <span className="text-[13px] text-neutral-400">
+                    <span className="ui-caption">
                       Backup node {s.backup_label} filled {s.backup_filled} readings
                     </span>
                   )}
@@ -76,13 +77,13 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
         (map ? (
           <div className="mt-3">
             <ErrorBoundary label="The map">
-              <Suspense fallback={<p className="text-sm text-neutral-400">Loading the map…</p>}>
+              <Suspense fallback={<p className="ui-caption">Loading the map…</p>}>
                 <RouteMap segments={segments} places={places} />
               </Suspense>
             </ErrorBoundary>
           </div>
         ) : (
-          <button onClick={() => setMap(true)} className="btn-quiet mt-2 w-full">
+          <button onClick={() => setMap(true)} className="btn-secondary mt-2 w-full">
             Show the route on a map
           </button>
         ))}
@@ -92,7 +93,7 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
 
 function Unmonitored({ text }: { text: string }) {
   return (
-    <p className="m-0 mb-3 flex items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium" style={{ background: "var(--color-warn-tint)", color: "var(--color-warn-fg)" }}>
+    <p className="m-0 mb-3 flex items-center gap-2 rounded-xl border-[1.5px] border-line-strong px-3 py-2 text-sm font-bold">
       <OfflineIcon size={14} />
       {text}
     </p>

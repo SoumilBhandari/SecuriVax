@@ -64,8 +64,8 @@ function follow(url: () => string, onReading: (r: LiveReading) => void, onStatus
   };
 }
 
-/** The live signal: the latest readings, then every new one as the server gets it. */
-export function useLive() {
+/** The live signal: the latest readings, then every new one as the server gets it (one node's, if given). */
+export function useLive(node?: string) {
   const [readings, setReadings] = useState<LiveReading[]>([]); // oldest first
   const [band, setBand] = useState<LiveRecent["band"] | null>(null);
   const [status, setStatus] = useState<LiveStatus>("connecting");
@@ -84,7 +84,7 @@ export function useLive() {
     };
 
     api
-      .liveRecent()
+      .liveRecent(120, node)
       .then((r) => {
         if (!alive) return;
         newest.current = r.last_id;
@@ -92,7 +92,7 @@ export function useLive() {
         setBand(r.band);
         setFirstNewId(r.last_id + 1);
         if (SNAPSHOT) setStatus("snapshot");
-        else stop = follow(() => api.liveStreamUrl({ after: newest.current }), add, setStatus);
+        else stop = follow(() => api.liveStreamUrl({ after: newest.current, node }), add, setStatus);
       })
       .catch((e: Error) => {
         if (!alive) return;
@@ -104,7 +104,7 @@ export function useLive() {
       alive = false;
       stop();
     };
-  }, []);
+  }, [node]);
 
   return { readings, band, status, error, firstNewId };
 }

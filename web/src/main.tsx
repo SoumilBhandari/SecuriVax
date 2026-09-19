@@ -10,6 +10,7 @@ import BoxPage from "./pages/BoxPage";
 import HomePage from "./pages/HomePage";
 import NodePage from "./pages/NodePage";
 import { freezeClock, SNAPSHOT } from "./lib/snapshot";
+import { applyTheme, followSystemTheme } from "./lib/theme";
 
 // Pages off the tap-a-sticker path load on demand (they pull in the map).
 const ClimatePage = lazy(() => import("./pages/ClimatePage"));
@@ -17,6 +18,7 @@ const PlanPage = lazy(() => import("./pages/PlanPage"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
 const LivePage = lazy(() => import("./pages/LivePage"));
+const StagePage = lazy(() => import("./pages/StagePage"));
 
 function NotFound() {
   return (
@@ -37,6 +39,8 @@ const page = (el: ReactNode) => (
 // A snapshot is one file: its routes live in the hash.
 const Router = SNAPSHOT ? HashRouter : BrowserRouter;
 freezeClock();
+applyTheme();
+followSystemTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -47,6 +51,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/node/:id" element={page(<NodePage />)} />
         <Route path="/tags" element={page(<TagsPage />)} />
         <Route path="/live" element={page(<LivePage />)} />
+        <Route path="/stage" element={page(<StagePage />)} />
         <Route path="/climate" element={page(<ClimatePage />)} />
         <Route path="/plan" element={page(<PlanPage />)} />
         <Route path="/impact" element={page(<ImpactPage />)} />

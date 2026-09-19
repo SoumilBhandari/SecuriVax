@@ -1,82 +1,248 @@
 @import "tailwindcss";
 
 /*
- * Nocturne: the team's redesign. A dark ground with one blurple accent,
- * Inter throughout, verdict colours in OKLCH so each tier reads at the same
- * weight, and rules that fade out at both ends.
+ * SecuriVax. Ink and Glacier on Snow: calm, flat and precise. Tokens come from
+ * the brand kit (tokens.css); the theme is light by default and dark on
+ * [data-theme="dark"], which index.html sets from the viewer's choice or their
+ * system before the first paint. Signal colours are for verdicts only.
  */
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-bg: #161826;
-  --color-surface: #232532;
-  --color-text: #e9e9ed;
-  --color-line: color-mix(in srgb, #e9e9ed 8%, transparent);
-  --color-line-strong: color-mix(in srgb, #e9e9ed 14%, transparent);
-  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
-
-  --color-accent: #9184d9;
-  --color-accent-100: #f5f4ff;
-  --color-accent-200: #e7e5fe;
-  --color-accent-300: #d2cefd;
-  --color-accent-400: #b5abfc;
-  --color-accent-500: #968ae0;
-  --color-accent-600: #796cbf;
-  --color-accent-700: #5d5294;
-  --color-accent-800: #423a6a;
-  --color-accent-900: #2b2741;
-
-  --color-neutral-100: #f3f5fe;
-  --color-neutral-200: #e4e7f5;
-  --color-neutral-300: #cfd3e5;
-  --color-neutral-400: #b2b6ca;
-  --color-neutral-500: #9397ab;
-  --color-neutral-600: #75798c;
-  --color-neutral-700: #595d6c;
-  --color-neutral-800: #3f424d;
-  --color-neutral-900: #292b31;
-
-  /* Verdict and risk tiers: a strong colour, a light text colour, a dark tint. */
-  --color-good: oklch(74% 0.11 152);
-  --color-good-fg: oklch(90% 0.07 152);
-  --color-good-tint: oklch(31% 0.045 152);
-  --color-warn: oklch(80% 0.12 84);
-  --color-warn-fg: oklch(92% 0.08 84);
-  --color-warn-tint: oklch(33% 0.05 84);
-  --color-hot: oklch(74% 0.14 48);
-  --color-hot-fg: oklch(90% 0.08 48);
-  --color-hot-tint: oklch(32% 0.06 48);
-  --color-bad: oklch(68% 0.18 24);
-  --color-bad-fg: oklch(90% 0.08 24);
-  --color-bad-tint: oklch(31% 0.08 24);
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/fonts/sora-300.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/fonts/sora-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/fonts/sora-600.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Sora";
+  src: url("./assets/fonts/sora-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("./assets/fonts/dm-sans-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("./assets/fonts/dm-sans-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "DM Sans";
+  src: url("./assets/fonts/dm-sans-700.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
 }
 
-html {
-  -webkit-tap-highlight-color: transparent;
-  background: var(--color-bg);
+/* Brand palette and the light theme. */
+:root,
+[data-theme="light"] {
+  --ink-900: #0b2545;
+  --ink-700: #1e3d63;
+  --ink-500: #4f6d8f;
+  --ink-300: #a3b6cc;
+  --ink-100: #e4ecf1;
+  --glacier-700: #0b7a73;
+  --glacier-500: #35d0c3;
+  --glacier-300: #9debe4;
+  --glacier-100: #e3f8f6;
+  --snow: #f5f8fa;
+  --fog: #e4ecf1;
+  --slate: #5b6b7b;
+  --white: #ffffff;
+
+  /* Verdict signals: fills behind the verdict word, nothing else. */
+  --signal-use: #157a52;
+  --signal-quarantine: #f2b01e;
+  --signal-discard: #c93535;
+  --on-signal-use: var(--white);
+  --on-signal-quarantine: var(--ink-900);
+  --on-signal-discard: var(--white);
+
+  --bg: var(--snow);
+  --surface: var(--white);
+  --surface-inverse: var(--ink-900);
+  --text: var(--ink-900);
+  --text-2: var(--ink-700);
+  --text-muted: var(--slate);
+  --text-accent: var(--glacier-700);
+  --text-on-inverse: var(--white);
+  --text-muted-on-inverse: var(--ink-300);
+  --border: var(--fog);
+  --border-strong: var(--ink-500);
+  --quiet: var(--snow); /* hover rows and quiet panels on a surface */
+  --track: var(--fog); /* bar tracks */
+  --band: var(--glacier-100); /* the safe 2-8 C band on charts */
+  --line: var(--ink-900); /* chart lines */
+  --action: var(--glacier-500);
+  --on-action: var(--ink-900);
+  --action-hover: var(--glacier-300);
+  --action-pressed: var(--glacier-700);
+  --on-action-pressed: var(--white);
+  --focus-ring: var(--glacier-700);
+  --ring-track: var(--glacier-300);
+  --ring-arc: var(--ink-900);
+  --ring-track-on-inverse: #ffffff66;
+  --ring-arc-on-inverse: var(--glacier-500);
+  --toast: var(--ink-700);
+  color-scheme: light;
 }
 
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  letter-spacing: -0.011em;
-  font-feature-settings: "cv11", "ss01", "cv01", "tnum";
-  -webkit-font-smoothing: antialiased;
+[data-theme="dark"] {
+  --bg: var(--ink-900);
+  --surface: var(--ink-900);
+  --surface-inverse: var(--ink-700);
+  --text: var(--white);
+  --text-2: #d5dfea;
+  --text-muted: var(--ink-300);
+  --text-accent: var(--glacier-500);
+  --border: #ffffff29;
+  --border-strong: var(--ink-300);
+  --quiet: #ffffff0f;
+  --track: #ffffff1f;
+  --band: #35d0c326;
+  --line: var(--white);
+  --focus-ring: var(--glacier-500);
+  --ring-track: #ffffff66;
+  --ring-arc: var(--glacier-500);
+  --toast: var(--ink-700);
   color-scheme: dark;
 }
 
-h1,
-h2,
-h3 {
-  letter-spacing: -0.03em;
-  font-weight: 600;
+/*
+ * Tailwind's colour names, mapped onto the brand so every utility follows the
+ * theme: neutral-* are text and quiet-surface steps, accent-* are Glacier.
+ */
+@theme {
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Sora", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-divider: var(--border);
+
+  --color-ink: var(--ink-900);
+  --color-glacier: var(--glacier-500);
+  --color-accent: var(--glacier-500);
+  --color-accent-100: var(--glacier-100);
+  --color-accent-200: var(--text);
+  --color-accent-300: var(--text-accent);
+  --color-accent-400: var(--text-accent);
+  --color-accent-500: var(--glacier-500);
+  --color-accent-600: var(--text);
+  --color-accent-700: var(--border-strong);
+  --color-accent-800: var(--border-strong);
+  --color-accent-900: var(--quiet);
+
+  --color-neutral-100: var(--text);
+  --color-neutral-200: var(--text);
+  --color-neutral-300: var(--text-2);
+  --color-neutral-400: var(--text-muted);
+  --color-neutral-500: var(--text-muted);
+  --color-neutral-600: var(--border-strong);
+  --color-neutral-700: var(--border-strong);
+  --color-neutral-800: var(--track);
+  --color-neutral-900: var(--quiet);
+
+  /* Verdict tiers as signals: the fill, the text on it, and the same fill as a tint. */
+  --color-good: var(--signal-use);
+  --color-good-fg: var(--on-signal-use);
+  --color-good-tint: var(--signal-use);
+  --color-warn: var(--signal-quarantine);
+  --color-warn-fg: var(--on-signal-quarantine);
+  --color-warn-tint: var(--signal-quarantine);
+  --color-hot: var(--signal-quarantine);
+  --color-hot-fg: var(--on-signal-quarantine);
+  --color-hot-tint: var(--signal-quarantine);
+  --color-bad: var(--signal-discard);
+  --color-bad-fg: var(--on-signal-discard);
+  --color-bad-tint: var(--signal-discard);
 }
 
-::selection {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+/* Element defaults sit in the base layer, so any utility class overrides them. */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 24px;
+    font-feature-settings: "tnum";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  a {
+    color: var(--text-accent);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--glacier-500) 35%, transparent);
+  }
+
+  /* Every tappable thing is at least 44px tall; form text is 16px so iOS doesn't zoom. */
+  button,
+  select,
+  input:not([type="range"]),
+  a.button {
+    min-height: 44px;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  select,
+  input,
+  textarea {
+    font-size: 16px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  input:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  button:active:not(:disabled) {
+    transform: scale(0.99);
+  }
 }
 
 @keyframes vt-pulse {
@@ -89,179 +255,223 @@ h3 {
   }
 }
 
+/* A verdict that just changed on the stage screen. */
+@keyframes vt-pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.4;
+  }
+  60% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 /* A reading that just arrived in the live feed. */
 @keyframes vt-arrive {
   from {
-    background: var(--color-accent-900);
+    background: var(--arrive);
   }
   to {
     background: transparent;
   }
 }
+:root {
+  --arrive: var(--glacier-100);
+}
+[data-theme="dark"] {
+  --arrive: var(--ink-700);
+}
 
 @layer components {
-  /* The phone-width column, with the accent's glow behind the top of the page. */
+  /* The phone-width column. Flat: no gradients, no shadows. */
   .shell {
     position: relative;
     max-width: 480px;
     min-height: 100dvh;
     margin: 0 auto;
-    padding: 0 20px calc(108px + env(safe-area-inset-bottom, 0px));
-    background: radial-gradient(
-      120% 40% at 50% -6%,
-      color-mix(in srgb, var(--color-accent) 13%, var(--color-bg)),
-      var(--color-bg) 70%
-    );
+    padding: 0 16px calc(112px + env(safe-area-inset-bottom, 0px));
   }
 
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--color-neutral-500);
-  }
-
+  /* Eyebrow labels: DM Sans 700 in capitals, +14% tracking. */
+  .eyebrow,
   .section-title {
-    margin: 30px 0 12px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--color-neutral-500);
+    color: var(--text-muted);
+  }
+  .section-title {
+    margin: 32px 0 12px;
   }
 
-  /* A raised card: a whisper of light at the top edge, a hairline border. */
-  .card-soft {
-    border-radius: 14px;
-    border: 1px solid var(--color-line);
-    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white), var(--color-surface));
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      0 0 0 1px #3f424d33;
+  .ui-title {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: pretty;
+  }
+  .ui-heading {
+    font-family: var(--font-display);
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: pretty;
+  }
+  .ui-caption {
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--text-muted);
   }
 
+  /* Cards: a white surface on snow, set apart by a hairline. */
+  .card-soft,
+  .panel {
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
   .panel {
     overflow: hidden;
-    border-radius: 14px;
-    border: 1px solid var(--color-line);
-    background: var(--color-surface);
   }
 
   .tile {
     padding: 12px 16px;
-    border-radius: 8px;
-    background: var(--color-neutral-900);
+    border-radius: 12px;
+    border: 1px solid var(--border);
   }
 
+  /* A small outlined label for states that aren't verdicts (risk, sensor band). */
   .pill {
     display: inline-flex;
     align-items: center;
-    padding: 5px 10px;
-    border-radius: 999px;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
+    padding: 4px 12px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-strong);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 
-  /* Rules fade to transparent at both ends. */
   .rule {
     height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      var(--color-neutral-800) 48px,
-      var(--color-neutral-800) calc(100% - 48px),
-      transparent
-    );
+    background: var(--border);
   }
 
-  .btn-accent {
+  /* The one main action per screen: Glacier fill, Ink label. */
+  .btn-accent,
+  .btn-primary {
     display: flex;
     width: 100%;
-    min-height: 50px;
+    min-height: 52px;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    border: 1px solid var(--color-accent);
+    padding: 0 24px;
+    border: 1.5px solid var(--action);
     border-radius: 12px;
-    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
-    color: var(--color-accent-200);
-    font-size: 15px;
-    font-weight: 500;
+    background: var(--action);
+    color: var(--on-action);
+    font-family: var(--font-display);
+    font-size: 18px;
+    line-height: 24px;
+    font-weight: 600;
     letter-spacing: -0.01em;
+    text-decoration: none;
   }
-  .btn-accent:hover {
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  .btn-accent:hover:not(:disabled),
+  .btn-primary:hover:not(:disabled) {
+    background: var(--action-hover);
+    border-color: var(--action-hover);
   }
-  .btn-accent:active {
-    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  .btn-accent:active:not(:disabled),
+  .btn-primary:active:not(:disabled) {
+    background: var(--action-pressed);
+    border-color: var(--action-pressed);
+    color: var(--on-action-pressed);
   }
 
-  .btn-quiet {
+  /* Everything else: an outline. */
+  .btn-quiet,
+  .btn-outline,
+  .btn-secondary {
     display: flex;
-    min-height: 48px;
+    min-height: 52px;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 0 20px;
-    border: 1px solid var(--color-line-strong);
+    border: 1.5px solid var(--border-strong);
     border-radius: 12px;
     background: transparent;
-    color: var(--color-neutral-200);
-    font-size: 15px;
-    font-weight: 500;
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
     letter-spacing: -0.01em;
+    text-decoration: none;
   }
-  .btn-quiet:hover {
-    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  .btn-quiet:hover:not(:disabled),
+  .btn-outline:hover:not(:disabled),
+  .btn-secondary:hover:not(:disabled) {
+    border-color: var(--text);
   }
-
-  .btn-outline {
-    min-height: 48px;
-    padding: 0 20px;
-    border: 1px solid var(--color-accent);
-    border-radius: 12px;
-    background: transparent;
-    color: var(--color-accent-300);
-    font-size: 15px;
-    font-weight: 500;
-  }
-  .btn-outline:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  .btn-quiet:active:not(:disabled),
+  .btn-outline:active:not(:disabled),
+  .btn-secondary:active:not(:disabled) {
+    background: var(--border);
   }
 
   .btn-outline:disabled,
   .btn-quiet:disabled,
-  .btn-accent:disabled {
-    opacity: 0.45;
+  .btn-secondary:disabled,
+  .btn-accent:disabled,
+  .btn-primary:disabled {
+    background: var(--border);
+    border-color: var(--border);
+    color: var(--text-muted);
     cursor: not-allowed;
   }
 
   .select-pill {
     min-width: 0;
-    min-height: 48px;
-    padding: 0 16px;
-    border: 1px solid var(--color-divider);
-    border-radius: 999px;
-    background: var(--color-surface);
-    color: var(--color-text);
+    min-height: 52px;
+    padding: 0 12px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
     font: inherit;
     font-size: 16px;
   }
 
   .back-btn {
     display: grid;
+    flex: none;
     width: 44px;
     height: 44px;
     place-items: center;
-    border: 1px solid var(--color-neutral-800);
+    border: 1.5px solid var(--border-strong);
     border-radius: 50%;
-    background: var(--color-surface);
-    color: var(--color-text);
+    background: var(--surface);
+    color: var(--text);
   }
   .back-btn:hover {
-    border-color: var(--color-neutral-400);
+    border-color: var(--text);
   }
 
   /* The row that opens an accordion section. */
@@ -272,68 +482,284 @@ h3 {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 0 20px;
+    padding: 0 16px;
     border: 0;
     background: transparent;
-    color: var(--color-text);
-    font-size: 15px;
+    color: var(--text);
+    font-size: 16px;
     font-weight: 500;
-    letter-spacing: -0.01em;
     text-align: left;
   }
   .acc-btn:hover {
-    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+    background: var(--quiet);
+  }
+
+  /* Filter chips: outlined; the chosen one is filled with Ink. */
+  .chip {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1.5px solid var(--border-strong);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .chip:hover {
+    border-color: var(--text);
+  }
+  .chip[aria-pressed="true"] {
+    border-color: var(--text);
+    background: var(--text);
+    color: var(--bg);
+  }
+
+  /* --- Brand kit components (components/bundle.css) --- */
+  .sv-ring {
+    display: inline-block;
+    flex: none;
+  }
+  .sv-ring__track {
+    stroke: var(--ring-track);
+  }
+  .sv-ring__arc,
+  .sv-ring__glyph {
+    stroke: var(--ring-arc);
+  }
+  .sv-ring--inverse .sv-ring__track {
+    stroke: var(--ring-track-on-inverse);
+  }
+  .sv-ring--inverse .sv-ring__arc,
+  .sv-ring--inverse .sv-ring__glyph {
+    stroke: var(--ring-arc-on-inverse);
+  }
+  .sv-ring__dot {
+    fill: var(--ring-arc);
+  }
+  .sv-ring--inverse .sv-ring__dot {
+    fill: var(--ring-arc-on-inverse);
+  }
+  /* On a verdict's colour: everything in that verdict's text colour. */
+  .sv-ring--signal .sv-ring__track {
+    stroke: currentColor;
+    stroke-opacity: 0.3;
+  }
+  .sv-ring--signal .sv-ring__arc,
+  .sv-ring--signal .sv-ring__glyph {
+    stroke: currentColor;
+  }
+  .sv-ring--signal .sv-ring__dot {
+    fill: currentColor;
+  }
+
+  .sv-verdict {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 24px;
+    background: var(--surface-inverse);
+    color: var(--text-on-inverse);
+  }
+  .sv-verdict > div {
+    min-width: 0;
+  }
+  /* Each verdict on its signal, with the text colour the kit pairs it with. */
+  .sv-verdict--use {
+    background: var(--signal-use);
+    color: var(--on-signal-use);
+  }
+  .sv-verdict--quarantine {
+    background: var(--signal-quarantine);
+    color: var(--on-signal-quarantine);
+  }
+  .sv-verdict--discard {
+    background: var(--signal-discard);
+    color: var(--on-signal-discard);
+  }
+  .sv-verdict--use .sv-verdict__word,
+  .sv-verdict--quarantine .sv-verdict__word,
+  .sv-verdict--discard .sv-verdict__word {
+    color: inherit;
+  }
+  .sv-verdict--use .sv-verdict__eyebrow,
+  .sv-verdict--use .sv-verdict__note,
+  .sv-verdict--quarantine .sv-verdict__eyebrow,
+  .sv-verdict--quarantine .sv-verdict__note,
+  .sv-verdict--discard .sv-verdict__eyebrow,
+  .sv-verdict--discard .sv-verdict__note {
+    color: inherit;
+    opacity: 0.88;
+  }
+  .sv-verdict__eyebrow {
+    margin: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted-on-inverse);
+  }
+  .sv-verdict__word {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 56px;
+    line-height: 56px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--text-on-inverse);
+  }
+  .sv-verdict__word--discard {
+    font-size: 40px;
+  }
+  /* Sized so the longest word fits beside the ring on a 320 px phone. */
+  .sv-verdict__word--quarantine {
+    font-size: clamp(24px, 8.4vw, 34px);
+  }
+  .sv-verdict__note {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--text-muted-on-inverse);
+  }
+
+  .sv-badge {
+    display: inline-block;
+    flex: none;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .sv-badge--use {
+    background: var(--signal-use);
+    color: var(--on-signal-use);
+  }
+  .sv-badge--quarantine {
+    background: var(--signal-quarantine);
+    color: var(--on-signal-quarantine);
+  }
+  .sv-badge--discard {
+    background: var(--signal-discard);
+    color: var(--on-signal-discard);
+  }
+
+  .sv-data {
+    margin: 0;
+    padding: 0;
+  }
+  .sv-data__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .sv-data__row:last-child {
+    border-bottom: 0;
+  }
+  .sv-data dt {
+    margin: 0;
+    color: var(--text-muted);
+  }
+  .sv-data dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+    color: var(--text);
   }
 }
 
 .leaflet-container {
   font: inherit;
-  background: #1c1e2b;
+  background: var(--fog);
 }
-
-/* The map tiles are light; darken them to sit on the Nocturne ground. */
+/* Calm tiles: grey in light, inverted to sit on Ink in dark. */
 .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.55);
+  filter: grayscale(1) contrast(0.92) brightness(1.04);
 }
-
+[data-theme="dark"] .leaflet-container {
+  background: var(--ink-700);
+}
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: grayscale(1) invert(1) brightness(0.78) contrast(0.9);
+}
+/* Heat risk on the map: darker is hotter, with a ground-coloured edge. */
+.risk-marker {
+  stroke: var(--bg);
+  stroke-width: 2;
+  fill-opacity: 1;
+}
+.risk-extreme {
+  fill: var(--text);
+}
+.risk-high {
+  fill: var(--text-2);
+}
+.risk-moderate {
+  fill: var(--ink-500);
+}
+.risk-low {
+  fill: var(--ink-300);
+}
+/* A trip's route: Ink throughout, with the state in the line's weight and dash. */
+.route-line {
+  fill: none;
+  stroke: var(--text);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  stroke-opacity: 0.9;
+}
+.route-heat {
+  stroke-width: 7;
+}
+.route-freeze {
+  stroke-width: 5;
+  stroke-dasharray: 2 7;
+}
+.route-event {
+  fill: var(--text);
+  fill-opacity: 1;
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+.route-end {
+  fill: var(--bg);
+  fill-opacity: 1;
+  stroke: var(--text);
+  stroke-width: 3;
+}
 .leaflet-control-attribution {
-  background: rgba(22, 24, 38, 0.8) !important;
-  color: var(--color-neutral-500) !important;
+  background: color-mix(in srgb, var(--surface) 85%, transparent) !important;
+  color: var(--text-muted) !important;
 }
 .leaflet-control-attribution a {
-  color: var(--color-neutral-400) !important;
+  color: var(--text-muted) !important;
 }
 
-/* Every tappable thing is at least 44px tall; form text is 16px so iOS doesn't zoom. */
-button,
-select,
-input:not([type="range"]),
-a.button {
-  min-height: 44px;
+/* The brand's logo files: the light one on light grounds, the dark one on dark. */
+.logo-light {
+  display: block;
 }
-
-button {
-  cursor: pointer;
-  font-family: inherit;
+.logo-dark,
+[data-theme="dark"] .logo-light {
+  display: none;
 }
-
-select,
-input,
-textarea {
-  font-size: 16px;
-}
-
-button:focus-visible,
-a:focus-visible,
-select:focus-visible,
-input:focus-visible,
-summary:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-button:active:not(:disabled) {
-  transform: scale(0.99);
+[data-theme="dark"] .logo-dark {
+  display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {

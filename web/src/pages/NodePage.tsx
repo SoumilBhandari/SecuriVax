@@ -5,11 +5,12 @@ import { BoxCard } from "../components/BoxCard";
 import { Dispatch } from "../components/Dispatch";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ForecastCard } from "../components/Forecast";
-import { TapIcon } from "../components/Icons";
-import { BackHeader, Detail, Details, ErrorNote, Layout, SectionTitle, Spinner, Toast } from "../components/Layout";
+import { NfcIcon } from "../components/Icons";
+import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Toast } from "../components/Layout";
 import { api } from "../lib/api";
 import { ago, demoRate } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
+import { useReadingNudge } from "../lib/useLive";
 import type { BoxSummary, NodeDetail } from "../types";
 
 /** A carrier or cold room, as the driver or store keeper sees it. */
@@ -52,16 +53,19 @@ export default function NodePage() {
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(() => !document.hidden && refresh(), 5000);
+    const timer = setInterval(() => !document.hidden && refresh(), 30000);
     return () => clearInterval(timer);
   }, [refresh]);
+  // Each new reading refreshes the page at once; the 30 s poll is the fallback.
+  useReadingNudge(id, refresh);
 
   const hideToast = useCallback(() => setToast(null), []);
 
   if (!node) {
     return (
       <Layout>
-        <BackHeader eyebrow={id} />
+        <BackHeader />
+        <PageTitle eyebrow="Carrier" title={id} />
         {error ? <ErrorNote error={error} onRetry={refresh} /> : <Spinner />}
       </Layout>
     );
@@ -71,40 +75,38 @@ export default function NodePage() {
   const forecastable = node.kind !== "rdt_box" && !node.backup_for;
   return (
     <Layout>
-      <BackHeader eyebrow={`${node.kind.replace("_", " ")} · ${node.facility}`} />
-      <h1 className="m-0 mb-1.5 text-2xl leading-[1.15] [text-wrap:pretty]">{node.label}</h1>
-      <p className="m-0 mb-[18px] flex flex-wrap items-center gap-2 text-[15px] text-neutral-300">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: node.online ? "var(--color-good)" : "#595d6c" }} />
-        {node.online ? "Online" : "Offline"} · seen {ago(node.last_seen_at)}
-        {node.battery_v != null && (
+      <BackHeader />
+      <PageTitle
+        eyebrow={node.kind === "cold_box" ? "Cold box" : node.kind === "rdt_box" ? "Test box" : "Carrier"}
+        title={node.label}
+        sub={
           <>
-            <span className="opacity-60">·</span>
-            <span style={node.low_battery ? { color: "var(--color-bad)" } : undefined}>
-              {node.battery_v.toFixed(2)} V{node.low_battery && ", swap soon"}
-            </span>
+            {node.facility} · {node.online ? "Online" : "Offline"}, seen {ago(node.last_seen_at)}
+            {node.battery_v != null && (
+              <>
+                {" · "}
+                <span className={node.low_battery ? "font-bold text-text" : undefined}>
+                  {node.battery_v.toFixed(2)} V{node.low_battery && ", swap soon"}
+                </span>
+              </>
+            )}
           </>
-        )}
-      </p>
+        }
+      />
       {node.backup_for && (
-        <p className="m-0 mb-3 text-sm text-neutral-300">
-          Backup for{" "}
-          <Link to={`/node/${node.backup_for}`} className="text-accent-400 underline underline-offset-2">
-            {node.backup_for}
-          </Link>
-          : its readings fill in whenever {node.backup_for} goes quiet.
+        <p className="ui-caption m-0 mb-3 -mt-3">
+          Backup for <Link to={`/node/${node.backup_for}`}>{node.backup_for}</Link>: its readings fill in whenever {node.backup_for} goes quiet.
         </p>
       )}
-      {node.time_scale !== 1 && (
-        <p className="m-0 mb-3 inline-block rounded-full bg-accent-900 px-3 py-1 text-xs text-accent-300">Demo node: {demoRate(node.time_scale)}</p>
-      )}
+      {node.time_scale !== 1 && <p className="ui-caption m-0 mb-4 -mt-3">Demo node: {demoRate(node.time_scale)}.</p>}
 
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="grid grid-cols-2 gap-3">
         <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit=" °C" />
         <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}%` : "–"} />
       </div>
 
       {forecastable && (
-        <div className="mt-3.5">
+        <div className="mt-3">
           <ErrorBoundary label="The forecast">
             <ForecastCard nodeId={node.id} />
           </ErrorBoundary>
@@ -113,26 +115,26 @@ export default function NodePage() {
 
       {forecastable && node.box_ids.length > 0 && (
         <>
-          <SectionTitle>Recommendation</SectionTitle>
+          <SectionTitle>What should I do?</SectionTitle>
           <ErrorBoundary label="The dispatch agent">
             <Dispatch nodeId={node.id} />
           </ErrorBoundary>
         </>
       )}
 
-      <SectionTitle>Boxes inside · {boxes.length}</SectionTitle>
-      <div className="flex flex-col gap-2.5">
+      <SectionTitle>Boxes · {boxes.length}</SectionTitle>
+      <div className="flex flex-col gap-3">
         {boxes.map((b) => (
           <BoxCard key={b.id} box={b} compact />
         ))}
-        {boxes.length === 0 && <p className="m-0 text-[15px] text-neutral-300">Empty.</p>}
-        <button onClick={() => setArm("node", id)} className="btn-quiet w-full">
-          <TapIcon size={20} />
-          Load a box: tap its tag next
+        {boxes.length === 0 && <p className="m-0 text-neutral-500">Empty.</p>}
+        <button onClick={() => setArm("node", id)} className="btn-secondary w-full">
+          <NfcIcon size={20} />
+          Load a box: tap its tag
         </button>
       </div>
 
-      <div className="mt-[26px]">
+      <div className="mt-6">
         <Details>
           <Detail first title="Recent readings">
             <Sparkline values={node.recent.map((r) => r.temp_c)} />
@@ -149,11 +151,11 @@ export default function NodePage() {
 
 function BigNumber({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
-    <div className="card-soft px-[18px] py-4">
-      <p className="m-0 text-[13px] uppercase tracking-[0.08em] text-neutral-400">{label}</p>
-      <p className="m-0 mt-1.5 text-[38px] font-semibold leading-none tracking-[-0.035em] tabular-nums">
+    <div className="card-soft p-4">
+      <p className="eyebrow m-0">{label}</p>
+      <p className="m-0 mt-2 font-display text-[34px] font-semibold leading-10 tracking-[-0.02em] tabular-nums">
         {value}
-        {unit && value !== "–" && <span className="text-[17px] font-medium tracking-normal text-neutral-400">{unit}</span>}
+        {unit && value !== "–" && <span className="font-sans text-base font-normal tracking-normal text-neutral-500">{unit}</span>}
       </p>
     </div>
   );
@@ -166,9 +168,9 @@ function Sparkline({ values }: { values: number[] }) {
   const pts = values.map((v, i) => `${i ? "L" : "M"}${((i / (values.length - 1)) * 300).toFixed(1)},${(56 - ((v - lo) / (hi - lo)) * 52).toFixed(1)}`).join("");
   return (
     <svg viewBox="0 0 300 60" className="block h-16 w-full" role="img" aria-label={`Recent temperatures, ${values[values.length - 1].toFixed(1)} °C now`}>
-      <path d={pts} fill="none" stroke="#e9e9ed" strokeWidth="1.75" strokeLinejoin="round" />
-      <text x="0" y="9" fontSize="9" fill="#9397ab">{hi.toFixed(0)}°</text>
-      <text x="0" y="58" fontSize="9" fill="#9397ab">{lo.toFixed(0)}°</text>
+      <path d={pts} fill="none" stroke="var(--line)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+      <text x="0" y="9" fontSize="9" fill="var(--text-muted)">{hi.toFixed(0)}°</text>
+      <text x="0" y="58" fontSize="9" fill="var(--text-muted)">{lo.toFixed(0)}°</text>
     </svg>
   );
 }
@@ -194,7 +196,7 @@ function Uploads({ node }: { node: NodeDetail }) {
               <td className="py-1.5 text-right">{u.count}</td>
               <td className="py-1.5 text-right">{u.accepted}</td>
               <td className="py-1.5 text-right">{u.duplicates}</td>
-              <td className="py-1.5 text-right" style={u.rejected ? { color: "var(--color-bad)" } : undefined}>
+              <td className="py-1.5 text-right" style={u.rejected ? { fontWeight: 700 } : undefined}>
                 {u.rejected}
               </td>
             </tr>
