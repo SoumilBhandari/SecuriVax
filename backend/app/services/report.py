@@ -49,12 +49,12 @@ def evaluate_box(session: Session, box: Box, now: int | None = None) -> Report:
     return evaluate(profile, box_segments(session, box.id, now), now, box.initial_budget_used)
 
 
-def _thin(route: list[dict]) -> list[dict]:
-    if len(route) <= MAX_ROUTE_POINTS:
-        return route
-    step = len(route) / MAX_ROUTE_POINTS
-    keep = {round(i * step) for i in range(MAX_ROUTE_POINTS)} | {len(route) - 1}
-    return [p for i, p in enumerate(route) if i in keep or p["status"] != "ok"]
+def _thin(points: list[dict], keep_if=lambda p: False) -> list[dict]:
+    if len(points) <= MAX_ROUTE_POINTS:
+        return points
+    step = len(points) / MAX_ROUTE_POINTS
+    keep = {round(i * step) for i in range(MAX_ROUTE_POINTS)} | {len(points) - 1}
+    return [p for i, p in enumerate(points) if i in keep or keep_if(p)]
 
 
 def key_points(report: Report) -> list[tuple[float, float]]:
@@ -83,7 +83,8 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     report = evaluate_box(session, box, now)
     data = asdict(report)
     for seg in data["segments"]:
-        seg["route"] = _thin(seg["route"])
+        seg["route"] = _thin(seg["route"], lambda p: p["status"] != "ok")
+        seg["series"] = _thin(seg["series"])
     profile = PRODUCTS_BY_ID[box.product_id]
     open_seg = next((s for s in report.segments if s.end_ts is None), None)
     data["box"] = box.model_dump()

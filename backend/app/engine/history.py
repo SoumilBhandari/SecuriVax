@@ -80,6 +80,13 @@ class RoutePoint:
 
 
 @dataclass
+class SeriesPoint:
+    ts: int
+    temp_c: float
+    rh: float | None
+
+
+@dataclass
 class SegmentResult:
     node_id: str
     node_label: str
@@ -100,6 +107,7 @@ class SegmentResult:
     gaps: list[Gap] = field(default_factory=list)
     runs: list[Run] = field(default_factory=list)
     route: list[RoutePoint] = field(default_factory=list)
+    series: list[SeriesPoint] = field(default_factory=list)
 
 
 def _status(profile: ProductProfile, temp_c: float) -> str:
@@ -148,6 +156,8 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         RoutePoint(p.ts, p.lat, p.lon, p.temp_c, p.rh, _status(profile, p.temp_c))
         for p in located
     ]
+
+    res.series = [SeriesPoint(p.ts, p.temp_c, p.rh) for p in points]
 
     if points[0].ts - seg.start_ts > MAX_GAP_S:
         res.gaps.append(Gap(seg.node_id, seg.start_ts, points[0].ts))
