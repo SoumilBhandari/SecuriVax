@@ -9,7 +9,14 @@ from dataclasses import dataclass, field
 
 import math
 
-from app.engine.history import MAX_GAP_S, SegmentResult, Segment, analyze_segment, integration_points
+from app.engine.history import (
+    MAX_GAP_S,
+    MIN_UNMONITORED_LEG_S,
+    Segment,
+    SegmentResult,
+    analyze_segment,
+    integration_points,
+)
 from app.engine.profiles import (
     FREEZE_ALARM_MINUTES,
     FREEZE_GUARD_C,
@@ -96,6 +103,53 @@ def _how_long(runs: list) -> str:
     return f"for {total}" if len(runs) == 1 else f"{len(runs)} times, {total} in all,"
 
 
+SEVERITY_RANK = {"discard": 0, "quarantine": 1, "advisory": 2, "ok": 3}
+
+
+def _packs_too_cold(seg: Segment) -> float | None:
+    """Coldest reading in the first 45 minutes after loading, if at or below 0 °C.
+    Minutes of product time: on a demo carrier the clock runs faster."""
+    scale = max((rd.time_scale for rd in seg.readings), default=1.0)
+    window = PACK_CHECK_S / max(scale, 1.0)
+    early = [rd.temp_c for rd in seg.readings if seg.start_ts <= rd.ts <= seg.start_ts + window]
+    return min(early) if early and min(early) <= 0.0 else None
+
+
+def _unmonitored(segments: list[Segment], now: int) -> tuple[list[Reason], list[Reason]]:
+    """Time the box spent in no monitored carrier: between carriers (a box left
+    on a table, or overnight in a fridge we don't watch) and after the last
+    one. Shown, never silently counted as cold; not a hold on its own, since
+    the usual case is a store fridge with its own logger."""
+    legs = sorted(segments, key=lambda s: s.start_ts)
+    gaps = [
+        (b.start_ts - a.end_ts, a.node_label)
+        for a, b in zip(legs, legs[1:])
+        if a.end_ts is not None and b.start_ts - a.end_ts > MIN_UNMONITORED_LEG_S
+    ]
+    between = []
+    if len(gaps) == 1:
+        between.append(Reason(
+            "UNMONITORED", "advisory",
+            f"Unmonitored for {fmt_minutes(gaps[0][0] / 60)} between carriers, after {gaps[0][1]}: "
+            "no record of its temperature then.",
+        ))
+    elif gaps:
+        longest = max(gaps)
+        between.append(Reason(
+            "UNMONITORED", "advisory",
+            f"Unmonitored between carriers {len(gaps)} times, {fmt_minutes(sum(g for g, _ in gaps) / 60)} in all "
+            f"(longest {fmt_minutes(longest[0] / 60)}, after {longest[1]}): no record of its temperature then.",
+        ))
+    after = []
+    if legs and legs[-1].end_ts is not None and now - legs[-1].end_ts > MIN_UNMONITORED_LEG_S:
+        after.append(Reason(
+            "UNMONITORED", "advisory",
+            f"Not in a monitored carrier for {fmt_minutes((now - legs[-1].end_ts) / 60)}, since it left "
+            f"{legs[-1].node_label}. This verdict covers the time before that.",
+        ))
+    return between, after
+
+
 def _pct(x: float) -> str:
     return "under 1%" if 0 < x < 0.005 else f"{x * 100:.0f}%"
 
@@ -127,14 +181,10 @@ def evaluate(
             "Check the VVM on each vial" if profile.kind == "vaccine" else "Run a positive control"
         )
 
+    between, after = _unmonitored(segments, now)
+    reasons += between
+
     for seg, r in zip(segments, results):
-        early = [rd.temp_c for rd in seg.readings if seg.start_ts <= rd.ts <= seg.start_ts + PACK_CHECK_S]
-        if seg.end_ts is None and early and min(early) <= 0.0:
-            reasons.append(Reason(
-                "PACKS_TOO_COLD", "advisory",
-                f"{r.node_label} dropped to {min(early):.1f} °C right after packing: the ice packs weren't "
-                "conditioned. Take them out until they sweat, before the vaccines freeze.",
-            ))
         freezes = [x for x in r.runs if x.kind == "freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
         near = [x for x in r.runs if x.kind == "near_freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
         heats = [x for x in r.runs if x.kind == "heat" and x.minutes >= HEAT_REPORT_MIN_MINUTES]
@@ -156,6 +206,20 @@ def evaluate(
                 f"sensor's error of the freeze alarm ({FREEZE_GUARD_C:g} °C guard band).",
             ))
             checks.append(profile.freeze_check)
+        packs = _packs_too_cold(seg)
+        if packs is not None and seg.end_ts is None:
+            if freezes:
+                reasons.append(Reason(
+                    "PACKS_TOO_COLD", "advisory",
+                    f"Likely cause: it dropped to {packs:.1f} °C right after packing, so the ice packs weren't "
+                    "conditioned. Condition them until they sweat before the next trip.",
+                ))
+            else:
+                reasons.append(Reason(
+                    "PACKS_TOO_COLD", "advisory",
+                    f"{r.node_label} dropped to {packs:.1f} °C right after packing: the ice packs weren't "
+                    "conditioned. Take them out until they sweat, before the vaccines freeze.",
+                ))
         if heats:
             alarm = profile.kind == "vaccine" and any(
                 x.extreme >= HEAT_ALARM_C and x.minutes >= HEAT_ALARM_MINUTES for x in heats
@@ -212,6 +276,10 @@ def evaluate(
             ))
             checks.append("Compare every vial's VVM before use")
 
+    reasons += after
+    # What decides the verdict first, then what informs it (stable: the VVM
+    # label, inserted first, stays first among its peers).
+    reasons.sort(key=lambda r: SEVERITY_RANK[r.severity])
     severities = {r.severity for r in reasons}
     if "discard" in severities:
         verdict = DISCARD

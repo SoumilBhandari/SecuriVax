@@ -56,7 +56,8 @@ def test_report_follows_the_nodes_readings(client, session):
     report = client.get("/api/boxes/BOX-0001/report").json()
     assert report["verdict"] == "QUARANTINE"
     # It froze within 45 min of packing, so the pack warning fires too.
-    assert [r["code"] for r in report["reasons"]] == ["PACKS_TOO_COLD", "FREEZE"]
+    assert [r["code"] for r in report["reasons"]] == ["FREEZE", "PACKS_TOO_COLD"]
+    assert report["reasons"][1]["text"].startswith("Likely cause")
     assert "shake test" in report["action"]
 
 

@@ -22,7 +22,8 @@ def test_backfill_tells_each_boxs_story(session):
     backfill(session, now)
     verdicts = {b.id: evaluate_box(session, b, now) for b in session.exec(select(Box)).all()}
     assert {k: verdicts[k].verdict for k in EXPECTED} == EXPECTED
-    assert {r.code for r in verdicts["BOX-0001"].reasons} == {"FREEZE"}
+    # Delivered two hours ago: the freeze decides, and the report says monitoring stopped.
+    assert {r.code for r in verdicts["BOX-0001"].reasons} == {"FREEZE", "UNMONITORED"}
     assert "FREEZE_TOLERATED" in {r.code for r in verdicts["BOX-0003"].reasons}
     assert "BUDGET_LOW" in {r.code for r in verdicts["BOX-0002"].reasons}
     assert {"HUMIDITY", "HEAT_EXCURSION"} <= {r.code for r in verdicts["BOX-0101"].reasons}
