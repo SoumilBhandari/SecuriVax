@@ -8,13 +8,15 @@ from typing import Callable
 class Metric:
     name: str
     value: float
-    target: float
+    target: float | None  # None: reported for context, not scored
     higher_is_better: bool = True
     unit: str = ""
     note: str = ""
 
     @property
     def passed(self) -> bool:
+        if self.target is None:
+            return True
         return self.value >= self.target if self.higher_is_better else self.value <= self.target
 
     def to_dict(self) -> dict:

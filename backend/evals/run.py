@@ -13,7 +13,7 @@ from pathlib import Path
 
 from evals.core import SuiteResult, fmt
 
-SUITES = ["verdicts"]
+SUITES = ["verdicts", "twin"]
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -29,7 +29,8 @@ def main() -> int:
         print(f"\n[{mark}] {result.name}: {result.description} ({result.seconds:.1f}s)")
         for m in result.metrics:
             op = ">=" if m.higher_is_better else "<="
-            print(f"   {'ok ' if m.passed else 'XX '} {m.name:<44} {fmt(m.value, m.unit):>10}  (target {op} {fmt(m.target, m.unit)})")
+            target = f"(target {op} {fmt(m.target, m.unit)})" if m.target is not None else "(context)"
+            print(f"   {'ok ' if m.passed else 'XX '} {m.name:<52} {fmt(m.value, m.unit):>10}  {target}")
     if set(wanted) == set(SUITES) and not quick:
         write(results)
     return 0 if all(r.passed for r in results) else 1
@@ -53,7 +54,9 @@ def write(results: list[SuiteResult]) -> None:
         for m in r.metrics:
             op = "≥" if m.higher_is_better else "≤"
             note = f" {m.note}" if m.note else ""
-            lines.append(f"| {m.name}{' ·' + note if note else ''} | {fmt(m.value, m.unit)} | {op} {fmt(m.target, m.unit)} | {'✅' if m.passed else '❌'} |")
+            target = f"{op} {fmt(m.target, m.unit)}" if m.target is not None else "context"
+            mark = ("✅" if m.passed else "❌") if m.target is not None else ""
+            lines.append(f"| {m.name}{' ·' + note if note else ''} | {fmt(m.value, m.unit)} | {target} | {mark} |")
         lines.append("")
     (ROOT / "docs/evals.md").write_text("\n".join(lines))
 

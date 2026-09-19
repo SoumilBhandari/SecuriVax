@@ -62,13 +62,14 @@ class Particles:
 
 
 def prior(
-    first_temp: float, n: int, rng: np.random.Generator, known_cold_life_h: float | None = None
+    first_temp: float, n: int, rng: np.random.Generator, known_cold_life_h: float | None = None,
+    spread: float = 0.35,
 ) -> Particles:
-    """known_cold_life_h: what this carrier showed on earlier trips. Without it
-    the prior is wide (log-uniform 0.3-40 h); with it the twin starts from
-    the carrier's own track record."""
+    """known_cold_life_h: what this carrier (or, for a new carrier, the fleet)
+    showed on earlier trips; spread is the log-sd around it. Without it the
+    prior is wide (log-uniform 0.3-40 h)."""
     if known_cold_life_h:
-        cold_life = np.exp(rng.normal(np.log(known_cold_life_h), 0.35, n))
+        cold_life = np.exp(rng.normal(np.log(known_cold_life_h), spread, n))
     else:
         cold_life = np.exp(rng.uniform(np.log(0.3), np.log(40.0), n))
     heat_source = rng.random(n) < 0.15
@@ -148,18 +149,43 @@ class FilterResult:
     last_ts: int
 
 
+def _rejuvenate(p: Particles, y: float, rng: np.random.Generator) -> None:
+    """Re-seed the least likely particles around a surprising reading.
+
+    A carrier's inside can jump regimes (the last ice melts, a lid opens)
+    faster than the cloud can follow, especially with sparse readings. When
+    that happens, the worst 15% of candidates restart near the observation,
+    in both regimes, with parameters drawn around the cloud's current belief.
+    """
+    n = len(p)
+    k = max(1, n // 7)
+    idx = np.argsort(p.weight)[:k]
+    mean = lambda x: float(np.sum(p.weight * x))  # noqa: E731
+    melted = rng.random(k) < 0.5
+    p.temp[idx] = y + rng.normal(0, 0.2, k)
+    p.ice[idx] = np.where(melted, 0.0, p.ice[idx] * rng.uniform(0.0, 1.0, k))
+    p.hold[idx] = np.clip(mean(p.hold) + rng.normal(0, 1.0, k), -6, 9)
+    p.leak[idx] = np.clip(np.exp(np.log(mean(p.leak)) + rng.normal(0, 0.4, k)), 0.2, 5)
+    p.gain[idx] = np.maximum(mean(p.gain) + rng.normal(0, 1.5, k), 0)
+    p.tau[idx] = np.clip(mean(p.tau) * np.exp(rng.normal(0, 0.4, k)), 0.2, 5)
+    p.exposure[idx] = mean(p.exposure)
+    p.weight[idx] = np.median(p.weight)
+    p.weight /= p.weight.sum()
+
+
 def run_filter(
     series: list[tuple[int, float, float]],
     outside: Callable[[int], float],
     n: int = N_PARTICLES,
     seed: int = 7,
     known_cold_life_h: float | None = None,
+    spread: float = 0.35,
 ) -> FilterResult | None:
     """series: (ts, inside_c, time_scale) in time order."""
     if len(series) < 3:
         return None
     rng = np.random.default_rng(seed)
-    p = prior(series[0][1], n, rng, known_cold_life_h)
+    p = prior(series[0][1], n, rng, known_cold_life_h, spread)
     errors, min_ess = [], float(n)
     for (t0, _, scale), (t1, y, _) in zip(series, series[1:]):
         dt_h = (t1 - t0) / 3600 * scale
@@ -168,11 +194,15 @@ def run_filter(
         step(p, outside(t1), dt_h, rng)
         predicted = float(np.sum(p.weight * p.temp))
         errors.append(y - predicted)
+        if abs(y - predicted) > 4 * OBS_SIGMA_C:
+            _rejuvenate(p, y, rng)
         z = (y - p.temp) / OBS_SIGMA_C
         like = (1 + z**2 / OBS_DOF) ** (-(OBS_DOF + 1) / 2) + 1e-300
         w = p.weight * like
         p.weight = w / w.sum()
         ess = 1.0 / np.sum(p.weight**2)
+        if ess < 0.05 * n:
+            _rejuvenate(p, y, rng)
         min_ess = min(min_ess, ess)
         if ess < n / 2:
             p = _resample(p, rng)

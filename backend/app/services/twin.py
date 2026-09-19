@@ -83,6 +83,15 @@ def track_record(session: Session, node_id: str, before: int) -> float | None:
     return _track_record[key]
 
 
+def fleet_record(session: Session, before: int) -> float | None:
+    """For a carrier with no history: the fleet's median cold life (empirical Bayes)."""
+    lives = [
+        life for node in session.exec(select(Node).where(Node.backup_for.is_(None), Node.kind.in_(["carrier", "cold_box"]))).all()
+        if (life := track_record(session, node.id, before)) is not None
+    ]
+    return statistics.median(lives) if lives else None
+
+
 def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> dict:
     now = int(time.time()) if now is None else now
     node = session.get(Node, node_id)
@@ -106,8 +115,12 @@ def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> 
 def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> dict:
 
     ambient, (lat, lon) = outside_fn(readings)
-    known = track_record(session, node_id, trip_start)
-    res = twin.run_filter([(r.ts, r.temp_c, r.time_scale) for r in readings], ambient, known_cold_life_h=known)
+    known, spread, source = track_record(session, node_id, trip_start), 0.35, "this carrier's recent trips"
+    if known is None:
+        known, spread, source = fleet_record(session, trip_start), 1.0, "the fleet's trips (no history for this carrier)"
+    res = twin.run_filter(
+        [(r.ts, r.temp_c, r.time_scale) for r in readings], ambient, known_cold_life_h=known, spread=spread
+    )
     members, source = wx.ensemble_for(lat, lon)
     ensemble = [(lambda ts, m=m: (m.at(ts) or (ambient(ts),))[0]) for m in members]
     fc = twin.forecast(res, ensemble, HORIZON_H, STORAGE_MAX_C)
@@ -122,7 +135,7 @@ def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> 
         "trip_start": trip_start,
         "readings": res.readings,
         "fit": {"one_step_rmse_c": round(res.one_step_rmse_c, 2), "min_effective_particles": round(res.min_ess)},
-        "prior": {"cold_life_h": known, "from": "this carrier's recent trips" if known else "a wide default (no trip history)"},
+        "prior": {"cold_life_h": known, "from": source if known else "a wide default (no trip history anywhere)"},
         "state": {
             "inside_c": round(float(np.sum(p.weight * p.temp)), 2),
             "outside_c": round(now_out, 1),
