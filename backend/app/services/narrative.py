@@ -133,7 +133,8 @@ async def _ask_grok(facts: dict) -> str:
                 "max_output_tokens": 400,
             },
         )
-        res.raise_for_status()
+        if res.is_error:  # xAI says why (a bad key, no credits, a model name); keep that in the log
+            raise RuntimeError(f"xAI {res.status_code}: {res.text[:300]}")
         return _output_text(res.json()).strip()
 
 

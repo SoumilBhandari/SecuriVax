@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -46,6 +46,20 @@ class Settings(BaseSettings):
     demo_reset: bool = False
     # Directory holding the built web app. When set, FastAPI serves it.
     static_dir: str = ""
+
+    @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", mode="before")
+    @classmethod
+    def _tidy_pasted_secret(cls, value: object, info) -> object:
+        """Secrets get pasted into dashboards with extras: spaces, a line break,
+        quotes, or the whole .env line ("XAI_API_KEY=xai-..."). Any of those
+        makes the provider reject the key, so keep only the key itself."""
+        if not isinstance(value, str):
+            return value
+        value = value.strip().strip("'\"").strip()
+        name = f"{info.field_name.upper()}="
+        if value.upper().startswith(name):
+            value = value[len(name):].strip().strip("'\"").strip()
+        return value
 
     @property
     def cors_origin_list(self) -> list[str]:

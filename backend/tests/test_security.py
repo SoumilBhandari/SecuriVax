@@ -1,3 +1,4 @@
+import pytest
 import base64
 import io
 
@@ -114,3 +115,10 @@ def test_a_node_key_set_after_seeding_reaches_every_node(session, monkeypatch):
     assert sync_node_keys(session) > 0
     assert {n.key for n in session.exec(select(Node)).all()} == {"a-real-secret"}
     assert sync_node_keys(session) == 0
+
+
+@pytest.mark.parametrize("pasted", ["xai-abc", "  xai-abc \n", '"xai-abc"', "XAI_API_KEY=xai-abc", " XAI_API_KEY='xai-abc'\n"])
+def test_a_pasted_key_is_tidied_to_the_key_itself(pasted):
+    from app.config import Settings
+
+    assert Settings(_env_file=None, xai_api_key=pasted).xai_api_key == "xai-abc"
