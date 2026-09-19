@@ -209,21 +209,6 @@ export function SectionTitle({ children, aside }: { children: ReactNode; aside?:
   );
 }
 
-/** A plain surface with a title, for forms and lists. */
-export function Card({ title, aside, children }: { title?: string; aside?: ReactNode; children: ReactNode }) {
-  return (
-    <section className="panel mb-3 p-4">
-      {title && (
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h2 className="ui-heading m-0">{title}</h2>
-          {aside && <div className="ui-caption">{aside}</div>}
-        </div>
-      )}
-      {children}
-    </section>
-  );
-}
-
 /** "More detail": one panel of rows that each open in place. */
 export function Details({ children }: { children: ReactNode }) {
   return <div className="panel flex flex-col">{children}</div>;

@@ -28,7 +28,7 @@ uncertainties allow, the check is flagged.
 """
 
 import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
@@ -376,7 +376,3 @@ def cross_check(
         f"The camera (stage {camera_stage}, {label}) and the temperature record (stage {predicted}, {sensor}) agree.",
         **common,
     )
-
-
-def calibration_summary(cal: Calibration = CALIBRATION) -> dict:
-    return asdict(cal)

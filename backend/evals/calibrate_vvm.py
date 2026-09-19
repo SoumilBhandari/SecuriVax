@@ -142,7 +142,6 @@ def progress_sigma(cal: Calibration, seed: int, n: int) -> float:
 
 
 def evaluate(cal: Calibration, rows: list[dict]) -> dict:
-    rho = np.array([r["rho"] for r in rows])
     stage = np.array([r["stage"] for r in rows])
     pred = np.array([stage_for_rho(r["rho"], cal, r["raw"]) for r in rows])
     spent, fresh = stage >= 3, stage <= 2

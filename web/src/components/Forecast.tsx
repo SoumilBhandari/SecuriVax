@@ -28,7 +28,7 @@ export function forecastLine(fc: CarrierForecast): string {
   return `Stays in range for the next ${forecast.horizon_h} h. ${pct(1 - breach.prob)} of forecast runs keep it at ${min}–${max} °C.`;
 }
 
-export function forecastAtRisk(fc: CarrierForecast): boolean {
+function forecastAtRisk(fc: CarrierForecast): boolean {
   if (!fc.breach || !fc.state) return false;
   const t = fc.state.inside_c;
   return fc.breach.prob >= 0.5 || t > (fc.storage_max_c ?? 8) || t < (fc.storage_min_c ?? 2);

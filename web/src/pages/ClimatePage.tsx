@@ -3,7 +3,7 @@ import { Link } from "react-router";
 
 import { ChevronDownIcon, ChevronRightIcon } from "../components/Icons";
 import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split } from "../components/Layout";
-import { RiskMap } from "../components/RiskMap";
+import RiskMap from "../components/RiskMap";
 import { VerdictChip } from "../components/Verdict";
 import { api } from "../lib/api";
 import { ago, RISK_COLOR, RISK_ORDER, time, weatherSource } from "../lib/format";

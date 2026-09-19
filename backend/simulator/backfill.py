@@ -28,7 +28,6 @@ from app.models import Custody, LocationPoint, Node, Reading, Scan
 from app.services import weather as wx
 from app.seed import seed
 from simulator.common import (
-    KISUMU_STORE,
     KISUMU_TO_KOMBEWA,
     KOMBEWA,
     along,

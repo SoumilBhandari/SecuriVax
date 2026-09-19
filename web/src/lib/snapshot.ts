@@ -4,7 +4,7 @@
  * running server, so every page and tab can be opened without a backend.
  */
 
-export interface Snapshot {
+interface Snapshot {
   taken_at: number;
   get: Record<string, unknown>;
   post: Record<string, unknown>;

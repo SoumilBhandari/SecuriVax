@@ -10,7 +10,7 @@ import numpy as np
 
 from app.engine.arrhenius import rate_per_hour
 from app.engine.history import Reading, Segment
-from app.engine.profiles import FREEZE_ALARM_MINUTES, FREEZE_THRESHOLD_C, PRODUCTS, PRODUCTS_BY_ID
+from app.engine.profiles import FREEZE_ALARM_MINUTES, FREEZE_THRESHOLD_C, PRODUCTS
 from app.engine.verdict import evaluate
 from evals.core import Metric, SuiteResult
 

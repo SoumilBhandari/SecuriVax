@@ -47,7 +47,7 @@ export function demoRate(scale: number): string {
 }
 
 /** Matches the backend's ~100 m place buckets. */
-export const placeKey = (lat: number, lon: number) => `place:${lat.toFixed(3)},${lon.toFixed(3)}`;
+const placeKey = (lat: number, lon: number) => `place:${lat.toFixed(3)},${lon.toFixed(3)}`;
 
 export function placeName(
   places: Record<string, string>,
@@ -58,18 +58,7 @@ export function placeName(
   return places[placeKey(lat, lon)] ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 }
 
-/** Each verdict: its name and its signal (the kit has three: USE_FIRST shares USE's). */
-export const VERDICT_STYLE: Record<Verdict, { label: string; color: string; fg: string; tint: string }> = {
-  USE: { label: "Use", color: "var(--signal-use)", fg: "var(--on-signal-use)", tint: "var(--signal-use)" },
-  USE_FIRST: { label: "Use first", color: "var(--signal-use)", fg: "var(--on-signal-use)", tint: "var(--signal-use)" },
-  QUARANTINE: { label: "Quarantine", color: "var(--signal-quarantine)", fg: "var(--on-signal-quarantine)", tint: "var(--signal-quarantine)" },
-  DISCARD: { label: "Discard", color: "var(--signal-discard)", fg: "var(--on-signal-discard)", tint: "var(--signal-discard)" },
-};
-
 export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE: 1, USE_FIRST: 2, USE: 3 };
-
-/** Kept for older call sites: same as time(). */
-export const eat = time;
 
 export const RISK_ORDER: Record<string, number> = { extreme: 0, high: 1, moderate: 2, low: 3 };
 
@@ -87,20 +76,12 @@ export function weatherSource(source: string): string {
   return "Weather: Open-Meteo + offline model";
 }
 
-/** "in 4.6 h" style, from now. */
-export function fromNow(ts: number | null | undefined): string {
-  if (!ts) return "–";
-  const h = (ts - Date.now() / 1000) / 3600;
-  if (h < 0) return "now";
-  return h < 1 ? `in ${Math.round(h * 60)} min` : `in ${h.toFixed(1)} h`;
-}
-
 /**
  * A time at a site, on the site's own clock: "Sun 06:00 local (GMT+1)". Heat at
  * a clinic in Kinshasa peaks at its local hour, not the viewer's; the planner
  * writes departures the same way, so one departure is never shown two ways.
  */
-export function siteTime(ts: number, tz: string): string {
+function siteTime(ts: number, tz: string): string {
   const d = new Date(ts * 1000);
   const far = Math.abs(Date.now() - d.getTime()) > 86400e3;
   try {

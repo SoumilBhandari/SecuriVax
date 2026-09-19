@@ -12,7 +12,7 @@ import type { StoreRisk } from "../types";
  * map). With `onSelect`, a click on a site picks it, and the map flies to the
  * `selected` one (and back out when nothing is).
  */
-export function RiskMap({
+function RiskMap({
   sites,
   selected = null,
   onSelect,

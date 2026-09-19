@@ -21,7 +21,7 @@ function runs(seg: Segment) {
   return out;
 }
 
-export function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; places: Record<string, string>; height?: string }) {
+function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; places: Record<string, string>; height?: string }) {
   const all = segments.flatMap((s) => s.route.map((p) => [p.lat, p.lon] as [number, number]));
   if (all.length === 0) {
     return <p className="ui-caption m-0 py-6 text-center">No GPS fix recorded yet.</p>;

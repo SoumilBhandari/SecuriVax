@@ -45,7 +45,7 @@ export interface SeriesPoint {
   budget: number; // box-level cumulative budget at this point
 }
 
-export type EnvCode = "PROTECTED" | "TRACKING_AMBIENT" | "HEAT_SOURCE" | "FROZEN_PACKS" | "CALM" | "NO_DATA";
+type EnvCode = "PROTECTED" | "TRACKING_AMBIENT" | "HEAT_SOURCE" | "FROZEN_PACKS" | "CALM" | "NO_DATA";
 
 export interface LegEnvironment {
   code: EnvCode;
@@ -307,13 +307,6 @@ export interface CarrierForecast {
   boxes?: BoxRisk[];
 }
 
-export interface Explanation {
-  verdict: Verdict;
-  text: string;
-  source: "grok" | "template";
-  places: Record<string, string>;
-  places_source: "gemini" | "coords" | "mixed";
-}
 
 export interface BoxSummary extends Box {
   product_name: string;

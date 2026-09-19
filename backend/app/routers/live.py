@@ -114,7 +114,6 @@ async def stream(
 ) -> StreamingResponse:
     """Server-sent events: one `reading` event per new reading, and a `ping`
     after HEARTBEAT_S without one."""
-    global _open_streams
     if _open_streams >= MAX_STREAMS:
         raise HTTPException(503, "too many live viewers, try again shortly")
     # The stream outlives this request's session, so each poll opens its own.

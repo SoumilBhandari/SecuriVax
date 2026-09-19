@@ -34,7 +34,7 @@ export function Logo({ height = 30 }: { height?: number }) {
 }
 
 /** The mark in the ring's centre: the brand's V, or a verdict's ✓, ! or ✕. */
-export type RingMark = "v" | "check" | "alert" | "cross";
+type RingMark = "v" | "check" | "alert" | "cross";
 
 export const VERDICT_MARK: Record<VerdictKey, RingMark> = { use: "check", quarantine: "alert", discard: "cross" };
 
@@ -64,7 +64,7 @@ export function BudgetRing({
   value: number; // percent, 0 to 100
   size?: number;
   /** surface: on bg or surface. inverse: on Ink. signal: on a verdict's colour, drawn in its text colour. */
-  tone?: "surface" | "inverse" | "signal";
+  tone?: "surface" | "signal";
   glyph?: boolean;
   mark?: RingMark;
   label?: string;

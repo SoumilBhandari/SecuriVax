@@ -4,7 +4,6 @@ import type {
   CarrierForecast,
   CarrierPerformance,
   CounterfactualRow,
-  Explanation,
   Facility,
   FleetSummary,
   Impact,
@@ -25,7 +24,7 @@ import { SNAPSHOT } from "./snapshot";
 // Same origin in production (FastAPI serves the app); proxied by Vite in dev.
 const BASE = import.meta.env.VITE_API_BASE ?? "";
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
@@ -86,7 +85,7 @@ async function fromSnapshot<T>(path: string, init?: RequestInit): Promise<T> {
   );
 }
 
-export interface Place {
+interface Place {
   lat?: number | null;
   lon?: number | null;
   accuracy_m?: number | null;
@@ -109,9 +108,6 @@ export const api = {
   resetStage: () => request<{ reset: boolean }>("/api/admin/reset-stage", { method: "POST" }),
   counterfactual: (id: string) => request<CounterfactualRow[]>(`/api/boxes/${encodeURIComponent(id)}/counterfactual`),
   report: (id: string) => request<Report>(`/api/boxes/${encodeURIComponent(id)}/report`),
-  explain: (id: string) =>
-    // Grok can take half a minute to write it; the server falls back to a template after 45 s.
-    request<Explanation>(`/api/boxes/${encodeURIComponent(id)}/explain`, { method: "POST", signal: AbortSignal.timeout(60000) }),
   load: (boxId: string, nodeId: string) =>
     request<{ status: string; action?: string; node_id: string }>(
       `/api/boxes/${encodeURIComponent(boxId)}/load`,

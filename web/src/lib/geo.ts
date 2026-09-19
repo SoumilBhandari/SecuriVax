@@ -18,7 +18,7 @@ export function getPosition(waitMs = 8000): Promise<Fix | null> {
   });
 }
 
-export function km(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
+function km(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
   const r = Math.PI / 180;
   const h = Math.sin(((b.lat - a.lat) * r) / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(((b.lon - a.lon) * r) / 2) ** 2;
   return 12742 * Math.asin(Math.sqrt(h));

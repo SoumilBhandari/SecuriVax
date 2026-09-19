@@ -31,7 +31,6 @@
   --ink-700: #1e3d63;
   --ink-500: #4f6d8f;
   --ink-300: #a3b6cc;
-  --ink-100: #e4ecf1;
   --glacier-700: #0b7a73;
   --glacier-500: #35d0c3;
   --glacier-300: #9debe4;
@@ -64,16 +63,9 @@
   --track: var(--fog); /* bar tracks */
   --band: var(--glacier-100); /* the safe 2-8 C band on charts */
   --line: var(--ink-900); /* chart lines */
-  --action: var(--glacier-500);
-  --on-action: var(--ink-900);
-  --action-hover: var(--glacier-300);
-  --action-pressed: var(--glacier-700);
-  --on-action-pressed: var(--white);
   --focus-ring: var(--glacier-700);
   --ring-track: var(--glacier-300);
   --ring-arc: var(--ink-900);
-  --ring-track-on-inverse: #ffffff66;
-  --ring-arc-on-inverse: var(--glacier-500);
   --toast: var(--ink-700);
   --soft-line: color-mix(in srgb, var(--ink-900) 20%, transparent); /* outlines on buttons and inputs */
   color-scheme: light;
@@ -115,44 +107,17 @@
   --color-text: var(--text);
   --color-line: var(--border);
   --color-line-strong: var(--border-strong);
-  --color-divider: var(--border);
 
-  --color-ink: var(--ink-900);
-  --color-glacier: var(--glacier-500);
   --color-accent: var(--glacier-500);
-  --color-accent-100: var(--glacier-100);
-  --color-accent-200: var(--text);
   --color-accent-300: var(--text-accent);
   --color-accent-400: var(--text-accent);
-  --color-accent-500: var(--glacier-500);
-  --color-accent-600: var(--text);
-  --color-accent-700: var(--border-strong);
-  --color-accent-800: var(--border-strong);
-  --color-accent-900: var(--quiet);
 
-  --color-neutral-100: var(--text);
-  --color-neutral-200: var(--text);
   --color-neutral-300: var(--text-2);
   --color-neutral-400: var(--text-muted);
   --color-neutral-500: var(--text-muted);
-  --color-neutral-600: var(--border-strong);
   --color-neutral-700: var(--border-strong);
   --color-neutral-800: var(--track);
   --color-neutral-900: var(--quiet);
-
-  /* Verdict tiers as signals: the fill, the text on it, and the same fill as a tint. */
-  --color-good: var(--signal-use);
-  --color-good-fg: var(--on-signal-use);
-  --color-good-tint: var(--signal-use);
-  --color-warn: var(--signal-quarantine);
-  --color-warn-fg: var(--on-signal-quarantine);
-  --color-warn-tint: var(--signal-quarantine);
-  --color-hot: var(--signal-quarantine);
-  --color-hot-fg: var(--on-signal-quarantine);
-  --color-hot-tint: var(--signal-quarantine);
-  --color-bad: var(--signal-discard);
-  --color-bad-fg: var(--on-signal-discard);
-  --color-bad-tint: var(--signal-discard);
 }
 
 /* Element defaults sit in the base layer, so any utility class overrides them. */
@@ -377,7 +342,6 @@
   }
 
   /* The one main action per screen: a solid Ink pill. */
-  .btn-accent,
   .btn-primary {
     display: flex;
     width: 100%;
@@ -399,12 +363,6 @@
       opacity 0.2s,
       transform 0.2s;
   }
-  .btn-accent {
-    border-color: var(--action);
-    background: var(--action);
-    color: var(--on-action);
-  }
-  .btn-accent:hover:not(:disabled),
   .btn-primary:hover:not(:disabled) {
     opacity: 0.86;
   }
@@ -447,7 +405,6 @@
   .btn-outline:disabled,
   .btn-quiet:disabled,
   .btn-secondary:disabled,
-  .btn-accent:disabled,
   .btn-primary:disabled {
     background: var(--border);
     border-color: var(--border);
@@ -547,18 +504,8 @@
   .sv-ring__glyph {
     stroke: var(--ring-arc);
   }
-  .sv-ring--inverse .sv-ring__track {
-    stroke: var(--ring-track-on-inverse);
-  }
-  .sv-ring--inverse .sv-ring__arc,
-  .sv-ring--inverse .sv-ring__glyph {
-    stroke: var(--ring-arc-on-inverse);
-  }
   .sv-ring__dot {
     fill: var(--ring-arc);
-  }
-  .sv-ring--inverse .sv-ring__dot {
-    fill: var(--ring-arc-on-inverse);
   }
   /* On a verdict's colour: everything in that verdict's text colour. */
   .sv-ring--signal .sv-ring__track {
