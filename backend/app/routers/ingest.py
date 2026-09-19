@@ -10,11 +10,11 @@ import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.dialects import postgresql, sqlite
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from app.db import get_session
-from app.models import IngestLog, Node, Reading
-from app.schemas import IngestBatch, IngestResult, ReadingIn, Rejected
+from app.models import IngestLog, LocationPoint, Node, Reading
+from app.schemas import IngestBatch, IngestResult, LocationBatch, LocationResult, ReadingIn, Rejected
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
 
@@ -54,15 +54,20 @@ def _insert_ignoring_duplicates(session: Session, rows: list[dict]) -> None:
     session.execute(stmt)
 
 
+def _authorised_node(session: Session, node_id: str, key: str) -> Node:
+    node = session.get(Node, node_id)
+    if node is None or not hmac.compare_digest(node.key.encode(), key.encode()):
+        raise HTTPException(401, "unknown node or bad key")
+    return node
+
+
 @router.post("/readings", response_model=IngestResult)
 def ingest_readings(
     batch: IngestBatch,
     session: Session = Depends(get_session),
     x_node_key: str = Header(default=""),
 ) -> IngestResult:
-    node = session.get(Node, batch.node_id)
-    if node is None or not hmac.compare_digest(node.key.encode(), x_node_key.encode()):
-        raise HTTPException(401, "unknown node or bad key")
+    node = _authorised_node(session, batch.node_id, x_node_key)
 
     now = int(time.time())
     seen: set[int] = set()
@@ -130,3 +135,36 @@ def ingest_readings(
         accepted=len(rows), duplicates=duplicates, rejected=rejected,
         ack_seq=ack_seq, server_time=now,
     )
+
+
+@router.post("/locations", response_model=LocationResult)
+def ingest_locations(
+    batch: LocationBatch,
+    session: Session = Depends(get_session),
+    x_node_key: str = Header(default=""),
+) -> LocationResult:
+    """Positions for a carrier from any tracker (Samsung SmartTag via Home
+    Assistant, a phone, a GPS module). Resending is harmless."""
+    node = _authorised_node(session, batch.node_id, x_node_key)
+    now = int(time.time())
+    rows, rejected = [], 0
+    for p in batch.points:
+        ok_pos = -90 <= p.lat <= 90 and -180 <= p.lon <= 180 and not (p.lat == 0 and p.lon == 0)
+        if not ok_pos or not EARLIEST_TS <= p.ts <= now + MAX_FUTURE_S:
+            rejected += 1
+            continue
+        rows.append({
+            "node_id": node.id, "ts": p.ts, "lat": p.lat, "lon": p.lon,
+            "accuracy_m": p.accuracy_m, "source": batch.source, "received_at": now,
+        })
+    count = select(func.count()).select_from(LocationPoint).where(LocationPoint.node_id == node.id)
+    before = session.exec(count).one()
+    if rows:
+        dialect = postgresql if session.get_bind().dialect.name == "postgresql" else sqlite
+        session.execute(
+            dialect.insert(LocationPoint).values(rows)
+            .on_conflict_do_nothing(index_elements=["node_id", "ts", "source"])
+        )
+    session.commit()
+    accepted = session.exec(count).one() - before
+    return LocationResult(accepted=accepted, duplicates=len(rows) - accepted, rejected=rejected)

@@ -40,6 +40,11 @@ class Segment:
     start_ts: int
     end_ts: int | None  # None while the box is still in this node
     readings: list[Reading]
+    # Redundancy and location provenance, filled in by the data layer.
+    backup_label: str | None = None
+    backup_filled: int = 0
+    max_disagreement_c: float | None = None
+    located_by: str | None = None
 
 
 @dataclass
@@ -108,6 +113,10 @@ class SegmentResult:
     runs: list[Run] = field(default_factory=list)
     route: list[RoutePoint] = field(default_factory=list)
     series: list[SeriesPoint] = field(default_factory=list)
+    backup_label: str | None = None
+    backup_filled: int = 0
+    max_disagreement_c: float | None = None
+    located_by: str | None = None
 
 
 def _status(profile: ProductProfile, temp_c: float) -> str:
@@ -130,7 +139,11 @@ def _window(seg: Segment, now: int) -> tuple[list[Reading], int]:
 
 
 def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentResult:
-    res = SegmentResult(seg.node_id, seg.node_label, seg.start_ts, seg.end_ts)
+    res = SegmentResult(
+        seg.node_id, seg.node_label, seg.start_ts, seg.end_ts,
+        backup_label=seg.backup_label, backup_filled=seg.backup_filled,
+        max_disagreement_c=seg.max_disagreement_c, located_by=seg.located_by,
+    )
     points, end = _window(seg, now)
     real = [p for p in points if p.ts >= seg.start_ts]
 

@@ -36,3 +36,22 @@ class IngestResult(BaseModel):
     ack_seq: int | None
     # Lets a node without GPS or NTP set its clock.
     server_time: int
+
+
+class LocationIn(BaseModel):
+    ts: int
+    lat: float
+    lon: float
+    accuracy_m: float | None = None
+
+
+class LocationBatch(BaseModel):
+    node_id: str
+    source: str = Field("smarttag", max_length=32)
+    points: list[LocationIn] = Field(max_length=MAX_BATCH)
+
+
+class LocationResult(BaseModel):
+    accepted: int
+    duplicates: int
+    rejected: int

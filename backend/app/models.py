@@ -18,6 +18,8 @@ class Node(SQLModel, table=True):
     key: str  # shared secret the node sends in X-Node-Key
     # >1 only on demo nodes: 1 real second counts as time_scale seconds.
     time_scale: float = 1.0
+    # A second node in the same carrier. Its readings fill the primary's gaps.
+    backup_for: str | None = Field(default=None, foreign_key="node.id")
     last_seen_at: int | None = None
     battery_v: float | None = None
     fw_version: str | None = None
@@ -53,6 +55,24 @@ class Reading(SQLModel, table=True):
     lon: float | None = None
     battery_v: float | None = None
     time_scale: float = 1.0  # copied from the node on arrival
+    received_at: int = Field(default_factory=now_ts)
+
+
+class LocationPoint(SQLModel, table=True):
+    """Where a carrier was, from any tracker: Samsung SmartTag, GPS, phone."""
+
+    __table_args__ = (
+        UniqueConstraint("node_id", "ts", "source", name="uq_location_node_ts_source"),
+        Index("ix_location_node_ts", "node_id", "ts"),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+    node_id: str = Field(foreign_key="node.id")
+    ts: int
+    lat: float
+    lon: float
+    accuracy_m: float | None = None
+    source: str = "smarttag"
     received_at: int = Field(default_factory=now_ts)
 
 

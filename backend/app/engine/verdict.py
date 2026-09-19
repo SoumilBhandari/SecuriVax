@@ -22,6 +22,8 @@ QUARANTINE_AT = 0.75
 USE_FIRST_AT = 0.5
 # Heat excursions shorter than this (product time) are noise, not news.
 HEAT_REPORT_MIN_MINUTES = 10
+# Two sensors in one carrier further apart than this: one of them is wrong.
+DISAGREE_C = 2.0
 # An open segment whose newest reading is older than this is marked provisional.
 FRESH_S = 2 * 60
 
@@ -128,6 +130,17 @@ def evaluate(
                 "HUMIDITY", "advisory",
                 f"Humidity reached {max(x.extreme for x in humids):.0f}% {_how_long(humids)} in "
                 f"{r.node_label}. Check the desiccant indicator in opened pouches.",
+            ))
+        if r.backup_filled:
+            reasons.append(Reason(
+                "BACKUP_USED", "advisory",
+                f"{r.node_label} went quiet; {r.backup_filled} readings came from its backup {r.backup_label}.",
+            ))
+        if r.max_disagreement_c is not None and r.max_disagreement_c > DISAGREE_C:
+            reasons.append(Reason(
+                "SENSOR_DISAGREE", "advisory",
+                f"{r.node_label} and its backup {r.backup_label} disagree by up to "
+                f"{r.max_disagreement_c:.1f} °C. Check both sensors.",
             ))
         for gap in r.gaps:
             if gap.ongoing:

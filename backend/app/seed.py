@@ -22,6 +22,11 @@ def demo_nodes(key: str) -> list[Node]:
             id="DEMO-01", label="Demo carrier DEMO-01", kind="carrier",
             facility="Demo stage", key=key, time_scale=DEMO_TIME_SCALE,
         ),
+        # The second ESP32 rides in the same carrier as DEMO-01.
+        Node(
+            id="DEMO-01B", label="Backup node DEMO-01B", kind="carrier",
+            facility="Demo stage", key=key, time_scale=DEMO_TIME_SCALE, backup_for="DEMO-01",
+        ),
     ]
 
 
