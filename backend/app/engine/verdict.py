@@ -11,6 +11,7 @@ from app.engine.arrhenius import t_life_hours
 from app.engine.history import SegmentResult, Segment, analyze_segment
 from app.engine.profiles import (
     FREEZE_ALARM_MINUTES,
+    FREEZE_GUARD_C,
     HEAT_ALARM_C,
     HEAT_ALARM_MINUTES,
     HUMIDITY_ADVISORY_MINUTES,
@@ -122,6 +123,7 @@ def evaluate(
                 "conditioned. Take them out until they sweat, before the vaccines freeze.",
             ))
         freezes = [x for x in r.runs if x.kind == "freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
+        near = [x for x in r.runs if x.kind == "near_freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
         heats = [x for x in r.runs if x.kind == "heat" and x.minutes >= HEAT_REPORT_MIN_MINUTES]
         humids = [x for x in r.runs if x.kind == "humid" and x.minutes >= HUMIDITY_ADVISORY_MINUTES]
         if freezes:
@@ -134,6 +136,13 @@ def evaluate(
                     "FREEZE_TOLERATED", "advisory",
                     f"Went below freezing ({where}), but {profile.name} is not freeze-sensitive.",
                 ))
+        elif near and profile.freeze_sensitive:
+            reasons.append(Reason(
+                "FREEZE_POSSIBLE", "quarantine",
+                f"Sat at {min(x.extreme for x in near):.1f} °C {_how_long(near)} in {r.node_label}: within the "
+                f"sensor's error of the freeze alarm ({FREEZE_GUARD_C:g} °C guard band).",
+            ))
+            checks.append(profile.freeze_check)
         if heats:
             alarm = profile.kind == "vaccine" and any(
                 x.extreme >= HEAT_ALARM_C and x.minutes >= HEAT_ALARM_MINUTES for x in heats

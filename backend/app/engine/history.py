@@ -13,6 +13,7 @@ from dataclasses import dataclass, field, replace
 
 from app.engine.arrhenius import rate_per_hour
 from app.engine.profiles import (
+    FREEZE_GUARD_C,
     FREEZE_THRESHOLD_C,
     HUMIDITY_ADVISORY_RH,
     ProductProfile,
@@ -63,7 +64,7 @@ class Gap:
 class Run:
     """A continuous stretch of readings past some threshold."""
 
-    kind: str  # "freeze" | "heat" | "humid"
+    kind: str  # "freeze" | "near_freeze" | "heat" | "humid"
     node_id: str
     start_ts: int
     end_ts: int
@@ -221,6 +222,7 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         res.budget_used += used
         minutes = hours * 60
         track("freeze", p.temp_c <= FREEZE_THRESHOLD_C, p, q.ts, p.temp_c, minutes, used)
+        track("near_freeze", p.temp_c <= FREEZE_GUARD_C, p, q.ts, p.temp_c, minutes, used)
         track("heat", p.temp_c > profile.storage_max_c, p, q.ts, p.temp_c, minutes, used)
         humid = p.rh is not None and p.rh >= HUMIDITY_ADVISORY_RH
         track("humid", humid, p, q.ts, p.rh or 0.0, minutes, used)

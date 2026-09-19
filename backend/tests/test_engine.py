@@ -179,3 +179,16 @@ def test_frozen_packs_are_flagged_right_after_packing():
     r = evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + 60)
     assert "PACKS_TOO_COLD" in codes(r)
     assert r.verdict == USE  # a warning, not a verdict: nothing has frozen for an hour yet
+
+
+def test_guard_band_holds_a_box_that_may_have_frozen_within_sensor_error():
+    rs = readings([4.0] * 10 + [-0.3] * 90 + [4.0] * 10)
+    r = evaluate(PENTA, [seg(rs)], now=rs[-1].ts)
+    assert r.verdict == QUARANTINE and "FREEZE_POSSIBLE" in codes(r)
+    assert "shake test" in r.action
+    assert evaluate(OPV, [seg(rs)], now=rs[-1].ts).verdict == USE  # OPV isn't freeze-sensitive
+
+
+def test_guard_band_needs_an_hour_too():
+    rs = readings([4.0] * 10 + [-0.3] * 40 + [4.0] * 10)
+    assert evaluate(PENTA, [seg(rs)], now=rs[-1].ts).verdict == USE
