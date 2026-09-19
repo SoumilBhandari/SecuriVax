@@ -15,6 +15,8 @@ static const int ADC_PINS[] = {32, 33, 34, 35, 36, 39};
 // A DHT module has its own pull-up, but a DHT11 wired to 3.3 V may not read as pulled up: try them all.
 static const int DHT_PINS[] = {4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};  // not 16/17: PSRAM on WROVER
 
+static int dhtEdges(int pin);
+
 static const char *i2cName(uint8_t a) {
   switch (a) {
     case 0x44: case 0x45: return "SHT3x (SHT31) temperature/humidity";
@@ -80,6 +82,10 @@ static void scanDHT() {
   Serial.println("DHT11 / DHT22 (every safe pin, 2.5 s start-up each):");
   int found = 0;
   for (int pin : DHT_PINS) {
+    // Only pins that answered the raw handshake above. The library reads with
+    // interrupts off, and on an empty pin that spin outlasts the interrupt
+    // watchdog and panics the core, which used to end the scan half way.
+    if (dhtEdges(pin) < 4) continue;
     for (uint8_t type : {DHT11, DHT22}) {
       DHT dht(pin, type);
       dht.begin();

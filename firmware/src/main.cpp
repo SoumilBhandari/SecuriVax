@@ -120,8 +120,44 @@ RTC_DATA_ATTR int8_t rtc_dht2_pin = -1;
 // (6-11), 16/17 (PSRAM on WROVER modules) and the input-only 34-39.
 static const int DHT_CANDIDATES[] = {DHT_PIN, 4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 
-// A DHT on this pin that answers, or nullptr.
-DHT *tryDht(int pin) {
+/**
+ * Does anything on this pin answer a DHT start signal?
+ *
+ * The library's read bit-bangs the line with interrupts off. On a pin with
+ * nothing on it that spin can outlast the interrupt watchdog, which panics
+ * the core and reboots the node: searching the free GPIOs would crash-loop
+ * before it ever took a reading. So knock first, here, with interrupts on
+ * and every wait bounded: pull the line low for the start, let it go, and
+ * see whether something pulls it back down within the time a DHT would.
+ */
+static bool dhtAnswers(int pin) {
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, LOW);
+  delay(20);  // a DHT11 wants at least 18 ms of start signal
+  pinMode(pin, INPUT_PULLUP);
+  uint32_t t0 = micros();
+  while (digitalRead(pin) == HIGH) {
+    if (micros() - t0 > 250) return false;  // nobody pulled it down: no sensor
+  }
+  t0 = micros();
+  while (digitalRead(pin) == LOW) {
+    if (micros() - t0 > 250) return false;  // held low: a short, not a sensor
+  }
+  return true;
+}
+
+/**
+ * A DHT on this pin that answers, or nullptr. `knock` first asks whether
+ * anything is there at all: that is for the blind sweep of the free GPIOs,
+ * where most pins have nothing on them. A pin someone configured is read
+ * straight, because a sensor wired without an external pull-up can be slow
+ * to let the line rise and would fail the knock while reading perfectly well.
+ */
+DHT *tryDht(int pin, bool knock) {
+  if (knock && !dhtAnswers(pin)) {
+    pinMode(pin, INPUT);
+    return nullptr;
+  }
   DHT *probe = new DHT(pin, DHT_TYPE);
   probe->begin();
   for (int i = 0; i < 2; i++) {
@@ -152,7 +188,7 @@ bool findDhts() {
   int n = 0;
   for (int pin : {DHT_PIN, DHT2_PIN}) {
     if (pin < 0 || n >= 2) continue;
-    DHT *d = tryDht(pin);
+    DHT *d = tryDht(pin, false);  // configured: read it straight
     if (d) {
       (n == 0 ? dht : dht2) = d;
       found[n++] = pin;
@@ -162,7 +198,7 @@ bool findDhts() {
     for (int pin : DHT_CANDIDATES) {
       if (n >= 2) break;
       if (pin < 0 || pin == found[0] || pin == found[1]) continue;
-      DHT *d = tryDht(pin);
+      DHT *d = tryDht(pin, true);  // a sweep of pins that are mostly empty
       if (d) {
         (n == 0 ? dht : dht2) = d;
         found[n++] = pin;
