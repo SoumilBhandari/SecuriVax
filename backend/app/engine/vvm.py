@@ -21,6 +21,7 @@ MAX_SIDE = 400
 # Measurement noise near "matches": treat anything this close as at the end point.
 ENDPOINT_AT = 0.92
 MIN_CONTRAST = 35.0  # grey levels between label paper and circle
+GLARE_SHARE = 0.02  # saturated pixels on the label above this: ask for a retake
 
 
 @dataclass
@@ -70,7 +71,8 @@ def read_vvm(image: Image.Image) -> VvmReading:
     border = max(2, int(min(h, w) * 0.06))
     edge = np.concatenate([lum[:border].ravel(), lum[-border:].ravel(), lum[:, :border].ravel(), lum[:, -border:].ravel()])
     background = float(np.median(edge))
-    dark = lum < _otsu(lum)
+    # Clip at the paper level so a bright glare spot can't hijack the threshold.
+    dark = lum < _otsu(np.minimum(lum, background + 5))
     if background - float(np.median(lum[dark])) < MIN_CONTRAST if dark.any() else True:
         return VvmReading(False, "Couldn't find a VVM: fill the circle guide with the label and hold steady.")
 
@@ -106,11 +108,28 @@ def read_vvm(image: Image.Image) -> VvmReading:
     if radius is None or radius < 15:
         return VvmReading(False, "The VVM is too small or cut off: move closer so it fills the guide.")
 
+    # Glare turns the square white and makes a spent label look fresh: never
+    # measure through it, ask for another photo instead.
+    disc = dist <= radius
+    saturated = rgb.min(axis=2) >= 245  # glare is white: every channel clipped, not just red under warm light
+    if saturated[disc].mean() > GLARE_SHARE:
+        return VvmReading(False, "Glare on the label: tilt the phone a little and try again.")
+
+    # Paper colour right around the circle, not at the photo's edge, so
+    # shadows and print elsewhere on the label don't skew the reference.
+    # (Upper percentile: a circle squashed into an ellipse by perspective can dip
+    # into the ring and would drag a median down.)
+    ring = (dist >= 1.2 * radius) & (dist <= 1.6 * radius)
+    if ring.sum() > 200:
+        background = float(np.percentile(lum[ring], 75))
+
     square = (np.abs(yy - cy) <= 0.28 * radius) & (np.abs(xx - cx) <= 0.28 * radius)
     circle = on_axis & (dist >= 0.80 * radius) & (dist <= 0.93 * radius)
     square_l = float(np.median(lum[square]))
     circle_l = float(np.median(lum[circle]))
     contrast = background - circle_l
+    if np.mean(lum[square] > background + 25) > 0.15 or _uneven(lum, yy, xx, cy, cx, radius, dist, contrast):
+        return VvmReading(False, "Glare on the label: tilt the phone a little and try again.")
     if contrast < MIN_CONTRAST:
         return VvmReading(False, "Not enough contrast: move to better light or avoid glare.")
 
@@ -127,6 +146,26 @@ def read_vvm(image: Image.Image) -> VvmReading:
         center=(round(float(cx), 1), round(float(cy), 1)),
         radius_px=round(float(radius), 1),
     )
+
+
+UNEVEN_AT = 0.35  # brightness spread across the square, as a share of the contrast
+
+
+def _uneven(lum, yy, xx, cy, cx, radius, dist, contrast) -> bool:
+    """The heat-sensitive square is one flat colour. If its four quarters differ a
+    lot in brightness, glare or a shadow is lying across it: don't trust it.
+    (The core sampled here stays inside the square at any rotation.)"""
+    if contrast <= 0:
+        return True
+    half = 0.28 * radius
+    core = (np.abs(yy - cy) <= half) & (np.abs(xx - cx) <= half)
+    quads = []
+    for sy in (-1, 1):
+        for sx in (-1, 1):
+            m = core & (np.sign(yy - cy) == sy) & (np.sign(xx - cx) == sx)
+            if m.sum() > 4:
+                quads.append(float(np.median(lum[m])))
+    return len(quads) == 4 and (max(quads) - min(quads)) / contrast > UNEVEN_AT
 
 
 @dataclass
