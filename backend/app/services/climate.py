@@ -93,6 +93,7 @@ def _box_sites(session: Session, facilities: list[Facility], now: int) -> dict[s
         if haversine_km((near.lat, near.lon), (last.end_lat, last.end_lon)) <= 5:
             out[near.id].append({
                 "id": box.id, "product": PRODUCTS_BY_ID[box.product_id].name,
+                "kind": PRODUCTS_BY_ID[box.product_id].kind,
                 "verdict": report.verdict, "budget_used": report.budget_used,
             })
     return out
@@ -114,8 +115,10 @@ def stores_at_risk(session: Session, now: int | None = None) -> dict:
         humid = max((r[2] for r in ahead if r[2] is not None), default=None)
         level = _risk(peak_c)
         actions = [ACTIONS[level]]
-        if humid is not None and humid >= 85:
-            actions.append(f"Humidity up to {humid:.0f}%: keep rapid-test pouches sealed until use.")
+        rdts = [b for b in stock.get(f.id, []) if b["kind"] == "rapid_test"]
+        if humid is not None and humid >= 85 and (rdts or f.kind == "store"):
+            what = f"{len(rdts)} rapid-test boxes here" if rdts else "rapid tests in store"
+            actions.append(f"Humidity up to {humid:.0f}% with {what}: keep pouches sealed until use.")
         rows.append({
             "id": f.id, "name": f.name, "kind": f.kind, "lat": f.lat, "lon": f.lon,
             "risk": level, "peak_c": peak_c, "peak_ts": peak_ts,
