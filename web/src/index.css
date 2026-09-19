@@ -689,6 +689,28 @@
   }
 }
 
+/* Shipments map: verdict pins and trip lines (ShipmentsMap). */
+.sv-pin {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.sv-trip--use {
+  stroke: var(--signal-use);
+}
+.sv-trip--quarantine {
+  stroke: var(--signal-quarantine);
+}
+.sv-trip--discard {
+  stroke: var(--signal-discard);
+}
+.sv-trip--moving {
+  stroke-dasharray: 6 6;
+}
+.sv-trip-start {
+  fill: #fff;
+}
+
 .leaflet-container {
   font: inherit;
 }

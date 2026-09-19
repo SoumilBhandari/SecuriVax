@@ -69,6 +69,10 @@ def _summaries(session: Session) -> list[dict]:
     for box in session.exec(select(Box).order_by(Box.id)).all():
         report = evaluate_box(session, box)
         custody = _open_custody(session, box.id)
+        # For the shipments map: where the trip started and where the box was
+        # last seen (its carrier now, or where it was delivered). None when no
+        # reading carried a position.
+        located = [s for s in report.segments if s.end_lat is not None]
         out.append({
             **box.model_dump(),
             "product_name": PRODUCTS_BY_ID[box.product_id].name,
@@ -79,6 +83,10 @@ def _summaries(session: Session) -> list[dict]:
             "mkt_c": report.mkt_c,
             "logger_outcome": report.logger.get("outcome"),
             "status": "In transit" if custody else ("Delivered" if report.segments else "Not dispatched"),
+            "lat": located[-1].end_lat if located else None,
+            "lon": located[-1].end_lon if located else None,
+            "from_lat": located[0].start_lat if located else None,
+            "from_lon": located[0].start_lon if located else None,
         })
     return out
 

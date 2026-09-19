@@ -309,6 +309,11 @@ export interface BoxSummary extends Box {
   mkt_c: number | null;
   logger_outcome: LoggerView["outcome"] | null;
   status: "In transit" | "Delivered" | "Not dispatched";
+  // Last known position (its carrier now, or where it was delivered) and where the trip started.
+  lat: number | null;
+  lon: number | null;
+  from_lat: number | null;
+  from_lon: number | null;
 }
 
 export interface LatestReading {

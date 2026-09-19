@@ -72,6 +72,21 @@ def test_list_endpoints(client):
     assert client.get("/api/nodes/CAR-02").json()["recent"] == []
 
 
+def test_list_gives_where_the_trip_started_and_where_the_box_is(client, session):
+    now = int(time.time())
+    assert client.get("/api/boxes").json()[0]["lat"] is None  # no readings yet: no position
+    client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-01"})
+    loaded = session.exec(select(Custody)).one()
+    loaded.start_ts = now - 900  # loaded before the readings below
+    session.add(loaded)
+    session.commit()
+    send(client, "CAR-01", [5.0] * 10, start=now - 600)
+    box = {b["id"]: b for b in client.get("/api/boxes").json()}["BOX-0001"]
+    # send() walks east 0.001° a reading: the first reading is the start, the last is now.
+    assert (box["from_lat"], box["from_lon"]) == (-0.1, 34.7)
+    assert box["lat"] == -0.1 and abs(box["lon"] - 34.709) < 1e-9
+
+
 def test_quick_retap_to_another_carrier_undoes_the_mistake(client, session):
     client.post("/api/boxes/BOX-0002/load", json={"node_id": "CAR-02"})
     res = client.post("/api/boxes/BOX-0002/load", json={"node_id": "CAR-01"}).json()

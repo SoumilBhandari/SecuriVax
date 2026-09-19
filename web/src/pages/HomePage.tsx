@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { BoxCard } from "../components/BoxCard";
@@ -20,10 +20,32 @@ const FILTERS = [
 ] as const;
 type Filter = (typeof FILTERS)[number]["id"];
 
+// The map pulls in Leaflet, so it loads only when someone opens it.
+const ShipmentsView = lazy(() => import("../components/ShipmentsMap"));
+const VIEW_KEY = "securivax.boxView";
+type View = "list" | "map";
+
+function savedView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "map" ? "map" : "list";
+  } catch {
+    return "list";
+  }
+}
+
 export default function HomePage() {
   const boxes = usePoll(() => api.boxes(), 30000);
   const [filter, setFilter] = useState<Filter>("ALL");
   const [waiting, setWaiting] = useState(false);
+  const [view, setView] = useState<View>(savedView);
+  const pickView = (v: View) => {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* private mode: the choice lasts this visit */
+    }
+  };
   // A computer can't read the stickers, so it gets a search instead of the tap button.
   const canTap = useCanTapTags();
   const [query, setQuery] = useState("");
@@ -88,23 +110,39 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="mb-4 mt-8 flex flex-wrap gap-2" role="group" aria-label="Filter by verdict">
-        {FILTERS.map((f) => (
-          <button key={f.id} className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-            {f.label}
-            <span className="font-normal tabular-nums opacity-60">{all.filter(f.match).filter(found).length}</span>
+      <div className="mb-4 mt-8 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by verdict">
+          {FILTERS.map((f) => (
+            <button key={f.id} className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
+              {f.label}
+              <span className="font-normal tabular-nums opacity-60">{all.filter(f.match).filter(found).length}</span>
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex gap-2" role="group" aria-label="Show as">
+          <button className="chip" aria-pressed={view === "list"} onClick={() => pickView("list")}>
+            List
           </button>
-        ))}
+          <button className="chip" aria-pressed={view === "map"} onClick={() => pickView("map")}>
+            Map
+          </button>
+        </div>
       </div>
 
       {boxes.error && !boxes.data && <ErrorNote error={boxes.error} onRetry={boxes.refresh} />}
       {!boxes.data && !boxes.error && <Spinner />}
 
-      <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-        {visible.map((b) => (
-          <BoxCard key={b.id} box={b} />
-        ))}
-      </div>
+      {view === "map" && boxes.data ? (
+        <Suspense fallback={<Spinner label="Opening the map" />}>
+          <ShipmentsView boxes={visible} />
+        </Suspense>
+      ) : (
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+          {visible.map((b) => (
+            <BoxCard key={b.id} box={b} />
+          ))}
+        </div>
+      )}
       {boxes.data && visible.length === 0 && <p className="py-8 text-center text-neutral-500">{q ? `No box matches "${query.trim()}".` : "Nothing here."}</p>}
 
       <p className="mt-8 text-center text-sm">
