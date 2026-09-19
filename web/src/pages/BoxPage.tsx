@@ -151,7 +151,6 @@ function BoxTabs({
   forecast: CarrierForecast | null;
   onChanged: (message: string) => void;
 }) {
-  const refresh = () => onChanged("");
   const panel = (id: TabId, body: ReactNode) =>
     tabs.visited.has(id) || tabs.current === id ? (
       <div key={id} role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} hidden={tabs.current !== id}>
@@ -250,7 +249,7 @@ function BoxTabs({
         panel(
           "label",
           <Card title="Second witness: the VVM label" aside="camera + Gemini">
-            <VvmCheck boxId={report.box.id} latest={report.label_check} highlight={report.confidence.borderline} onConfirmed={refresh} />
+            <VvmCheck boxId={report.box.id} latest={report.label_check} highlight={report.confidence.borderline} onConfirmed={onChanged} />
           </Card>,
         )}
 

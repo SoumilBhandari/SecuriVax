@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Card, ErrorNote, Layout, Spinner } from "../components/Layout";
+import { LearningCard } from "../components/Learning";
 import { api } from "../lib/api";
 import type { Impact, MetricStat, PolicyId } from "../types";
 
@@ -52,6 +53,8 @@ export default function ImpactPage() {
           <p className="mt-1 text-sm text-slate-300">good doses thrown away, alarm logger vs Vialtality</p>
         </div>
       </div>
+
+      <LearningCard />
 
       {METRICS.map((m) => (
         <Card key={m.key} title={m.title} aside={m.lowerIsBetter}>

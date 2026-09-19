@@ -72,7 +72,10 @@ export function VerdictCard({
       </div>
 
       <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
-        <span className="shrink-0">Confidence {pct(report.confidence.confidence)}</span>
+        <span className="shrink-0">
+          Confidence {pct(report.confidence.confidence)}
+          {report.confidence.label_fused && <span className="font-normal opacity-85"> · with the VVM label</span>}
+        </span>
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/20">
           <div className="h-full bg-current" style={{ width: `${report.confidence.confidence * 100}%` }} />
         </div>
@@ -111,7 +114,10 @@ export function KeyStats({ report }: { report: Report }) {
       </dl>
       <p className="mt-2 text-xs text-muted">
         {pct(report.initial_budget_used)} of the budget was used before our monitoring. Time left assumes it stays at the
-        last reading ({time(report.data_through)}). Stability data: {report.product.stability_ref}.
+        last reading ({time(report.data_through)}). Stability data: {report.product.stability_ref}
+        {report.learned_rate && report.learned_rate.photos > 0
+          ? `, adjusted to ${report.learned_rate.scale_used.toFixed(2)}x from ${report.learned_rate.photos} confirmed field photos.`
+          : "."}
       </p>
     </div>
   );

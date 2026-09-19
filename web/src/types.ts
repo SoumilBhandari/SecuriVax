@@ -138,6 +138,7 @@ export interface Report {
   peak_rh: number | null;
   hours_out_of_range: number;
   logger: LoggerView;
+  learned_rate?: LearnedRate;
 }
 
 export interface LoggerView {
@@ -176,6 +177,7 @@ export interface Confidence {
   budget_p50: number;
   budget_p90: number;
   borderline: boolean;
+  label_fused?: boolean;
   samples: number;
 }
 
@@ -187,18 +189,65 @@ export interface LabelCheck {
   past_endpoint: boolean;
   sensor_budget: number;
   agreement: "AGREE" | "LABEL_AHEAD" | "SENSOR_AHEAD";
+  rho: number | null;
+  flagged: boolean;
+  predicted_stage: number | null;
   gemini_stage: number | null;
   confirmed: boolean;
   worker_stage: number | null;
+}
+
+export interface VvmReading {
+  rho: number;
+  progress: number;
+  stage: number;
+  past_endpoint: boolean;
+  near_cutoff: boolean;
+  square_l: number;
+  ring_l: number;
+  radius_px: number;
+}
+
+export interface Witnesses {
+  code: LabelCheck["agreement"];
+  flagged: boolean;
+  text: string;
+  label: number;
+  sensor: number;
+  camera_stage: number;
+  predicted_stage: number;
+  predicted_stages: [number, number];
+  sensor_range: [number, number];
+  rho: number | null;
+  predicted_rho: number | null;
+  predicted_rho_range: [number, number] | null;
+  cutoff: number | null;
 }
 
 export interface VvmResult {
   found: boolean;
   message?: string;
   check_id?: number;
-  reading?: { progress: number; stage: number; past_endpoint: boolean; radius_px: number };
-  witnesses?: { code: LabelCheck["agreement"]; text: string; label: number; sensor: number };
+  reading?: VvmReading;
+  witnesses?: Witnesses;
   gemini?: { found: boolean; inner_vs_outer: string; stage: number | null; confidence: number; note?: string } | null;
+}
+
+export interface LearnedRate {
+  photos: number;
+  median: number;
+  p10: number;
+  p90: number;
+  sd_log: number;
+  scale_used: number;
+  note: string;
+}
+
+export interface LearningSummary {
+  products: (LearnedRate & { product_id: string; name: string })[];
+  photos: number;
+  prior_sd_log: number;
+  camera: { progress_sigma: number; calibration: string };
 }
 
 export interface BoxRisk {

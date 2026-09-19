@@ -8,6 +8,8 @@ import type {
   Facility,
   FleetSummary,
   Impact,
+  LearnedRate,
+  LearningSummary,
   NodeDetail,
   NodeSummary,
   Product,
@@ -82,6 +84,7 @@ async function request<T>(path: string, init?: RequestInit, retried = false): Pr
 export const api = {
   boxes: () => request<BoxSummary[]>("/api/boxes"),
   fleet: () => request<FleetSummary>("/api/boxes/fleet/summary"),
+  learning: () => request<LearningSummary>("/api/boxes/learning/summary"),
   counterfactual: (id: string) => request<CounterfactualRow[]>(`/api/boxes/${encodeURIComponent(id)}/counterfactual`),
   report: (id: string) => request<Report>(`/api/boxes/${encodeURIComponent(id)}/report`),
   explain: (id: string) =>
@@ -102,7 +105,7 @@ export const api = {
   checkVvm: (boxId: string, image: string) =>
     request<VvmResult>(`/api/boxes/${encodeURIComponent(boxId)}/vvm`, { method: "POST", body: JSON.stringify({ image }) }),
   confirmVvm: (boxId: string, checkId: number, stage?: number) =>
-    request<{ confirmed: boolean }>(`/api/boxes/${encodeURIComponent(boxId)}/vvm/${checkId}/confirm`, {
+    request<{ confirmed: boolean; flagged: boolean; learned_rate: LearnedRate }>(`/api/boxes/${encodeURIComponent(boxId)}/vvm/${checkId}/confirm`, {
       method: "POST",
       body: JSON.stringify(stage ? { stage } : {}),
     }),
