@@ -83,7 +83,7 @@ def assemble(dist: Path, data: dict) -> str:
     script = js.replace("</script", "<\\/script")
     return "\n".join([
         '<meta charset="utf-8">',  # the file is also opened on its own, not only inside a host page
-        "<title>Vialtality app</title>",
+        "<title>SecuriVax app</title>",
         '<link rel="preconnect" href="https://fonts.googleapis.com">',
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
         f'<link rel="stylesheet" href="{fonts}">',

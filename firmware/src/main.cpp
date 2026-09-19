@@ -1,4 +1,4 @@
-// Vialtality node firmware (skeleton).
+// SecuriVax node firmware (skeleton).
 //
 // Every wake: read temperature, humidity and battery, sometimes a GPS fix,
 // append one record to a queue in flash, and every few wakes push the queue to
@@ -403,7 +403,7 @@ void setup() {
   loadBootId();
 
 #if DEMO_MODE
-  Serial.printf("Vialtality %s demo mode, boot %u\n", NODE_ID, boot_id);
+  Serial.printf("SecuriVax %s demo mode, boot %u\n", NODE_ID, boot_id);
 #else
   cycle();
   esp_sleep_enable_timer_wakeup((uint64_t)SAMPLE_INTERVAL_S * 1000000ULL);

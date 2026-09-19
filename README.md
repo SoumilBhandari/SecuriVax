@@ -1,4 +1,4 @@
-# Vialtality
+# SecuriVax
 
 **Is this vial still good? A last-mile cold chain monitor for vaccines and rapid tests.**
 
@@ -12,7 +12,7 @@ indicators for cold boxes and fridges have 30-day loggers, but a freeze indicato
 gives one pass/fail for the whole trip, and a VVM shows heat but not freezing.
 We say when and where it happened, and give a verdict for the product in each box.
 
-Vialtality puts a cheap, battery-powered ESP32 node (temperature + humidity)
+SecuriVax puts a cheap, battery-powered ESP32 node (temperature + humidity)
 inside the carrier, plus a Samsung SmartTag for location. Every box gets an
 NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
 DISCARD** for *that product*, worked out from everything the box has been
@@ -159,10 +159,10 @@ vehicle. The same trips were then decided four ways. Means over 20 seeds:
 | --- | --- | --- | --- | --- |
 | Today (VVM read by eye) | 1,699 | 4 | 1,700 | 144 |
 | Alarm-only logger | 0 | 1,121 | 1,700 | 144 |
-| Vialtality | 192 | 0 | 1,700 | 144 |
-| **Vialtality + planning** | **36** | **0** | **368** | **12** |
+| SecuriVax | 192 | 0 | 1,700 | 144 |
+| **SecuriVax + planning** | **36** | **0** | **368** | **12** |
 
-In this climate, freezing does far more damage than heat. Vialtality catches
+In this climate, freezing does far more damage than heat. SecuriVax catches
 it without throwing away freeze-proof OPV and MR.
 
 Planning means the forecast's cool departure slot, repacking carriers once the
@@ -176,10 +176,10 @@ field trial.
 ## How it's different
 
 Existing cold-chain platforms, such as CryoTrace AI, sell dashboards and
-threshold or "predictive" alerts to logistics teams. Vialtality answers a
+threshold or "predictive" alerts to logistics teams. SecuriVax answers a
 different question, for a different person:
 
-| | Enterprise monitoring | Vialtality |
+| | Enterprise monitoring | SecuriVax |
 | --- | --- | --- |
 | For | Logistics and QA teams on dashboards | The health worker holding the box, on any phone |
 | Answer | "Temperature left range" | USE / QUARANTINE / DISCARD for this product, from WHO VVM kinetics |

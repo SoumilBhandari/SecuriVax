@@ -6,7 +6,7 @@
 # this file. Without OPERATOR_TOKEN every write is open and /api/admin is off.
 # The demo seeds itself on first start; refresh it before a demo with
 #   curl -X POST https://<app>/api/admin/reset-demo -H "X-Operator-Token: ..."
-name: vialtality
+name: securivax
 region: nyc
 services:
   - name: web

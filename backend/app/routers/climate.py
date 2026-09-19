@@ -57,7 +57,7 @@ _impact: dict | None = None
 
 @router.get("/impact")
 def impact() -> dict:
-    """The 90-day backtest on real ERA5 weather: today vs alarm logger vs Vialtality."""
+    """The 90-day backtest on real ERA5 weather: today vs alarm logger vs SecuriVax."""
     global _impact
     if _impact is None:
         from app.backtest.simulate import load_results

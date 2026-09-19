@@ -41,8 +41,8 @@ It should say `"status": "ok"`, `"database": "ok"`, both AI keys `true`,
 
 Buy the domain yourself. Then:
 
-1. In DigitalOcean: **App → Settings → Domains → Add domain**, e.g. `app.vialtality.com`. Choose
-   *You manage your domain*. It shows a CNAME target like `vialtality-xxxx.ondigitalocean.app`.
+1. In DigitalOcean: **App → Settings → Domains → Add domain**, e.g. `app.securivax.com`. Choose
+   *You manage your domain*. It shows a CNAME target like `securivax-xxxx.ondigitalocean.app`.
 2. In GoDaddy: **DNS → Add record**: type `CNAME`, name `app`, value the target from step 1, TTL 1 hour.
    (A bare apex domain can't be a CNAME at GoDaddy; use a subdomain such as `app.` or `www.`.)
 3. Wait for DigitalOcean to show the domain as *Active*: it issues the HTTPS certificate itself.

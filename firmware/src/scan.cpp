@@ -164,7 +164,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("\n=== Vialtality sensor finder ===");
+  Serial.println("\n=== SecuriVax sensor finder ===");
   Serial.print("Pins pulled high externally:");
   for (int pin : DIGITAL_PINS)
     if (pulledUp(pin)) Serial.printf(" %d", pin);

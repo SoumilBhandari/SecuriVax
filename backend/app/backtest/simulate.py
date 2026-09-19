@@ -79,8 +79,8 @@ PRICE = {"opv": 0.15, "penta": 0.9, "mr": 0.6, "hpv": 4.5, "rdt-malaria": 0.35}
 POLICIES = {
     "status_quo": "Today: VVM read by eye at the next session, no last-mile monitoring.",
     "alarm_logger": "Threshold logger in the carrier; any alarm and the box is discarded.",
-    "vialtality": "Vialtality verdicts; QUARANTINE goes to a shake test or the camera VVM check.",
-    "vialtality_planned": "Vialtality verdicts plus forecast-based departures and carrier repacking.",
+    "vialtality": "SecuriVax verdicts; QUARANTINE goes to a shake test or the camera VVM check.",
+    "vialtality_planned": "SecuriVax verdicts plus forecast-based departures and carrier repacking.",
 }
 
 
@@ -301,7 +301,7 @@ def _decide(policy, profile, a, b_true, frozen_true, measured, eye, camera, shak
             return by_eye
         return by_eye or froze(measured) or heat_alarm(measured)
 
-    # Vialtality: the engine on the measured record, then the check QUARANTINE asks for.
+    # SecuriVax: the engine on the measured record, then the check QUARANTINE asks for.
     b_meas = start + budget(product, measured)
     if b_meas >= 1.0:
         return True

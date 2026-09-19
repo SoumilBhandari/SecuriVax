@@ -63,7 +63,7 @@ async def _keep_lanes_live() -> None:
         await asyncio.sleep(120)
 
 
-app = FastAPI(title="Vialtality API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="SecuriVax API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(

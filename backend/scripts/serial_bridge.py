@@ -102,7 +102,7 @@ def main() -> None:
             continue
         print(line)
         sensor = parse_sensor(line) or sensor
-        if (m := BOOT.search(line)) and "Vialtality" in line:
+        if (m := BOOT.search(line)) and ("SecuriVax" in line or "Vialtality" in line):  # or older firmware
             if boot is not None and int(m.group(1)) != boot:
                 pending.clear()  # the board restarted: its sequence starts over
             boot = int(m.group(1))
