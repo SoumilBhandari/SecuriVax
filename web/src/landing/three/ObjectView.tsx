@@ -6,7 +6,8 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 
 import type { Anchor, Ground } from "../placeholders";
 import { Device } from "./device";
-import { between, Carton, type Drive } from "./objects";
+import { between, type Drive } from "./objects";
+import { TagScene } from "./tag";
 
 export interface ObjectViewHandle {
   set(progress: number, at: Anchor, extra?: { spin?: number; bob?: number }): void;
@@ -39,15 +40,15 @@ const SHOTS: Record<string, Shot> = {
     render: (d) => <Device drive={d} open={(p) => between(p, 0.14, 0.86)} />,
   },
   B: {
-    radius: 0.62,
-    centre: [0, 0.24, 0],
+    radius: 0.66,
+    centre: [0.1, 0.24, 0],
     orbit: [
-      [0.2, 0.55],
-      [-0.55, 0.5],
+      [0.34, 0.26],
+      [0.06, 0.38],
     ],
-    dolly: [1.0, 1.0],
-    fov: 28,
-    render: () => <Carton scale={1} position={[0, 0, 0]} />,
+    dolly: [1.06, 0.96],
+    fov: 30,
+    render: (d) => <TagScene drive={d} />,
   },
   C: {
     radius: 0.58,
