@@ -46,7 +46,7 @@ export default function LandingPage() {
 
 function Nav() {
   return (
-    <nav className="relative z-30 mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-6 lg:px-10">
+    <nav className="pointer-events-none relative z-30 mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-6 lg:px-10 [&_a]:pointer-events-auto [&_button]:pointer-events-auto">
       <Link to="/" aria-label="SecuriVax" className="flex">
         <Logo height={28} />
       </Link>
@@ -80,7 +80,8 @@ function Hero({ boxes, toCheck }: { boxes: BoxSummary[]; toCheck: number }) {
   return (
     <header className="relative lg:min-h-[100dvh]">
       <Nav />
-      <div className="relative z-20 mx-auto max-w-7xl px-6 pb-10 pt-8 lg:px-10 lg:pt-24">
+      {/* Full width over the stack: the pointer passes through to the screens, except on the links. */}
+      <div className="pointer-events-none relative z-20 mx-auto max-w-7xl px-6 pb-10 pt-8 lg:px-10 lg:pt-24 [&_a]:pointer-events-auto">
         <div className="max-w-lg">
           <p className="mono-label rise-in m-0">Vaccine cold chain · HopHacks 2026</p>
           <h1 className="rise-in m-0 mt-5 font-display text-[40px] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-[58px]" style={{ "--i": 1 } as CSSProperties}>
@@ -221,7 +222,8 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
 
 /**
  * Laptops: the screens fanned along a diagonal, drifting slowly and moving
- * with the page as it scrolls. Hovering one holds the stack and lifts it.
+ * with the page as it scrolls. Hovering one holds the stack and slides that
+ * screen up in place, like a file pulled up out of a drawer.
  * They fade out under the words and at both ends of the diagonal.
  */
 function Stack({ screens }: { screens: Screen[] }) {
@@ -293,7 +295,7 @@ function ScreenCard({ screen, index, width, hoverLift = false }: { screen: Scree
         {screen.label} · open →
       </span>
       <span
-        className={`lp-screen block ${hoverLift ? "transition-transform duration-500 [transition-timing-function:cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-5 group-hover:scale-[1.03]" : ""}`}
+        className={`lp-screen block ${hoverLift ? "lp-screen--lift" : ""}`}
         style={{ height }}
       >
         <span className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">

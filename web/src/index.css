@@ -827,6 +827,26 @@
   box-shadow: 0 30px 60px -36px rgb(11 37 69 / 0.45);
   backdrop-filter: blur(10px);
 }
+/* On the landing stack: under the pointer a screen slides straight up out of
+   the stack, like a file pulled up from a drawer. It keeps its place: the
+   screens in front stay in front. */
+.lp-screen--lift {
+  transition:
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s;
+}
+.group:hover .lp-screen--lift,
+.group:focus-visible .lp-screen--lift {
+  transform: translateY(-3.25rem);
+  border-color: var(--border-strong);
+  box-shadow: 0 40px 70px -40px rgb(11 37 69 / 0.5);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-screen--lift {
+    transition: none;
+  }
+}
 .lp-screen__body .section-title:first-child {
   margin-top: 0;
   padding-top: 0;
