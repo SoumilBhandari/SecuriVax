@@ -45,11 +45,15 @@ def _place(places: dict[str, str], lat: float | None, lon: float | None) -> str 
     return places.get(place_key(lat, lon), coords_label(lat, lon))
 
 
+# How a health worker reads each verdict: never the code (USE_FIRST).
+VERDICT_WORDS = {"USE": "USE", "USE_FIRST": "USE FIRST", "QUARANTINE": "QUARANTINE", "DISCARD": "DISCARD"}
+
+
 def build_facts(box: Box, profile: ProductProfile, report: Report, places: dict[str, str]) -> dict:
     return {
         "box": box.id,
         "product": profile.name,
-        "verdict": report.verdict,
+        "verdict": VERDICT_WORDS[report.verdict],
         "action": report.action,
         "budget_used_pct": round(report.budget_used * 100),
         "reasons": [r.text for r in report.reasons],

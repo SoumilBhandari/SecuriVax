@@ -18,7 +18,9 @@ from app.services.report import place_key
 
 log = logging.getLogger(__name__)
 
-MAX_POINTS = 8
+# Each new place is a Maps-grounded Gemini request, billed per request: name the
+# first few key points (handoffs, then incidents) and show the rest as coordinates.
+MAX_POINTS = 4
 
 PROMPT = (
     "Name the place at latitude {lat:.5f}, longitude {lon:.5f} using Google Maps. "

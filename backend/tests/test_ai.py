@@ -86,3 +86,31 @@ def test_grok_response_parsing():
 
 def test_place_names_are_cleaned():
     assert places._clean('**Kombewa Health Centre**.\nextra') == "Kombewa Health Centre"
+
+
+def test_a_box_report_is_reused_for_half_an_hour_even_as_readings_arrive(client, session, monkeypatch):
+    load_freeze_history(client, session)
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "g")
+    monkeypatch.setattr(get_settings(), "xai_api_key", "x")
+    calls = []
+
+    async def fake_gemini(client_, model, lat, lon):
+        calls.append("gemini")
+        return "Kisumu-Bondo road near Holo"
+
+    async def fake_grok(facts):
+        calls.append("grok")
+        return "This box froze on the road."
+
+    monkeypatch.setattr(places, "_ask_gemini", fake_gemini)
+    monkeypatch.setattr(narrative, "_ask_grok", fake_grok)
+    assert client.post("/api/boxes/BOX-0001/explain").json()["source"] == "grok"
+    first = list(calls)
+    # A new reading changes the report's facts, but not the verdict.
+    now = int(time.time())
+    ok = client.post("/api/ingest/readings", headers=KEY,
+                     json={"node_id": "CAR-01", "boot_id": 1, "readings": [{"seq": 99, "ts": now, "temp_c": 4.9}]})
+    assert ok.status_code == 200
+    again = client.post("/api/boxes/BOX-0001/explain").json()
+    assert again["source"] == "grok" and again["text"] == "This box froze on the road."
+    assert calls == first  # no model was asked twice

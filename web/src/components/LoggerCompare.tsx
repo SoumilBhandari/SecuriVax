@@ -4,12 +4,12 @@ import { VerdictBadge } from "./Brand";
 /** What a threshold logger concludes from the same record, next to our verdict. */
 export function LoggerCompare({ report }: { report: Report }) {
   const log = report.logger;
-  const doses = report.box.quantity.toLocaleString();
+  const units = `${report.box.quantity.toLocaleString()} ${report.product.kind === "vaccine" ? "doses" : "tests"}`;
   const note =
     log.outcome === "SAVED"
-      ? `${doses} doses saved from a needless discard: the budget says they survived.`
+      ? `${units} saved from a needless discard: the budget says they survived.`
       : log.outcome === "CAUGHT"
-        ? `${doses} doses stopped: no alarm fired, but damage accrued.`
+        ? `${units} stopped: no alarm fired, but damage accrued.`
         : "Both reach the same call here.";
   return (
     <div>

@@ -17,12 +17,12 @@ from app.engine.profiles import PRODUCTS_BY_ID
 from app.engine.uncertainty import verdict_confidence
 from app.engine.verdict import VERDICT_ORDER, evaluate
 from app.engine.vvm import cross_check, open_photo, read_vvm
-from app.models import Box, Custody, Node, Scan, VvmCheck
+from app.models import Box, Custody, Node, Scan, TextCache, VvmCheck
 from app.security import explain_limit, require_operator, vvm_limit
 from app.services import learning
 from app.services.narrative import build_facts, write_report
-from app.services.places import resolve_places
-from app.services.report import box_segments, counterfactual, evaluate_box, key_points, report_json
+from app.services.places import MAX_POINTS, resolve_places
+from app.services.report import box_segments, cached_places, counterfactual, evaluate_box, key_points, report_json
 from app.services.vvm_vision import gemini_vvm
 
 router = APIRouter(prefix="/api/boxes", tags=["boxes"])
@@ -116,14 +116,34 @@ def box_report(box_id: str, session: Session = Depends(get_session)) -> dict:
     return report_json(session, _box(session, box_id))
 
 
+# A box's written report is reused this long unless its verdict changes. The
+# report's facts move with every reading (hours in the carrier), so without this
+# each open or refresh of a box on the road was a new Grok call, plus Gemini
+# place lookups: the public page could spend the AI credits for anyone.
+REPORT_TTL_S = 30 * 60
+
+
 @router.post("/{box_id}/explain", dependencies=[Depends(explain_limit)])
 async def explain_box(box_id: str, session: Session = Depends(get_session)) -> dict:
     """Gemini names the places, then Grok writes the worker-facing report."""
     box = _box(session, box_id)
     report = await run_in_threadpool(evaluate_box, session, box)
+    now = int(time.time())
+    recent_key = f"report-box:{box.id}:{report.verdict}"
+    recent = session.get(TextCache, recent_key)
+    if recent and now - recent.created_at < REPORT_TTL_S:
+        points = key_points(report)
+        places = cached_places(session, points)
+        return {
+            "verdict": report.verdict, "text": recent.text, "source": recent.source, "places": places,
+            "places_source": "gemini" if places and len(places) >= min(len(points), MAX_POINTS) else "mixed" if places else "coords",
+        }
     places, places_source = await resolve_places(session, key_points(report))
     facts = build_facts(box, PRODUCTS_BY_ID[box.product_id], report, places)
     text, source = await write_report(session, facts)
+    if source == "grok":  # a fallback template is never kept: the next open retries
+        session.merge(TextCache(key=recent_key, kind="report", text=text, source=source, created_at=now))
+        session.commit()
     return {
         "verdict": report.verdict,
         "text": text,
