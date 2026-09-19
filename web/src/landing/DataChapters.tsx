@@ -12,6 +12,19 @@ const VW = 1200;
 const VH = 480;
 
 /**
+ * The ground under the trace, by how much of the product's stability budget
+ * has been spent: black while the box is cold, an ember that deepens towards
+ * red as the heat eats into it. A wash, never a fill: the signal colours stay
+ * with the verdict itself.
+ */
+function heat(budget: number): string {
+  const t = Math.min(1, Math.max(0, budget));
+  const g = Math.round(150 - 110 * t);
+  const b = Math.round(70 - 55 * t);
+  return `radial-gradient(125% 95% at 50% 82%, rgba(214, ${g}, ${b}, ${(0.05 + 0.3 * t).toFixed(3)}) 0%, rgba(0,0,0,0) 62%)`;
+}
+
+/**
  * Every reading of one real trip as a line that draws as the reader scrolls,
  * against the 2 to 8 band, with the hottest moment called out when the line
  * reaches it. Dark ground.
@@ -22,11 +35,14 @@ export function TraceChapter({ report }: { report: Report | null }) {
   const head = useRef<SVGCircleElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const peakLabel = useRef<HTMLDivElement>(null);
+  const view = useRef<HTMLDivElement>(null);
+  const spent = useRef<HTMLParagraphElement>(null);
+  const bar = useRef<HTMLSpanElement>(null);
   const [length, setLength] = useState(0);
 
   const trace = useMemo(() => {
     if (!report) return null;
-    const pts = report.segments.flatMap((s) => s.series.map((p) => ({ ts: p.ts, c: p.temp_c })));
+    const pts = report.segments.flatMap((s) => s.series.map((p) => ({ ts: p.ts, c: p.temp_c, b: p.budget })));
     if (pts.length < 2) return null;
     const t0 = pts[0].ts;
     const t1 = pts[pts.length - 1].ts;
@@ -44,7 +60,8 @@ export function TraceChapter({ report }: { report: Report | null }) {
         peakI = i;
       }
     });
-    return { d, x, y, lo, hi, t0, t1, peak, peakAt: peakI / (pts.length - 1), min: report.product.storage_min_c, max: report.product.storage_max_c, tz: report.segments[0]?.tz };
+    const budgets = pts.map((p) => p.b);
+    return { d, x, y, lo, hi, t0, t1, peak, peakAt: peakI / (pts.length - 1), budgets, min: report.product.storage_min_c, max: report.product.storage_max_c, tz: report.segments[0]?.tz };
   }, [report]);
 
   useEffect(() => {
@@ -71,24 +88,44 @@ export function TraceChapter({ report }: { report: Report | null }) {
               h.setAttribute("cx", String(pt.x));
               h.setAttribute("cy", String(pt.y));
             }
+            // The budget the engine had spent by this reading, as the line
+            // reaches it: the number climbs, the bar fills, and the ground
+            // warms with it, so the cost of the hot stretch is visible while
+            // it happens rather than at the end.
+            const b = trace.budgets[Math.round(o.f * (trace.budgets.length - 1))] ?? 0;
+            if (spent.current) spent.current.textContent = pct(b);
+            if (bar.current) bar.current.style.transform = `scaleX(${Math.min(1, b)})`;
+            if (view.current) view.current.style.background = heat(b);
           },
         },
         0.18,
       );
       if (peakLabel.current) reveal(tl, peakLabel.current, 0.18 + 0.7 * trace.peakAt, { duration: 0.08, y: 10 });
+      if (view.current) view.current.style.background = heat(0);
     },
     [trace, length],
   );
 
   return (
     <section ref={section} data-theme="dark" className="chapter bg-bg text-text" style={chapterHeight(2.6)} aria-label="Temperature over the trip">
-      <div className="chapter__view">
+      <div ref={view} className="chapter__view">
         <div className="chapter__copy chapter__copy--top">
           <div ref={copy}>
             <p className="eyebrow m-0">{report?.box.id ?? " "}</p>
             <h2 className="ui-title-1 m-0 mt-4">Temperature over the trip</h2>
           </div>
         </div>
+        {trace && (
+          <div className="absolute right-6 top-[calc(var(--nav-h)+9vh)] w-[176px] text-right lg:right-10 lg:top-[calc(var(--nav-h)+10vh)] lg:w-[220px]">
+            <p className="eyebrow m-0">Budget used</p>
+            <p ref={spent} className="m-0 mt-2 font-display text-[40px] font-semibold tabular-nums leading-none tracking-[-0.03em] lg:text-[56px]">
+              0%
+            </p>
+            <span className="mt-4 block h-[3px] w-full overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.14)" }}>
+              <span ref={bar} className="block h-full w-full origin-left rounded-full" style={{ background: "currentColor", transform: "scaleX(0)" }} />
+            </span>
+          </div>
+        )}
         {trace && (
           <div className="absolute inset-x-0 bottom-[max(6vh,calc(env(safe-area-inset-bottom,0px)+24px))] px-6 lg:bottom-[10vh] lg:px-10">
             <div className="relative mx-auto max-w-[1180px]">
