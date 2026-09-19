@@ -58,7 +58,8 @@ def _insert_ignoring_duplicates(session: Session, rows: list[dict]) -> None:
 
 def _authorised_node(session: Session, node_id: str, key: str) -> Node:
     node = session.get(Node, node_id)
-    if node is None or not hmac.compare_digest(node.key.encode(), key.encode()):
+    # An empty key (an unset secret) must never match a request that sends none.
+    if node is None or not node.key or not hmac.compare_digest(node.key.encode(), key.encode()):
         raise HTTPException(401, "unknown node or bad key")
     return node
 

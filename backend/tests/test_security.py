@@ -89,3 +89,28 @@ def test_stage_reset_clears_only_the_stage(client, session):
     assert not session.exec(select(Custody).where(Custody.box_id == "BOX-9001")).all()
     assert not session.exec(select(Reading).where(Reading.node_id == "DEMO-01")).all()
     assert len(session.exec(select(Custody).where(Custody.box_id != "BOX-9001")).all()) == before_other
+
+
+def test_a_node_with_an_empty_key_accepts_nothing(client, session):
+    from app.models import Node
+
+    node = session.get(Node, "DEMO-01")
+    node.key = ""
+    session.add(node)
+    session.commit()
+    body = {"node_id": "DEMO-01", "boot_id": 1, "readings": [{"seq": 1, "ts": 1_789_000_000, "temp_c": 5.0}]}
+    assert client.post("/api/ingest/readings", json=body).status_code == 401
+    assert client.post("/api/ingest/readings", json=body, headers={"X-Node-Key": ""}).status_code == 401
+
+
+def test_a_node_key_set_after_seeding_reaches_every_node(session, monkeypatch):
+    from sqlmodel import select
+
+    from app.config import get_settings
+    from app.models import Node
+    from app.seed import sync_node_keys
+
+    monkeypatch.setattr(get_settings(), "node_key", "a-real-secret")
+    assert sync_node_keys(session) > 0
+    assert {n.key for n in session.exec(select(Node)).all()} == {"a-real-secret"}
+    assert sync_node_keys(session) == 0

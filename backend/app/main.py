@@ -12,10 +12,10 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from sqlmodel import Session
 
-from app.config import get_settings
+from app.config import DEV_NODE_KEY, get_settings
 from app.db import engine, init_db
 from app.routers import admin, boxes, climate, ingest, live, nodes, products
-from app.seed import seed
+from app.seed import seed, sync_node_keys
 
 settings = get_settings()
 
@@ -32,6 +32,7 @@ async def lifespan(_: FastAPI):
             from simulator.backfill import backfill
 
             backfill(session, int(time.time()), settings.demo_dataset)
+        sync_node_keys(session)
         if not settings.weather_offline:
             from sqlmodel import select as _select
 
@@ -112,6 +113,8 @@ def health() -> dict:
         "ai": {"grok": bool(settings.xai_api_key), "gemini": bool(settings.gemini_api_key)},
         "weather": "offline model" if settings.weather_offline else "open-meteo",
         "writes": "operator code" if settings.operator_token else "open (set OPERATOR_TOKEN)",
+        # The dev key is in the repo, so anyone could post readings with it.
+        "node_key": "set" if settings.node_key and settings.node_key != DEV_NODE_KEY else "dev default (set NODE_KEY)",
         "vvm_calibration": CALIBRATION.source,
         "version": settings.version,
     }

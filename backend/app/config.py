@@ -3,11 +3,14 @@ from functools import lru_cache
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+DEV_NODE_KEY = "dev-node-key"  # public: fine on a laptop, never on a deploy
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     database_url: str = "sqlite:///./vialtality.db"
-    node_key: str = "dev-node-key"
+    node_key: str = DEV_NODE_KEY
     # When set, custody changes, VVM checks and dispatch decisions need this
     # code (the web app asks for it once per device). Empty: open, for dev.
     operator_token: str = ""

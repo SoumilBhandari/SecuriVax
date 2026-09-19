@@ -70,6 +70,19 @@ def stage_boxes() -> list[Box]:
     return [b for b in demo_boxes() if b.id.startswith("BOX-9")]
 
 
+def sync_node_keys(session: Session) -> int:
+    """Every node uses the configured NODE_KEY. Keys are stored when the demo is
+    seeded, so without this a secret set after the first deploy would never
+    reach the nodes (and they'd keep the public dev key). Returns nodes changed."""
+    key = get_settings().node_key
+    stale = session.exec(select(Node).where(Node.key != key)).all()
+    for node in stale:
+        node.key = key
+        session.add(node)
+    session.commit()
+    return len(stale)
+
+
 def seed(session: Session, dataset: str = "kisumu") -> bool:
     """Insert demo data if the database is empty. Returns True if it did."""
     if session.exec(select(Node)).first() is not None:
