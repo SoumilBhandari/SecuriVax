@@ -117,12 +117,12 @@ def evaluate(
     if budget >= DISCARD_AT:
         reasons.append(Reason(
             "BUDGET_EXHAUSTED", "discard",
-            f"Heat budget used up ({_pct(budget)}). The {profile.stability_ref} end point has been reached.",
+            f"Heat budget used up ({_pct(budget)}): the end point ({profile.stability_ref}) has been reached.",
         ))
     elif budget >= QUARANTINE_AT:
         reasons.append(Reason(
             "BUDGET_LOW", "quarantine",
-            f"{_pct(budget)} of the heat budget is used, close to the {profile.stability_ref} end point.",
+            f"{_pct(budget)} of the heat budget is used, close to the end point ({profile.stability_ref}).",
         ))
         checks.append(
             "Check the VVM on each vial" if profile.kind == "vaccine" else "Run a positive control"

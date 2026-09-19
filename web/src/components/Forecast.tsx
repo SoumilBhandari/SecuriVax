@@ -59,7 +59,7 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
         <div className="rounded-lg bg-slate-50 p-2">
           <dt className="text-slate-500">Cold life (learnt)</dt>
           <dd className="font-semibold text-slate-800">
-            {state.effective_cold_life_h[1]} h <span className="font-normal text-slate-500">vs 20 rated</span>
+            {state.effective_cold_life_h[1]} h <span className="font-normal text-slate-500">vs {state.rated_cold_life_h ?? 20} rated</span>
           </dd>
         </div>
         <div className="rounded-lg bg-slate-50 p-2">
@@ -71,8 +71,13 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
       </dl>
       {box && (
         <p className="mt-2 text-sm text-slate-700">
-          This box: {pct(box.p_quarantine_or_worse)} chance of QUARANTINE or worse by the end of the window
-          {box.p_freeze != null && box.p_freeze > 0 ? `, ${pct(box.p_freeze)} chance of freezing` : ""}.
+          {box.verdict_now === "DISCARD"
+            ? "This box is already past its end point."
+            : box.verdict_now === "QUARANTINE"
+              ? `This box is already held: ${pct(box.p_discard)} chance it reaches DISCARD by the end of the window`
+              : `This box: ${pct(box.p_quarantine_or_worse)} chance it needs QUARANTINE or worse by the end of the window`}
+          {box.verdict_now !== "DISCARD" && box.p_freeze != null && box.p_freeze > 0 ? `, ${pct(box.p_freeze)} chance of freezing` : ""}
+          {box.verdict_now === "DISCARD" ? "" : "."}
         </p>
       )}
       <p className="mt-2 text-[11px] leading-snug text-slate-400">

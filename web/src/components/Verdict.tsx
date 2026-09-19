@@ -12,105 +12,116 @@ export function VerdictChip({ verdict }: { verdict: Verdict }) {
   );
 }
 
-/** The one thing a nurse needs: the verdict, what to do now, and how sure we are. */
-export function VerdictCard({ report, stale }: { report: Report; stale: string | null }) {
+/**
+ * The one thing a nurse needs, in one card: the verdict, how much of the
+ * stability budget is gone, what to do now, and how sure we are.
+ */
+export function VerdictCard({
+  report,
+  stale,
+  onCheckLabel,
+}: {
+  report: Report;
+  stale: string | null;
+  onCheckLabel?: () => void;
+}) {
   const style = VERDICT_STYLE[report.verdict];
-  const where = report.current_node_id ? "In transit" : "Delivered";
+  const used = Math.min(report.budget_used, 1);
   const lead = report.reasons.find((r) => r.severity !== "ok" && r.severity !== "advisory") ?? report.reasons[0];
   return (
-    <section className={`mb-4 rounded-2xl p-5 ${style.card}`}>
-      <p className="text-xs font-bold uppercase tracking-wider opacity-80">
-        Verdict at point of use · {where}
-      </p>
-      <h2 className="mt-1 font-display text-5xl font-bold tracking-tight">{style.label}</h2>
+    <section className={`mb-3 rounded-2xl p-4 ${style.card}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">Verdict at point of use</p>
+          <h2 className="mt-1 font-display text-4xl font-bold leading-none tracking-tight">{style.label}</h2>
+        </div>
+        <div className="shrink-0 text-right">
+          <p className="font-display text-3xl font-bold leading-none tabular-nums">
+            {Math.round(report.budget_used * 100)}
+            <span className="text-base opacity-80">%</span>
+          </p>
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-wider opacity-80">budget used</p>
+        </div>
+      </div>
       <span className="sr-only" role="status" aria-live="polite">
         Verdict: {style.label}. {report.action}
       </span>
-      {lead && <p className="mt-2 text-[15px] leading-snug opacity-95">{lead.text}</p>}
-      <div className="mt-4 rounded-xl bg-black/15 p-3">
-        <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">Next 60 seconds</p>
-        <p className="mt-0.5 text-base font-semibold leading-snug">{report.action}</p>
-      </div>
-      <div className="mt-3 flex items-center gap-3 text-sm">
-        <span className="shrink-0">Confidence {pct(report.confidence.confidence)}</span>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/20">
-          <div className="h-full bg-current" style={{ width: `${report.confidence.confidence * 100}%` }} />
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        {report.confidence.borderline && report.product.kind === "vaccine" && (
-          <a href="#vvm" className="rounded-full bg-white/90 px-2.5 py-1 font-semibold text-ink">
-            Borderline: check the VVM label
-          </a>
-        )}
-        {stale && <span className="rounded-full bg-white/90 px-2.5 py-1 font-semibold text-bad">{stale}</span>}
-        {!stale && report.provisional && (
-          <span className="rounded-full bg-white/90 px-2.5 py-1 text-ink">
-            Carrier quiet since {time(report.data_through)}: this may change
-          </span>
-        )}
-        {report.demo_time && (
-          <span className="rounded-full bg-ink px-2.5 py-1 text-white">Demo time: {demoRate(report.time_scale)}</span>
-        )}
-      </div>
-      <p className="mt-3 text-[11px] opacity-75">Decision support with a human in the loop. Not a clinical determination.</p>
-    </section>
-  );
-}
 
-/** Stability budget with the design's markers, plus the numbers behind it. */
-export function BudgetCard({ report }: { report: Report }) {
-  const used = Math.min(report.budget_used, 1);
-  const style = VERDICT_STYLE[report.verdict];
-  const fresh = report.current_node_id && report.data_through && report.computed_at - report.data_through < 600;
-  return (
-    <section className="mb-4 rounded-2xl border border-line bg-white p-4">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted">Stability budget consumed</h2>
-        <span className="font-display text-4xl font-bold tabular-nums">
-          {Math.round(report.budget_used * 100)}
-          <span className="text-lg text-muted">%</span>
-        </span>
-      </div>
       <div
-        className="relative mt-2 h-3 overflow-hidden rounded-full bg-slate-100"
+        className="relative mt-4 h-2 rounded-full bg-black/15"
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(used * 100)}
         aria-label="Stability budget consumed"
       >
-        <div className={`absolute inset-y-0 left-0 ${style.bar} transition-all duration-700`} style={{ width: `${used * 100}%` }} />
+        <div className="absolute inset-y-0 left-0 rounded-full bg-current transition-all duration-700" style={{ width: `${used * 100}%` }} />
         {[40, 75].map((m) => (
-          <div key={m} className="absolute inset-y-0 w-0.5 bg-ink/40" style={{ left: `${m}%` }} />
+          <div key={m} className="absolute -top-1 h-4 w-0.5 rounded bg-current opacity-50" style={{ left: `${m}%` }} />
         ))}
       </div>
-      <div className="relative mt-1 h-4 text-[11px] text-muted">
-        <span className="absolute left-0">0</span>
-        <span className="absolute -translate-x-1/2" style={{ left: "40%" }}>40 use first</span>
-        <span className="absolute -translate-x-1/2" style={{ left: "75%" }}>75 quarantine</span>
-        <span className="absolute right-0">100</span>
+      <div className="relative mt-1 h-3.5 text-[10px] font-semibold opacity-80">
+        <span className="absolute -translate-x-1/2" style={{ left: "40%" }}>use first</span>
+        <span className="absolute -translate-x-1/2" style={{ left: "75%" }}>quarantine</span>
       </div>
-      <p className="mt-2 text-xs text-muted">
-        {pct(report.initial_budget_used)} was used before our monitoring · {report.product.stability_ref}
-      </p>
-      <dl className="mt-3 grid grid-cols-2 gap-2">
-        <Stat label="Mean kinetic temp" value={temp(report.mkt_c)} />
-        <Stat label="Peak reading" value={temp(report.peak_c)} />
-        <Stat label="Hours out of range" value={`${Math.round(report.hours_out_of_range)} h`} />
-        <Stat label="Peak humidity" value={humidity(report.peak_rh)} />
-        <Stat label={fresh ? "Now" : `At ${time(report.data_through)}`} value={temp(report.current_temp_c)} />
-        <Stat label="Left at that temp" value={report.budget_remaining <= 0 ? "none" : hours(report.hours_left_at_current)} />
-      </dl>
+
+      {lead && <p className="mt-2 text-sm leading-snug opacity-95">{lead.text}</p>}
+      <div className="mt-3 rounded-xl bg-black/15 px-3 py-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-wider opacity-80">Next 60 seconds</p>
+        <p className="mt-0.5 text-[15px] font-semibold leading-snug">{report.action}</p>
+      </div>
+
+      <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
+        <span className="shrink-0">Confidence {pct(report.confidence.confidence)}</span>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/20">
+          <div className="h-full bg-current" style={{ width: `${report.confidence.confidence * 100}%` }} />
+        </div>
+      </div>
+      {(report.confidence.borderline || stale || report.provisional || report.demo_time) && (
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {report.confidence.borderline && report.product.kind === "vaccine" && onCheckLabel && (
+            <button onClick={onCheckLabel} className="min-h-9 rounded-full bg-white px-3 font-semibold text-ink">
+              Borderline: check the VVM label →
+            </button>
+          )}
+          {stale && <span className="rounded-full bg-white/90 px-2.5 py-1 font-semibold text-bad">{stale}</span>}
+          {!stale && report.provisional && (
+            <span className="rounded-full bg-white/90 px-2.5 py-1 text-ink">Carrier quiet since {time(report.data_through)}: may change</span>
+          )}
+          {report.demo_time && <span className="rounded-full bg-ink px-2.5 py-1 text-white">Demo time: {demoRate(report.time_scale)}</span>}
+        </div>
+      )}
+      <p className="mt-2 text-[10px] opacity-70">Decision support with a human in the loop. Not a clinical determination.</p>
     </section>
+  );
+}
+
+/** The numbers behind the budget, as one compact grid. */
+export function KeyStats({ report }: { report: Report }) {
+  const fresh = report.current_node_id && report.data_through && report.computed_at - report.data_through < 600;
+  return (
+    <div>
+      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line">
+        <Stat label="Mean kinetic" value={temp(report.mkt_c)} />
+        <Stat label="Peak" value={temp(report.peak_c)} />
+        <Stat label="Out of range" value={`${Math.round(report.hours_out_of_range)} h`} />
+        <Stat label="Peak humidity" value={humidity(report.peak_rh)} />
+        <Stat label={fresh ? "Now" : "Last reading"} value={temp(report.current_temp_c)} />
+        <Stat label="Time left" value={report.budget_remaining <= 0 ? "none" : hours(report.hours_left_at_current)} />
+      </dl>
+      <p className="mt-2 text-xs text-muted">
+        {pct(report.initial_budget_used)} of the budget was used before our monitoring. Time left assumes it stays at the
+        last reading ({time(report.data_through)}). Stability data: {report.product.stability_ref}.
+      </p>
+    </div>
   );
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-3 py-2">
-      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</dt>
-      <dd className="mt-0.5 font-display text-xl font-bold tabular-nums">{value}</dd>
+    <div className="bg-white px-2.5 py-2">
+      <dt className="truncate text-[10px] font-bold uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="mt-0.5 text-base font-bold tabular-nums">{value}</dd>
     </div>
   );
 }

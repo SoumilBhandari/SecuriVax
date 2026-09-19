@@ -1,17 +1,16 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useParams } from "react-router";
 
 import { Counterfactual } from "../components/Counterfactual";
 import { Custody } from "../components/Custody";
 import { Dispatch } from "../components/Dispatch";
-import { Environment } from "../components/Environment";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ForecastCard } from "../components/Forecast";
 import { HistoryScrubber } from "../components/HistoryScrubber";
 import { SparkIcon } from "../components/Icons";
 import { Card, Layout, Spinner, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
-import { BudgetCard, Reasons, VerdictCard } from "../components/Verdict";
+import { KeyStats, Reasons, VerdictCard } from "../components/Verdict";
 import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
 import { time } from "../lib/format";
@@ -64,6 +63,20 @@ export default function BoxPage() {
     }
   }, [id, refresh]);
 
+  const nodeId = data?.current_node_id ?? null;
+  const forecast = usePoll<CarrierForecast | null>(
+    () => (nodeId ? api.forecast(nodeId) : Promise.resolve(null)),
+    nodeId ? 60000 : null,
+    [nodeId],
+  );
+  const kind = data?.product.kind;
+  const tabs = useTabs([
+    "why",
+    "history",
+    ...(nodeId && forecast.data?.available ? (["carrier"] as const) : []),
+    ...(kind === "vaccine" ? (["label"] as const) : []),
+    "report",
+  ]);
   const hideToast = useCallback(() => setToast(null), []);
   const offline = !data ? cached(id) : null;
   const report = data ?? offline?.report ?? null;
@@ -87,97 +100,173 @@ export default function BoxPage() {
   }
 
   const vaccine = report.product.kind === "vaccine";
+  const route = report.box.origin ? `${report.box.origin} → ${report.box.destination}` : null;
   return (
     <Layout back>
       <div className="mb-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted">
-          {vaccine ? "Vaccine" : "Rapid test"} · lot {report.box.lot} · {report.box.quantity.toLocaleString()} doses
+        <h1 className="font-display text-xl font-bold leading-tight tracking-tight">{report.product.name}</h1>
+        <p className="text-xs text-muted">
+          {report.box.id} · {report.box.quantity.toLocaleString()} {vaccine ? "doses" : "tests"}
+          {route && ` · ${route}`} · {report.current_node_id ? "in transit" : "delivered"}
         </p>
-        <h1 className="font-display text-2xl font-bold tracking-tight">
-          {report.product.name} <span className="text-muted">· {report.box.id}</span>
-        </h1>
-        {report.box.origin && (
-          <p className="text-sm text-muted">
-            {report.box.origin} → {report.box.destination} · {report.current_node_id ? "in transit" : "delivered"}
-          </p>
-        )}
       </div>
 
-      <VerdictCard report={report} stale={stale} />
-      {vaccine && report.confidence.borderline && (
-        <Card title="Settle it with the VVM label" aside="camera + Gemini">
-          <VvmCheck boxId={report.box.id} latest={report.label_check} highlight onConfirmed={refresh} />
-        </Card>
-      )}
-      <BudgetCard report={report} />
-      <Card title="Why">
-        <Reasons reasons={report.reasons} />
-      </Card>
-      <LoggerCompare report={report} />
-      <Card title="Temperature and humidity history" aside="across every custody change">
-        <ErrorBoundary label="The history chart">
-          <HistoryScrubber segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
-        </ErrorBoundary>
-      </Card>
-      {report.current_node_id && <CarrierSection nodeId={report.current_node_id} boxId={report.box.id} />}
-      <ErrorBoundary label="The report">
-        <WorkerReport boxId={id} verdict={report.verdict} />
-      </ErrorBoundary>
-      <Card title="Same thermal history, different product" aside="stability is product-specific">
-        <ErrorBoundary label="The comparison">
-          <Counterfactual boxId={report.box.id} />
-        </ErrorBoundary>
-      </Card>
-
-      <details className="mb-4 rounded-2xl border border-line bg-white p-4 [&_summary]:cursor-pointer">
-        <summary className="flex min-h-11 items-center font-semibold">Route, custody, weather and more</summary>
-        <div className="mt-3 space-y-5">
-          {vaccine && !report.confidence.borderline && (
-            <section id="vvm">
-              <h3 className="mb-2 text-sm font-semibold">Second witness: the VVM label</h3>
-              <VvmCheck boxId={report.box.id} latest={report.label_check} highlight={false} onConfirmed={refresh} />
-            </section>
-          )}
-          <section>
-            <h3 className="mb-2 text-sm font-semibold">Route</h3>
-            <ErrorBoundary label="The map">
-              <Suspense fallback={<p className="text-sm text-muted">Loading the map…</p>}>
-                <RouteMap segments={report.segments} places={report.places} />
-              </Suspense>
-            </ErrorBoundary>
-          </section>
-          <section>
-            <h3 className="mb-2 text-sm font-semibold">Chain of custody</h3>
-            <Custody segments={report.segments} places={report.places} />
-          </section>
-          <section>
-            <h3 className="mb-2 text-sm font-semibold">Weather vs carrier</h3>
-            <Environment segments={report.segments} />
-          </section>
-          <MoveBox report={report} onMoved={(msg) => { setToast(msg); refresh(); }} />
-        </div>
-      </details>
+      <VerdictCard report={report} stale={stale} onCheckLabel={() => tabs.open("label")} />
+      <BoxTabs report={report} tabs={tabs} forecast={forecast.data} onChanged={(msg) => { setToast(msg); refresh(); }} />
       <Toast message={toast} onDone={hideToast} />
     </Layout>
   );
 }
 
-/** Forecast and dispatch, only for ice-pack carriers that can be forecast. */
-function CarrierSection({ nodeId, boxId }: { nodeId: string; boxId: string }) {
-  const { data } = usePoll<CarrierForecast>(() => api.forecast(nodeId), 60000, [nodeId]);
-  if (!data?.available) return null;
+type TabId = "why" | "history" | "carrier" | "label" | "report";
+const TAB_LABEL: Record<TabId, string> = { why: "Why", history: "History", carrier: "Carrier", label: "Label", report: "Report" };
+
+/** Which tab is open, kept in the URL hash so back and reload keep it. */
+function useTabs(available: TabId[]) {
+  const [want, setWant] = useState<TabId>(() => (window.location.hash.slice(1) as TabId) || "why");
+  const [visited, setVisited] = useState<Set<TabId>>(() => new Set([want]));
+  const bar = useRef<HTMLDivElement>(null);
+  const current = available.includes(want) ? want : "why";
+
+  const open = useCallback((id: TabId) => {
+    setWant(id);
+    setVisited((v) => (v.has(id) ? v : new Set(v).add(id)));
+    history.replaceState(history.state, "", `${window.location.pathname}${window.location.search}#${id}`);
+    const top = bar.current?.getBoundingClientRect().top ?? 0;
+    if (top <= 1 || top > window.innerHeight * 0.6) bar.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, []);
+
+  return { current, available, visited, open, bar };
+}
+type Tabs = ReturnType<typeof useTabs>;
+
+function BoxTabs({
+  report,
+  tabs,
+  forecast,
+  onChanged,
+}: {
+  report: Report;
+  tabs: Tabs;
+  forecast: CarrierForecast | null;
+  onChanged: (message: string) => void;
+}) {
+  const refresh = () => onChanged("");
+  const panel = (id: TabId, body: ReactNode) =>
+    tabs.visited.has(id) || tabs.current === id ? (
+      <div key={id} role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} hidden={tabs.current !== id}>
+        {body}
+      </div>
+    ) : null;
+
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = tabs.available.indexOf(tabs.current);
+    const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (!step) return;
+    const next = tabs.available[(i + step + tabs.available.length) % tabs.available.length];
+    tabs.open(next);
+    document.getElementById(`tab-${next}`)?.focus();
+  };
+
   return (
     <>
-      <Card title="Carrier forecast" aside={nodeId}>
-        <ErrorBoundary label="The forecast">
-          <ForecastCard nodeId={nodeId} boxId={boxId} initial={data} />
-        </ErrorBoundary>
-      </Card>
-      <Card title="What should the carrier do?" aside="location agent">
-        <ErrorBoundary label="The dispatch agent">
-          <Dispatch nodeId={nodeId} />
-        </ErrorBoundary>
-      </Card>
+      <div ref={tabs.bar} className="sticky top-0 z-[1100] -mx-4 mb-3 scroll-mt-0 bg-ground/95 px-4 py-2 backdrop-blur">
+        <div role="tablist" aria-label="Box details" onKeyDown={onKey} className="flex gap-1 rounded-full border border-line bg-white p-1">
+          {tabs.available.map((id) => (
+            <button
+              key={id}
+              id={`tab-${id}`}
+              role="tab"
+              aria-selected={tabs.current === id}
+              aria-controls={`panel-${id}`}
+              tabIndex={tabs.current === id ? 0 : -1}
+              onClick={() => tabs.open(id)}
+              className={`min-h-10 flex-1 rounded-full px-2 text-sm font-semibold transition-colors ${
+                tabs.current === id ? "bg-ink text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {TAB_LABEL[id]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {panel(
+        "why",
+        <>
+          <Card title="Why this verdict">
+            <Reasons reasons={report.reasons} />
+          </Card>
+          <Card title="Threshold logger vs Vialtality" aside="same record">
+            <LoggerCompare report={report} />
+          </Card>
+          <Card title="The numbers">
+            <KeyStats report={report} />
+          </Card>
+        </>,
+      )}
+
+      {panel(
+        "history",
+        <>
+          <Card title="Temperature, humidity and budget" aside="drag to scrub">
+            <ErrorBoundary label="The history chart">
+              <HistoryScrubber segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
+            </ErrorBoundary>
+          </Card>
+          <Card title="Chain of custody" aside="tap a leg for weather">
+            <Custody segments={report.segments} places={report.places} />
+          </Card>
+          <Card title="Route">
+            <ErrorBoundary label="The map">
+              <Suspense fallback={<p className="text-sm text-muted">Loading the map…</p>}>
+                <RouteMap segments={report.segments} places={report.places} />
+              </Suspense>
+            </ErrorBoundary>
+          </Card>
+          <MoveBox report={report} onMoved={onChanged} />
+        </>,
+      )}
+
+      {report.current_node_id &&
+        forecast?.available &&
+        panel(
+          "carrier",
+          <>
+            <Card title="Carrier forecast" aside={report.current_node_id}>
+              <ErrorBoundary label="The forecast">
+                <ForecastCard nodeId={report.current_node_id} boxId={report.box.id} initial={forecast} />
+              </ErrorBoundary>
+            </Card>
+            <Card title="What should the carrier do?" aside="location agent">
+              <ErrorBoundary label="The dispatch agent">
+                <Dispatch nodeId={report.current_node_id} />
+              </ErrorBoundary>
+            </Card>
+          </>,
+        )}
+
+      {report.product.kind === "vaccine" &&
+        panel(
+          "label",
+          <Card title="Second witness: the VVM label" aside="camera + Gemini">
+            <VvmCheck boxId={report.box.id} latest={report.label_check} highlight={report.confidence.borderline} onConfirmed={refresh} />
+          </Card>,
+        )}
+
+      {panel(
+        "report",
+        <>
+          <ErrorBoundary label="The report">
+            <WorkerReport boxId={report.box.id} verdict={report.verdict} />
+          </ErrorBoundary>
+          <Card title="Same history, different product" aside="stability is product-specific">
+            <ErrorBoundary label="The comparison">
+              <Counterfactual boxId={report.box.id} />
+            </ErrorBoundary>
+          </Card>
+        </>,
+      )}
     </>
   );
 }
@@ -267,8 +356,7 @@ function MoveBox({ report, onMoved }: { report: Report; onMoved: (message: strin
 
   const others = nodes.filter((n) => n.id !== report.current_node_id);
   return (
-    <section>
-      <h3 className="mb-2 text-sm font-semibold">Move this box</h3>
+    <Card title="Move this box" aside="if the tags aren't to hand">
       <div className="flex gap-2">
         <select value={target} onChange={(e) => setTarget(e.target.value)} className="min-w-0 flex-1 rounded-lg border border-line bg-white px-3" aria-label="Carrier or cold room">
           <option value="">Choose a carrier or cold room…</option>
@@ -294,6 +382,6 @@ function MoveBox({ report, onMoved }: { report: Report; onMoved: (message: strin
           Unload from {report.current_node_id}
         </button>
       )}
-    </section>
+    </Card>
   );
 }

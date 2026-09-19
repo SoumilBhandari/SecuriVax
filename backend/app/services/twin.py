@@ -14,6 +14,7 @@ import numpy as np
 from sqlmodel import Session, select
 
 from app.engine import twin
+from app.engine.carrier_model import CarrierSpec
 from app.engine.uncertainty import _rates
 from app.engine.location import attach_positions
 from app.engine.profiles import FREEZE_THRESHOLD_C, PRODUCTS_BY_ID
@@ -21,6 +22,8 @@ from app.engine.redundancy import merge
 from app.models import Box, Custody, LocationPoint, Node
 from app.services import weather as wx
 from app.services.report import _node_readings, evaluate_box
+
+RATED_COLD_LIFE_H = CarrierSpec().cold_life_h
 
 HORIZON_H = 12
 LOOKBACK_S = 12 * 3600
@@ -166,6 +169,7 @@ def _compute(session, node_id, readings, trip_start, open_custody, now) -> dict:
             "inside_c": round(float(np.sum(p.weight * p.temp)), 2),
             "outside_c": round(now_out, 1),
             "ice_left_h": [round(x, 1) for x in twin.weighted_quantiles(ice_left_h, p.weight, (0.1, 0.5, 0.9))],
+            "rated_cold_life_h": RATED_COLD_LIFE_H,
             "effective_cold_life_h": _floored(twin.weighted_quantiles(twin.effective_cold_life(p), p.weight, (0.1, 0.5, 0.9))),
             "hold_c": round(float(np.sum(p.weight * p.hold)), 1),
             "heat_gain_c": round(float(np.sum(p.weight * p.gain)), 1),

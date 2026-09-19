@@ -226,6 +226,7 @@ export interface CarrierForecast {
     outside_c: number;
     ice_left_h: [number, number, number];
     effective_cold_life_h: [number, number, number];
+    rated_cold_life_h?: number;
     hold_c: number;
     heat_gain_c: number;
     ice_gone_prob: number;
