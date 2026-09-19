@@ -62,6 +62,7 @@ _down_until = 0.0
 def clear_cache() -> None:
     global _down_until
     _cache.clear()
+    _ensembles.clear()
     _down_until = 0.0
 
 
@@ -135,3 +136,72 @@ def weather_for(points: list[tuple[float, float]]) -> dict[tuple[float, float], 
 def ambient_at(weather: dict[tuple[float, float], Weather], lat: float, lon: float, ts: int):
     w = weather.get(cell(lat, lon))
     return w.at(ts) if w else None
+
+
+# ------------------------------------------------------------ ensembles -----
+
+ENSEMBLE_URL = "https://ensemble-api.open-meteo.com/v1/ensemble"
+ENSEMBLE_MODEL = "icon_seamless"  # ~40 members
+_ensembles: dict[tuple[float, float], tuple[float, list[Weather], str]] = {}
+
+
+def _fetch_ensemble(c: tuple[float, float]) -> list[Weather]:
+    res = httpx.get(
+        ENSEMBLE_URL,
+        params={
+            "latitude": c[0], "longitude": c[1], "hourly": "temperature_2m",
+            "models": ENSEMBLE_MODEL, "past_days": 1, "forecast_days": 3, "timeformat": "unixtime",
+        },
+        timeout=8,
+    )
+    res.raise_for_status()
+    hourly = res.json()["hourly"]
+    members = []
+    for key, temps in hourly.items():
+        if not key.startswith("temperature_2m"):
+            continue
+        rows = [(t, v) for t, v in zip(hourly["time"], temps) if v is not None]
+        if len(rows) > 24:
+            members.append(Weather(c[0], c[1], [r[0] for r in rows], [r[1] for r in rows], [None] * len(rows), "open-meteo"))
+    if len(members) < 5:
+        raise ValueError("ensemble too small")
+    return members
+
+
+def _perturbed(base: Weather, n: int = 24, seed: int = 5) -> list[Weather]:
+    """Offline stand-in for an ensemble: the forecast plus correlated noise
+    that grows with lead time, like real forecast error does."""
+    import random
+
+    rng = random.Random(seed)
+    members = []
+    for _ in range(n):
+        err, temps = 0.0, []
+        for c in base.temp_c:
+            err = 0.93 * err + rng.gauss(0, 0.45)
+            temps.append(round(c + err, 2))
+        members.append(Weather(base.lat, base.lon, base.times, temps, base.rh, "model"))
+    return members
+
+
+def ensemble_for(lat: float, lon: float) -> tuple[list[Weather], str]:
+    """(members, source) for the cell around a point. Source says what it is:
+    'open-meteo ensemble (N members)' or 'perturbed forecast' when offline."""
+    global _down_until
+    c = cell(lat, lon)
+    now = time.time()
+    if c in _ensembles and now - _ensembles[c][0] <= TTL_S:
+        return _ensembles[c][1], _ensembles[c][2]
+    if not get_settings().weather_offline and now >= _down_until:
+        try:
+            members = _fetch_ensemble(c)
+            label = f"open-meteo ensemble ({len(members)} members)"
+            _ensembles[c] = (now, members, label)
+            return members, label
+        except (httpx.HTTPError, KeyError, ValueError) as exc:
+            log.warning("ensemble unavailable, perturbing the forecast: %r", exc)
+    base = weather_for([c])[c]
+    members = _perturbed(base)
+    label = "perturbed forecast (offline)" if base.source == "model" else "perturbed open-meteo forecast"
+    _ensembles[c] = (now - TTL_S + 120, members, label)  # retry in 2 minutes
+    return members, label
