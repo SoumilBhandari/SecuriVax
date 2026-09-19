@@ -93,7 +93,8 @@ function Badging({ top, length }: { top: number; length: number }) {
 
   return (
     <group>
-      <mesh position={[0, y, length * 0.04]} rotation={[-Math.PI / 2, 0, -Math.PI / 2]}>
+      {/* Printed to read from the side the chapters look from, not the far side. */}
+      <mesh position={[0, y, length * 0.04]} rotation={[-Math.PI / 2, 0, Math.PI / 2]}>
         <planeGeometry args={[printed, printed / 4.25]} />
         <meshStandardMaterial map={lockup} transparent side={DoubleSide} roughness={0.45} polygonOffset polygonOffsetFactor={-2} />
       </mesh>
