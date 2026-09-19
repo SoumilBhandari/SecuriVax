@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Poll an API call without the usual races:
  * - the next request starts only after the previous one finishes,
  * - a response older than the newest request is ignored,
- * - polling pauses while the tab is hidden and resumes on return,
+ * - repeats pause while the tab is hidden and resume on return (the first
+ *   load always runs, so a page opened in a background tab isn't stuck),
  * - a failure keeps the last good data and reports the error separately.
  */
 export function usePoll<T>(fetcher: () => Promise<T>, everyMs: number | null, deps: unknown[] = []) {
@@ -38,10 +39,12 @@ export function usePoll<T>(fetcher: () => Promise<T>, everyMs: number | null, de
 
   useEffect(() => {
     let alive = true;
+    let first = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const loop = async () => {
       if (!alive) return;
-      if (!document.hidden) await refresh();
+      if (first || !document.hidden) await refresh();
+      first = false;
       if (alive && everyMs) timer = setTimeout(loop, everyMs);
     };
     loop();
