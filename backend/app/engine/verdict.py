@@ -64,6 +64,11 @@ def fmt_minutes(minutes: float) -> str:
     return f"{minutes / 1440:.1f} days"
 
 
+def _how_long(runs: list) -> str:
+    total = fmt_minutes(sum(x.minutes for x in runs))
+    return f"for {total}" if len(runs) == 1 else f"{len(runs)} times, {total} in all,"
+
+
 def _pct(x: float) -> str:
     return f"{x * 100:.0f}%"
 
@@ -95,38 +100,35 @@ def evaluate(
         )
 
     for r in results:
-        for run in r.runs:
-            if run.kind == "freeze" and run.minutes >= FREEZE_ALARM_MINUTES:
-                where = f"{run.extreme:.1f} °C for {fmt_minutes(run.minutes)} in {r.node_label}"
-                if profile.freeze_sensitive:
-                    reasons.append(Reason("FREEZE", "quarantine", f"Froze: {where}."))
-                    checks.append(profile.freeze_check)
-                else:
-                    reasons.append(Reason(
-                        "FREEZE_TOLERATED", "advisory",
-                        f"Went below freezing ({where}), but {profile.name} is not freeze-sensitive.",
-                    ))
-            elif run.kind == "heat" and run.minutes >= HEAT_REPORT_MIN_MINUTES:
-                alarm = (
-                    profile.kind == "vaccine"
-                    and run.extreme >= HEAT_ALARM_C
-                    and run.minutes >= HEAT_ALARM_MINUTES
-                )
+        freezes = [x for x in r.runs if x.kind == "freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
+        heats = [x for x in r.runs if x.kind == "heat" and x.minutes >= HEAT_REPORT_MIN_MINUTES]
+        humids = [x for x in r.runs if x.kind == "humid" and x.minutes >= HUMIDITY_ADVISORY_MINUTES]
+        if freezes:
+            where = f"{min(x.extreme for x in freezes):.1f} °C {_how_long(freezes)} in {r.node_label}"
+            if profile.freeze_sensitive:
+                reasons.append(Reason("FREEZE", "quarantine", f"Froze: {where}."))
+                checks.append(profile.freeze_check)
+            else:
                 reasons.append(Reason(
-                    "HEAT_ALARM" if alarm else "HEAT_EXCURSION", "advisory",
-                    f"Above {profile.storage_max_c:g} °C for {fmt_minutes(run.minutes)} in "
-                    f"{r.node_label} (peak {run.extreme:.1f} °C), using {_pct(run.budget_used)} of the budget.",
+                    "FREEZE_TOLERATED", "advisory",
+                    f"Went below freezing ({where}), but {profile.name} is not freeze-sensitive.",
                 ))
-            elif (
-                run.kind == "humid"
-                and profile.kind == "rapid_test"
-                and run.minutes >= HUMIDITY_ADVISORY_MINUTES
-            ):
-                reasons.append(Reason(
-                    "HUMIDITY", "advisory",
-                    f"Humidity reached {run.extreme:.0f}% for {fmt_minutes(run.minutes)} in "
-                    f"{r.node_label}. Check the desiccant indicator in opened pouches.",
-                ))
+        if heats:
+            alarm = profile.kind == "vaccine" and any(
+                x.extreme >= HEAT_ALARM_C and x.minutes >= HEAT_ALARM_MINUTES for x in heats
+            )
+            reasons.append(Reason(
+                "HEAT_ALARM" if alarm else "HEAT_EXCURSION", "advisory",
+                f"Above {profile.storage_max_c:g} °C {_how_long(heats)} in {r.node_label} "
+                f"(peak {max(x.extreme for x in heats):.1f} °C), using "
+                f"{_pct(sum(x.budget_used for x in heats))} of the budget.",
+            ))
+        if humids and profile.kind == "rapid_test":
+            reasons.append(Reason(
+                "HUMIDITY", "advisory",
+                f"Humidity reached {max(x.extreme for x in humids):.0f}% {_how_long(humids)} in "
+                f"{r.node_label}. Check the desiccant indicator in opened pouches.",
+            ))
         for gap in r.gaps:
             if gap.ongoing:
                 reasons.append(Reason(

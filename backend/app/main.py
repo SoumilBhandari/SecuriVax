@@ -1,3 +1,4 @@
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -16,7 +17,10 @@ settings = get_settings()
 async def lifespan(_: FastAPI):
     init_db()
     with Session(engine) as session:
-        seed(session)
+        if seed(session) and settings.demo_history:
+            from simulator.backfill import backfill
+
+            backfill(session, int(time.time()))
     yield
 
 

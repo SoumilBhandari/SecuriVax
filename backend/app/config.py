@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     # Seconds to wait on either model before falling back to templates.
     ai_timeout_s: float = 12.0
     cors_origins: str = "http://localhost:5173"
+    # Fill a fresh database with a few days of demo trips.
+    demo_history: bool = True
     # Directory holding the built web app. When set, FastAPI serves it.
     static_dir: str = ""
 

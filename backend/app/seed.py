@@ -28,12 +28,15 @@ def demo_nodes(key: str) -> list[Node]:
 def demo_boxes() -> list[Box]:
     return [
         Box(id="BOX-0001", product_id="penta", lot="PT-2611", quantity=20, initial_budget_used=0.10),
-        Box(id="BOX-0002", product_id="opv", lot="OP-2604", quantity=20, initial_budget_used=0.20),
+        Box(id="BOX-0002", product_id="opv", lot="OP-2604", quantity=20, initial_budget_used=0.68),
         Box(id="BOX-0003", product_id="mr", lot="MR-2609", quantity=10, initial_budget_used=0.05),
         Box(id="BOX-0004", product_id="hpv", lot="HP-2612", quantity=10, initial_budget_used=0.05),
+        Box(id="BOX-0005", product_id="opv", lot="OP-2604", quantity=20, initial_budget_used=0.20),
         Box(id="BOX-0101", product_id="rdt-malaria", lot="MAL-2603", quantity=25, initial_budget_used=0.30),
         Box(id="BOX-0102", product_id="rdt-hiv", lot="HIV-2605", quantity=25, initial_budget_used=0.25),
+        # Load these into DEMO-01 on stage: heat flips the OPV, freeze flips the penta.
         Box(id="BOX-9001", product_id="opv", lot="DEMO", quantity=20, initial_budget_used=0.10),
+        Box(id="BOX-9002", product_id="penta", lot="DEMO", quantity=20, initial_budget_used=0.10),
     ]
 
 
