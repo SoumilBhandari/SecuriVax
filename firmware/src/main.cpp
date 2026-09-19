@@ -82,7 +82,32 @@ bool use_probe = false;
 bool sht_ok = false;
 bool use_dht = false;
 #if DHT_PIN >= 0
-DHT dht(DHT_PIN, DHT_TYPE);
+DHT *dht = nullptr;
+int dht_pin = -1;
+
+// Pins a DHT's data wire might be on: DHT_PIN first, then the other free
+// GPIOs. Skips the boot pins (0, 2, 12, 15), UART0 (1, 3), the flash pins
+// (6-11), 16/17 (PSRAM on WROVER modules) and the input-only 34-39.
+static const int DHT_CANDIDATES[] = {DHT_PIN, 4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
+
+bool findDht() {
+  for (int pin : DHT_CANDIDATES) {
+    if (pin < 0 || (pin == DHT_PIN && dht_pin == pin)) continue;
+    DHT *probe = new DHT(pin, DHT_TYPE);
+    probe->begin();
+    for (int i = 0; i < 2; i++) {
+      delay(1100);  // a DHT11 needs a second between reads
+      if (!isnan(probe->readTemperature(false, true))) {
+        dht = probe;
+        dht_pin = pin;
+        return true;
+      }
+    }
+    delete probe;
+    pinMode(pin, INPUT);
+  }
+  return false;
+}
 #endif
 
 // Worst verdict in the carrier, from the last ack: 0 none, 1 USE, 2 USE FIRST,
@@ -160,8 +185,8 @@ bool sample(Record &r) {
   if (!use_probe && sht_ok) t = sht31.readTemperature();
 #if DHT_PIN >= 0
   if (!use_probe && !sht_ok && use_dht) {
-    t = dht.readTemperature();
-    h = dht.readHumidity();
+    t = dht->readTemperature();
+    h = dht->readHumidity();
   }
 #endif
   if (isnan(t)) {
@@ -355,22 +380,23 @@ void setup() {
 #endif
 #if DHT_PIN >= 0
   if (!use_probe && !sht_ok) {
-    dht.begin();
-    for (int i = 0; i < 3 && !use_dht; i++) {  // it needs a moment after power-up
-      delay(1200);
-      use_dht = !isnan(dht.readTemperature(false, true));
-    }
+    Serial.println("looking for a DHT11/DHT22 on the free pins...");
+    use_dht = findDht();
   }
 #endif
   if (use_probe) Serial.printf("temperature: DS18B20 probe on GPIO %d%s\n", DS18B20_PIN, sht_ok ? ", humidity: SHT31" : "");
   else if (sht_ok) Serial.printf("temperature and humidity: SHT31 on SDA %d / SCL %d\n", I2C_SDA, I2C_SCL);
-  else if (use_dht) Serial.printf("temperature and humidity: %s on GPIO %d\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", DHT_PIN);
+#if DHT_PIN >= 0
+  else if (use_dht) Serial.printf("temperature and humidity: %s on GPIO %d%s\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", dht_pin,
+                                  dht_pin == DHT_PIN ? "" : " (set DHT_PIN to this in config.h to skip the search)");
+#endif
   else Serial.printf("no temperature sensor found: SHT31 on SDA %d / SCL %d, DS18B20 on GPIO %d (4.7k pull-up), or DHT on GPIO %d\n",
                      I2C_SDA, I2C_SCL, HAS_DS18B20 ? DS18B20_PIN : -1, DHT_PIN);
 #if VERDICT_LED_PIN >= 0
   pinMode(VERDICT_LED_PIN, OUTPUT);
 #endif
   if (!LittleFS.begin(true)) Serial.println("LittleFS mount failed");
+  if (!LittleFS.exists(QUEUE_PATH)) LittleFS.open(QUEUE_PATH, "w").close();  // so later checks never log a miss
   loadBootId();
 
 #if DEMO_MODE

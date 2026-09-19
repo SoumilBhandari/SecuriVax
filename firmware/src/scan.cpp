@@ -10,10 +10,10 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-static const int DIGITAL_PINS[] = {4, 5, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
+static const int DIGITAL_PINS[] = {4, 5, 13, 14, 15, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 static const int ADC_PINS[] = {32, 33, 34, 35, 36, 39};
 // A DHT module has its own pull-up, but a DHT11 wired to 3.3 V may not read as pulled up: try them all.
-static const int DHT_PINS[] = {4, 5, 2, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33, 12};
+static const int DHT_PINS[] = {4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};  // not 16/17: PSRAM on WROVER
 
 static const char *i2cName(uint8_t a) {
   switch (a) {
@@ -131,6 +131,33 @@ static void deepProbe() {
   }
 }
 
+// The DHT handshake by hand: pull the line low for 20 ms, let go, and count
+// how many times it changes in the next 6 ms. A live DHT answers with ~80
+// edges (its 40 data bits); a wire to nothing answers with none.
+static int dhtEdges(int pin) {
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, LOW);
+  delay(20);
+  pinMode(pin, INPUT_PULLUP);
+  int edges = 0, last = digitalRead(pin);
+  uint32_t t = micros();
+  while (micros() - t < 6000) {
+    int now = digitalRead(pin);
+    if (now != last) { edges++; last = now; }
+  }
+  return edges;
+}
+
+static void rawDht() {
+  Serial.println("Raw DHT handshake (edges in 6 ms; a live sensor gives ~80):");
+  for (int pin : DHT_PINS) {
+    int e = dhtEdges(pin);
+    if (e > 0) Serial.printf("  GPIO %d: %d edges%s\n", pin, e, e > 60 ? "  <- a DHT is answering here" : "");
+    delay(1200);
+  }
+  Serial.println("  (pins with no edges are left out)");
+}
+
 void setup() {
   Serial.begin(115200);
   delay(500);
@@ -142,9 +169,8 @@ void loop() {
   for (int pin : DIGITAL_PINS)
     if (pulledUp(pin)) Serial.printf(" %d", pin);
   Serial.println();
+  rawDht();
   scanDHT();
-  scanI2C();
-  scanOneWire();
   Serial.println("=== done; scanning again in 10 s ===");
   delay(10000);
 }
