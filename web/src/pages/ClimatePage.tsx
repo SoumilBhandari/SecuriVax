@@ -84,10 +84,10 @@ function RiskMap({ sites }: { sites: StoreRisk[] }) {
           <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
           {sites.map((s) => (
             <CircleMarker
-              key={s.id}
+              key={`${s.id}-${s.risk}`}
               center={[s.lat, s.lon]}
               radius={RISK_RADIUS[s.risk] ?? 6}
-              pathOptions={{ className: `risk-marker risk-${s.risk}` }}
+              className={`risk-marker risk-${s.risk}`}
             >
               <Tooltip>
                 {s.name}: {s.risk}, peak {s.peak_c.toFixed(0)} °C {time(s.peak_ts, s.tz)}

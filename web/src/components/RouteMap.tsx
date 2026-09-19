@@ -43,7 +43,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
               <Polyline
                 key={`${s.node_id}-${s.start_ts}-${i}`}
                 positions={r.line}
-                pathOptions={{ className: `route-line route-${r.status}` }}
+                className={`route-line route-${r.status}`}
               />
             )),
           )}
@@ -55,7 +55,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
               key={`${e.kind}-${e.start_ts}`}
               center={[e.lat!, e.lon!]}
               radius={8}
-              pathOptions={{ className: "route-event" }}
+              className="route-event"
             >
               <Tooltip>
                 {e.kind === "freeze" ? "Froze" : "Too warm"} near {placeName(places, e.lat, e.lon)}, {time(e.start_ts)}
@@ -98,7 +98,7 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
             key={e.label}
             center={[e.lat!, e.lon!]}
             radius={6}
-            pathOptions={{ className: "route-end" }}
+            className="route-end"
           >
             <Tooltip>
               {e.label}, {placeName(places, e.lat, e.lon)}, {time(e.ts)}
