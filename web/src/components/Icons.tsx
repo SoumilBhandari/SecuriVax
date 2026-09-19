@@ -10,7 +10,7 @@ function Icon({ size = 18, children, ...rest }: IconProps & { children: ReactNod
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={2}
+      strokeWidth={1.9}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -97,5 +97,53 @@ export const SparkIcon = (p: IconProps) => (
 export const ThermoIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M10 13.5V5a2 2 0 1 1 4 0v8.5a4 4 0 1 1-4 0Z" />
+  </Icon>
+);
+
+// Tab bar and navigation (from the Nocturne redesign).
+export const BoxIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M21 8 12 3 3 8v8l9 5 9-5V8z" />
+    <path d="M3 8l9 5 9-5M12 13v8" />
+  </Icon>
+);
+
+export const ClimateIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 2v2M4.9 4.9l1.4 1.4M2 12h2M19.1 4.9l-1.4 1.4M22 12h-2" />
+    <path d="M16 12a4 4 0 0 0-8 0" />
+    <path d="M6 16h11a3 3 0 1 0-.5-5.96A5 5 0 0 0 6 16z" />
+  </Icon>
+);
+
+export const PlanIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
+    <path d="M9 4v14M15 6v14" />
+  </Icon>
+);
+
+export const ImpactIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />
+  </Icon>
+);
+
+export const ChevronDownIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 9l6 6 6-6" />
+  </Icon>
+);
+
+export const ChevronRightIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 5l7 7-7 7" />
+  </Icon>
+);
+
+export const ScanIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2" />
+    <circle cx="12" cy="12" r="3.5" />
   </Icon>
 );

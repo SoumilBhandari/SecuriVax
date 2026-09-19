@@ -9,7 +9,7 @@ in our backtest than heat, and it's the thing a VVM can't show.
 - Stickers are written with the URLs from `/tags` (stage: `DEMO-01`, `BOX-9001`, `BOX-9002`).
 - The node is sending and the `DEMO-01` page says **Online**. No board? Run
   `python -m simulator.sim_node --node DEMO-01 --api https://<domain> --key <NODE_KEY>`.
-- **Reset the stage** on `/tags` (or on BOX-9001's History tab) right before every run. The stage
+- **Reset the stage** on `/tags` (or under More detail on BOX-9001's page) right before every run. The stage
   carrier runs at 2,880x (one real minute is two days), so 90 real minutes is about six months:
   OPV, the most heat-sensitive vaccine, uses most of its budget in that time even at 5 °C.
 - Between steps keep the node **in the cooler at 2–8 °C, not on the ice**. At −0.2 °C the sensor's
@@ -28,14 +28,14 @@ in our backtest than heat, and it's the thing a VVM can't show.
    test). The OPV box says it isn't freeze-sensitive. "Same carrier, different verdicts."
 2. **Heat (45 s).** Hair dryer on the node. OPV's budget climbs through **USE FIRST** and
    **QUARANTINE** to **DISCARD**, live. "A VVM shows heat too. We add when and where, and a
-   verdict for products that have no VVM, like rapid tests." Point at *Threshold logger vs
-   Vialtality* on the Why tab. "One real minute is two days on this demo carrier; the page says so."
+   verdict for products that have no VVM, like rapid tests." Open *What a threshold logger
+   would say* under More detail. "One real minute is two days on this demo carrier; the page says so."
 3. **VVM camera (45 s).** Open `BOX-TZ-0318` (Spikevax): QUARANTINE, and it *holds in 67% of
-   scenarios*. Go to the Label tab, then **Scan the VVM label** and photograph the stage-2 VVM
+   scenarios*. Tap **Scan the VVM label** and photograph the stage-2 VVM
    from the test card. The camera compares the square with the ring (1.51, lighter: usable). The
    temperature record predicts stage 2, so the two witnesses agree. Confirm. Now it holds in 90%,
    and the photo also calibrates Spikevax's model (on the Impact page).
-4. **Twin (40 s).** Open an in-transit lane box, Carrier tab: "Leaves 2–8 °C in X h, 80% range
+4. **Twin (40 s).** Open an in-transit lane box and tap the "In truck …" card to open its carrier: "Leaves 2–8 °C in X h, 80% range
    …". The filter learnt this truck's real cold life from its last trips. Ask the dispatch agent
    what to do.
 5. **Impact (30 s).** `/impact`: **144 → 12 trips that left 2–8 °C**, with departures planned from

@@ -1,35 +1,297 @@
 @import "tailwindcss";
 
-/* Design tokens from the team's reference design (light theme values). */
+/*
+ * Nocturne: the team's redesign. A dark ground with one blurple accent,
+ * Inter throughout, verdict colours in OKLCH so each tier reads at the same
+ * weight, and rules that fade out at both ends.
+ */
 @theme {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Bricolage Grotesque", "DM Sans", ui-sans-serif, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --color-ground: #f4f7fa;
-  --color-ink: #0e1a28;
-  --color-muted: #4f6072;
-  --color-faint: #93a3b5;
-  --color-line: #dbe3eb;
-  --color-cold: #1b6fdc;
-  --color-ok: #0d8a5f;
-  --color-warn: #a86400;
-  --color-hot: #d9420f;
-  --color-bad: #c62828;
+  --color-bg: #161826;
+  --color-surface: #232532;
+  --color-text: #e9e9ed;
+  --color-line: color-mix(in srgb, #e9e9ed 8%, transparent);
+  --color-line-strong: color-mix(in srgb, #e9e9ed 14%, transparent);
+  --color-divider: color-mix(in srgb, #e9e9ed 16%, transparent);
+
+  --color-accent: #9184d9;
+  --color-accent-100: #f5f4ff;
+  --color-accent-200: #e7e5fe;
+  --color-accent-300: #d2cefd;
+  --color-accent-400: #b5abfc;
+  --color-accent-500: #968ae0;
+  --color-accent-600: #796cbf;
+  --color-accent-700: #5d5294;
+  --color-accent-800: #423a6a;
+  --color-accent-900: #2b2741;
+
+  --color-neutral-100: #f3f5fe;
+  --color-neutral-200: #e4e7f5;
+  --color-neutral-300: #cfd3e5;
+  --color-neutral-400: #b2b6ca;
+  --color-neutral-500: #9397ab;
+  --color-neutral-600: #75798c;
+  --color-neutral-700: #595d6c;
+  --color-neutral-800: #3f424d;
+  --color-neutral-900: #292b31;
+
+  /* Verdict and risk tiers: a strong colour, a light text colour, a dark tint. */
+  --color-good: oklch(74% 0.11 152);
+  --color-good-fg: oklch(90% 0.07 152);
+  --color-good-tint: oklch(31% 0.045 152);
+  --color-warn: oklch(80% 0.12 84);
+  --color-warn-fg: oklch(92% 0.08 84);
+  --color-warn-tint: oklch(33% 0.05 84);
+  --color-hot: oklch(74% 0.14 48);
+  --color-hot-fg: oklch(90% 0.08 48);
+  --color-hot-tint: oklch(32% 0.06 48);
+  --color-bad: oklch(68% 0.18 24);
+  --color-bad-fg: oklch(90% 0.08 24);
+  --color-bad-tint: oklch(31% 0.08 24);
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
+  background: var(--color-bg);
 }
 
 body {
-  background: var(--color-ground);
-  color: var(--color-ink);
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: -0.011em;
+  font-feature-settings: "cv11", "ss01", "cv01", "tnum";
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
+
+@keyframes vt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@layer components {
+  /* The phone-width column, with the accent's glow behind the top of the page. */
+  .shell {
+    position: relative;
+    max-width: 480px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    padding: 0 20px calc(108px + env(safe-area-inset-bottom, 0px));
+    background: radial-gradient(
+      120% 40% at 50% -6%,
+      color-mix(in srgb, var(--color-accent) 13%, var(--color-bg)),
+      var(--color-bg) 70%
+    );
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-neutral-500);
+  }
+
+  .section-title {
+    margin: 30px 0 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-neutral-500);
+  }
+
+  /* A raised card: a whisper of light at the top edge, a hairline border. */
+  .card-soft {
+    border-radius: 14px;
+    border: 1px solid var(--color-line);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 96%, white), var(--color-surface));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 0 0 1px #3f424d33;
+  }
+
+  .panel {
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+  }
+
+  .tile {
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: var(--color-neutral-900);
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  /* Rules fade to transparent at both ends. */
+  .rule {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-neutral-800) 48px,
+      var(--color-neutral-800) calc(100% - 48px),
+      transparent
+    );
+  }
+
+  .btn-accent {
+    display: flex;
+    width: 100%;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px solid var(--color-accent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+    color: var(--color-accent-200);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .btn-accent:hover {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+  .btn-accent:active {
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+  }
+
+  .btn-quiet {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px;
+    border: 1px solid var(--color-line-strong);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--color-neutral-200);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  .btn-quiet:hover {
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
+
+  .btn-outline {
+    min-height: 48px;
+    padding: 0 20px;
+    border: 1px solid var(--color-accent);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--color-accent-300);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  }
+
+  .btn-outline:disabled,
+  .btn-quiet:disabled,
+  .btn-accent:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .select-pill {
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 16px;
+    border: 1px solid var(--color-divider);
+    border-radius: 999px;
+    background: var(--color-surface);
+    color: var(--color-text);
+    font: inherit;
+    font-size: 16px;
+  }
+
+  .back-btn {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid var(--color-neutral-800);
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+  .back-btn:hover {
+    border-color: var(--color-neutral-400);
+  }
+
+  /* The row that opens an accordion section. */
+  .acc-btn {
+    display: flex;
+    width: 100%;
+    min-height: 60px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 20px;
+    border: 0;
+    background: transparent;
+    color: var(--color-text);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    text-align: left;
+  }
+  .acc-btn:hover {
+    background: color-mix(in srgb, var(--color-text) 5%, transparent);
+  }
 }
 
 .leaflet-container {
   font: inherit;
+  background: #1c1e2b;
+}
+
+/* The map tiles are light; darken them to sit on the Nocturne ground. */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.55);
+}
+
+.leaflet-control-attribution {
+  background: rgba(22, 24, 38, 0.8) !important;
+  color: var(--color-neutral-500) !important;
+}
+.leaflet-control-attribution a {
+  color: var(--color-neutral-400) !important;
 }
 
 /* Every tappable thing is at least 44px tall; form text is 16px so iOS doesn't zoom. */
@@ -38,6 +300,11 @@ select,
 input:not([type="range"]),
 a.button {
   min-height: 44px;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
 }
 
 select,
@@ -51,12 +318,12 @@ a:focus-visible,
 select:focus-visible,
 input:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--color-cold);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.99);
 }
 
 @media (prefers-reduced-motion: reduce) {

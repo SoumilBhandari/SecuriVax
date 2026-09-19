@@ -6,7 +6,7 @@ import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-
 import { placeName, time } from "../lib/format";
 import type { PointStatus, Segment } from "../types";
 
-const COLORS: Record<PointStatus, string> = { ok: "#2563eb", heat: "#dc2626", freeze: "#7c3aed" };
+const COLORS: Record<PointStatus, string> = { ok: "#b5abfc", heat: "#e5534b", freeze: "#6ec6ff" };
 
 /** Split a leg into runs of the same status so each run gets its colour. */
 function runs(seg: Segment) {
@@ -23,14 +23,14 @@ function runs(seg: Segment) {
 export function RouteMap({ segments, places }: { segments: Segment[]; places: Record<string, string> }) {
   const all = segments.flatMap((s) => s.route.map((p) => [p.lat, p.lon] as [number, number]));
   if (all.length === 0) {
-    return <p className="py-6 text-center text-sm text-slate-500">No GPS fix recorded yet.</p>;
+    return <p className="m-0 py-6 text-center text-sm text-neutral-400">No GPS fix recorded yet.</p>;
   }
   const bounds = latLngBounds(all).pad(0.15);
   const events = segments.flatMap((s) => s.runs.filter((r) => r.lat != null && r.kind !== "humid"));
 
   return (
     <div>
-      <div className="h-64 overflow-hidden rounded-xl border border-slate-200">
+      <div className="h-64 overflow-hidden rounded-xl border border-line">
         <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
           <TileLayer
             url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -53,7 +53,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
               key={`${e.kind}-${e.start_ts}`}
               center={[e.lat!, e.lon!]}
               radius={8}
-              pathOptions={{ color: "#fff", weight: 2, fillColor: e.kind === "freeze" ? COLORS.freeze : COLORS.heat, fillOpacity: 1 }}
+              pathOptions={{ color: "#161826", weight: 2, fillColor: e.kind === "freeze" ? COLORS.freeze : COLORS.heat, fillOpacity: 1 }}
             >
               <Tooltip>
                 {e.kind === "freeze" ? "Froze" : "Too warm"} near {placeName(places, e.lat, e.lon)}, {time(e.start_ts)}
@@ -62,7 +62,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
           ))}
         </MapContainer>
       </div>
-      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500">
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-neutral-400">
         {(["ok", "heat", "freeze"] as const).map((k) => (
           <span key={k}>
             <span className="mr-1 inline-block h-1 w-4 rounded align-middle" style={{ background: COLORS[k] }} />
@@ -70,7 +70,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
           </span>
         ))}
         <span>
-          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-emerald-600 bg-white align-middle" />
+          <span className="mr-1 inline-block h-2.5 w-2.5 rounded-full border-2 border-[#4fb286] bg-bg align-middle" />
           Handoff
         </span>
       </div>
@@ -92,7 +92,7 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
             key={e.label}
             center={[e.lat!, e.lon!]}
             radius={6}
-            pathOptions={{ color: "#059669", weight: 3, fillColor: "#fff", fillOpacity: 1 }}
+            pathOptions={{ color: "#4fb286", weight: 3, fillColor: "#161826", fillOpacity: 1 }}
           >
             <Tooltip>
               {e.label}, {placeName(places, e.lat, e.lon)}, {time(e.ts)}

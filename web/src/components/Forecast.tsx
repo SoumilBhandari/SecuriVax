@@ -1,89 +1,88 @@
+import type { ReactNode } from "react";
+
 import { api } from "../lib/api";
-import { eat, fromNow, pct, time } from "../lib/format";
+import { pct } from "../lib/format";
 import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast } from "../types";
 
-const W = 340;
-const H = 140;
-const PAD = { l: 30, r: 8, t: 10, b: 20 };
+function until(ts: number | null | undefined): string {
+  if (!ts) return "soon";
+  const h = (ts - Date.now() / 1000) / 3600;
+  return h < 0 ? "now" : h < 1 ? `in ${Math.round(h * 60)} min` : `in ${h.toFixed(1)} h`;
+}
 
-/** The carrier's twin: when it will leave 2–8 °C, and how sure we are. */
+/** One sentence: will this carrier keep its boxes in range, and until when? */
+export function forecastLine(fc: CarrierForecast): string {
+  const max = fc.storage_max_c ?? 8;
+  const { breach, state, forecast } = fc;
+  if (!breach || !state || !forecast) return "Forecast incomplete.";
+  if (state.inside_c > max) return `Already above ${max} °C. Inside is ${state.inside_c.toFixed(1)} °C now.`;
+  if (breach.prob >= 0.5) return `Leaves 2–${max} °C ${until(breach.p50)}. ${pct(breach.prob)} chance within ${forecast.horizon_h} h.`;
+  return `Stays in range for the next ${forecast.horizon_h} h. ${pct(1 - breach.prob)} of forecast runs keep it at 2–${max} °C.`;
+}
+
+export function forecastAtRisk(fc: CarrierForecast): boolean {
+  return !!fc.breach && !!fc.state && (fc.breach.prob >= 0.5 || fc.state.inside_c > (fc.storage_max_c ?? 8));
+}
+
+/** The carrier's twin: how long the cold lasts, with the forecast fan behind it. */
 export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId?: string; initial?: CarrierForecast }) {
   const polled = usePoll(() => api.forecast(nodeId), initial ? null : 60000, [nodeId]);
   const data = initial ?? polled.data;
 
-  if (!data && polled.error) return <p className="py-4 text-center text-sm text-muted">Forecast unavailable: {polled.error}</p>;
-  if (!data) return <p className="py-4 text-center text-sm text-muted">Running the forecast…</p>;
-  if (!data.available) {
-    return <p className="text-sm text-slate-500">{data.reason}</p>;
-  }
-  const { breach, state, forecast, fit, prior } = data;
-  if (!breach || !state || !forecast || !prior) return <p className="text-sm text-muted">Forecast incomplete.</p>;
-  const range = `2–${data.storage_max_c ?? 8} °C`;
+  if (!data && polled.error) return <Note>Forecast unavailable: {polled.error}</Note>;
+  if (!data) return <Note>Running the forecast…</Note>;
+  if (!data.available) return <Note>{data.reason}</Note>;
+  const { state, forecast, fit, prior } = data;
+  if (!state || !forecast || !prior) return <Note>Forecast incomplete.</Note>;
+  const risk = forecastAtRisk(data);
   const box = data.boxes?.find((b) => b.box_id === boxId);
-  const likely = breach.prob >= 0.5;
-  const already = state.inside_c > (data.storage_max_c ?? 8) || (breach.p50 != null && breach.p50 * 1000 < Date.now());
+  const tone = risk ? { bg: "var(--color-bad-tint)", fg: "var(--color-bad-fg)" } : { bg: "var(--color-good-tint)", fg: "var(--color-good-fg)" };
 
   return (
-    <div>
-      <div className={`rounded-xl p-3 ${likely ? "bg-orange-50 text-orange-900" : "bg-emerald-50 text-emerald-900"}`}>
-        {already ? (
-          <p className="text-sm">
-            <span className="text-base font-semibold">Already outside {range}</span>
-            <br />
-            Inside is {state.inside_c.toFixed(1)} °C now.
-          </p>
-        ) : likely ? (
-          <p className="text-sm">
-            <span className="text-base font-semibold">Leaves {range} {fromNow(breach.p50)}</span>
-            <br />
-            80% range: {eat(breach.p10)} to {breach.p90 ? eat(breach.p90) : "after the forecast window"} ·{" "}
-            {pct(breach.prob)} chance within {forecast.horizon_h} h
-          </p>
-        ) : (
-          <p className="text-sm">
-            <span className="text-base font-semibold">Stays in range for the next {forecast.horizon_h} h</span>
-            <br />
-            {pct(1 - breach.prob)} of forecast runs keep it at {range}
-          </p>
-        )}
-      </div>
+    <section className="rounded-[14px] px-[22px] pb-[18px] pt-[22px]" style={{ background: tone.bg, color: tone.fg }}>
+      <p className="m-0 mb-1.5 text-[13px] uppercase tracking-[0.1em] opacity-80">How long the cold lasts</p>
+      <p className="m-0 mb-4 text-[19px] font-semibold leading-[1.3] tracking-[-0.02em] [text-wrap:pretty]">{forecastLine(data)}</p>
       <Fan data={data} />
-      <dl className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="text-slate-500">Ice left</dt>
-          <dd className="font-semibold text-slate-800">
-            {state.ice_left_h[1]} h <span className="font-normal text-slate-500">({state.ice_left_h[0]}–{state.ice_left_h[2]})</span>
-          </dd>
-        </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="text-slate-500">Cold life (learnt)</dt>
-          <dd className="font-semibold text-slate-800">
-            {state.effective_cold_life_h[1]} h <span className="font-normal text-slate-500">vs {state.rated_cold_life_h ?? 20} rated</span>
-          </dd>
-        </div>
-        <div className="rounded-lg bg-slate-50 p-2">
-          <dt className="text-slate-500">Model error</dt>
-          <dd className="font-semibold text-slate-800">
-            {fit?.one_step_rmse_c == null ? "learning…" : `±${fit.one_step_rmse_c.toFixed(2)} °C`}
-          </dd>
-        </div>
-      </dl>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] opacity-85">
+        <span>— inside</span>
+        <span>- - outside</span>
+        <span>▬ likely range</span>
+        <span>▬ green: 2–{data.storage_max_c ?? 8} °C</span>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <Fact k="Ice left" v={`${state.ice_left_h[1]} h`} sub={`${state.ice_left_h[0]}–${state.ice_left_h[2]} h likely`} />
+        <Fact k="Cold life" v={`${state.effective_cold_life_h[1]} h`} sub={`rated ${state.rated_cold_life_h ?? 20} h`} />
+        <Fact k="Outside" v={`${state.outside_c.toFixed(0)} °C`} sub="right now" />
+      </div>
       {box && (
-        <p className="mt-2 text-sm text-slate-700">
+        <p className="m-0 mt-3 text-sm">
           {box.verdict_now === "DISCARD"
             ? "This box is already past its end point."
             : box.verdict_now === "QUARANTINE"
-              ? `This box is already held: ${pct(box.p_discard)} chance it reaches DISCARD by the end of the window`
-              : `This box: ${pct(box.p_quarantine_or_worse)} chance it needs QUARANTINE or worse by the end of the window`}
-          {box.verdict_now !== "DISCARD" && box.p_freeze != null && box.p_freeze > 0 ? `, ${pct(box.p_freeze)} chance of freezing` : ""}
-          {box.verdict_now === "DISCARD" ? "" : "."}
+              ? `This box is already held: ${pct(box.p_discard)} chance it reaches DISCARD by the end of the window.`
+              : `This box: ${pct(box.p_quarantine_or_worse)} chance it needs QUARANTINE or worse by the end of the window.`}
         </p>
       )}
-      <p className="mt-2 text-[11px] leading-snug text-slate-400">
-        Particle filter over the carrier's hidden ice and heat leak ({data.readings} readings, prior from {prior.from}),
+      <p className="m-0 mt-3 text-xs leading-snug opacity-70">
+        Particle filter over the carrier's hidden ice and heat leak ({data.readings} readings
+        {fit?.one_step_rmse_c != null ? `, tracking to ±${fit.one_step_rmse_c.toFixed(2)} °C` : ""}; prior from {prior.from}),
         rolled forward through {data.weather_source}.
       </p>
+    </section>
+  );
+}
+
+function Note({ children }: { children: ReactNode }) {
+  return <p className="m-0 rounded-[14px] border border-neutral-800 bg-surface px-5 py-4 text-[15px] text-neutral-300">{children}</p>;
+}
+
+function Fact({ k, v, sub }: { k: string; v: string; sub: string }) {
+  return (
+    <div className="rounded-lg bg-white/5 p-3">
+      <p className="m-0 text-xs uppercase tracking-[0.06em] opacity-75">{k}</p>
+      <p className="m-0 mt-0.5 text-[22px] font-bold leading-[1.1]">{v}</p>
+      <p className="m-0 mt-0.5 text-xs opacity-75">{sub}</p>
     </div>
   );
 }
@@ -91,51 +90,33 @@ export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId
 function Fan({ data }: { data: CarrierForecast }) {
   const f = data.forecast!;
   if (f.times.length < 2) return null;
-  const all = [...f.p10, ...f.p90, ...f.outside_p50, 8, 2];
+  const max = data.storage_max_c ?? 8;
+  const all = [...f.p10, ...f.p90, ...f.outside_p50, max, 2];
   const lo = Math.floor(Math.min(...all) - 1);
   const hi = Math.ceil(Math.max(...all) + 1);
   const t0 = f.times[0];
   const t1 = f.times[f.times.length - 1];
-  const x = (t: number) => PAD.l + ((t - t0) / (t1 - t0)) * (W - PAD.l - PAD.r);
-  const y = (c: number) => PAD.t + ((hi - c) / (hi - lo)) * (H - PAD.t - PAD.b);
+  const sx = (t: number) => 30 + ((t - t0) / (t1 - t0)) * 300;
+  const sy = (c: number) => 8 + ((hi - c) / (hi - lo)) * 104;
+  const line = (vals: number[]) => vals.map((v, i) => `${i ? "L" : "M"}${sx(f.times[i]).toFixed(1)},${sy(v).toFixed(1)}`).join("");
   const band =
-    f.times.map((t, i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(f.p90[i]).toFixed(1)}`).join("") +
-    [...f.times].reverse().map((t, i) => `L${x(t).toFixed(1)},${y(f.p10[f.times.length - 1 - i]).toFixed(1)}`).join("") +
+    line(f.p90) +
+    [...f.times].reverse().map((t, i) => `L${sx(t).toFixed(1)},${sy(f.p10[f.times.length - 1 - i]).toFixed(1)}`).join("") +
     "Z";
-  const line = (vals: number[]) => vals.map((v, i) => `${i ? "L" : "M"}${x(f.times[i]).toFixed(1)},${y(v).toFixed(1)}`).join("");
   return (
-    <figure className="mt-3">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Forecast of the inside temperature">
-        <rect x={PAD.l} width={W - PAD.l - PAD.r} y={y(8)} height={y(2) - y(8)} className="fill-emerald-100" />
-        <path d={band} className="fill-sky-200/70" />
-        <path d={line(f.outside_p50)} fill="none" className="stroke-orange-400" strokeWidth={1.2} strokeDasharray="4 3" />
-        <path d={line(f.p50)} fill="none" className="stroke-sky-700" strokeWidth={1.8} />
-        {[lo, 2, 8, hi].map((v) => (
-          <text key={v} x={PAD.l - 4} y={y(v) + 3} textAnchor="end" className="fill-slate-400 text-[9px]">
-            {v}°
-          </text>
-        ))}
-        <text x={PAD.l} y={H - 5} className="fill-slate-500 text-[10px]">
-          {time(f.times[0] - 600)}
-        </text>
-        <text x={W - PAD.r} y={H - 5} textAnchor="end" className="fill-slate-400 text-[9px]">
-          +{f.horizon_h} h
-        </text>
+    <figure className="m-0">
+      <svg viewBox="0 0 340 124" className="block w-full" role="img" aria-label="Forecast of the inside temperature">
+        <rect x="30" y={sy(max)} width="300" height={sy(2) - sy(max)} fill="oklch(74% 0.11 152 / .14)" />
+        <path d={band} fill="currentColor" opacity=".16" />
+        <path d={line(f.outside_p50)} fill="none" stroke="oklch(68% 0.18 24)" strokeWidth="1.5" strokeDasharray="4 3" />
+        <path d={line(f.p50)} fill="none" stroke="#e9e9ed" strokeWidth="2.25" strokeLinejoin="round" />
+        <text x="26" y={sy(max) + 4} textAnchor="end" fontSize="11" fill="currentColor">{max}°</text>
+        <text x="26" y={sy(2) + 4} textAnchor="end" fontSize="11" fill="currentColor">2°</text>
       </svg>
-      <figcaption className="flex flex-wrap gap-x-3 text-[11px] text-slate-500">
-        <span>
-          <span className="mr-1 inline-block h-0 w-3 border-t-2 border-sky-700 align-middle" />
-          Inside, median
-        </span>
-        <span>
-          <span className="mr-1 inline-block h-2 w-3 rounded-sm bg-sky-200 align-middle" />
-          80% range
-        </span>
-        <span>
-          <span className="mr-1 inline-block h-0 w-3 border-t-2 border-dashed border-orange-400 align-middle" />
-          Outside forecast
-        </span>
-      </figcaption>
+      <div className="mt-0.5 flex justify-between text-xs opacity-75">
+        <span>now</span>
+        <span>+{f.horizon_h} h</span>
+      </div>
     </figure>
   );
 }

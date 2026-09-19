@@ -18,13 +18,13 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label?: stri
     if (!this.state.failed) return this.props.children;
     if (this.props.page) {
       return (
-        <div className="mx-auto max-w-xl p-6 text-center">
-          <p className="font-display text-xl font-bold">Something went wrong on this page.</p>
-          <div className="mt-4 flex justify-center gap-2">
-            <button onClick={() => location.reload()} className="rounded-lg bg-ink px-4 text-white">
+        <div className="shell pt-16 text-center">
+          <p className="m-0 text-xl font-semibold">Something went wrong on this page.</p>
+          <div className="mt-5 flex justify-center gap-2">
+            <button onClick={() => location.reload()} className="btn-outline">
               Reload
             </button>
-            <a href={asset("/")} className="button inline-flex items-center rounded-lg border border-line px-4">
+            <a href={asset("/")} className="btn-quiet">
               Home
             </a>
           </div>
@@ -32,7 +32,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label?: stri
       );
     }
     return (
-      <p role="alert" className="rounded-xl bg-white p-3 text-sm text-muted">
+      <p role="alert" className="m-0 rounded-xl bg-neutral-900 p-3 text-sm text-neutral-400">
         {this.props.label ?? "This section"} couldn't be shown. The verdict above is unaffected.
       </p>
     );

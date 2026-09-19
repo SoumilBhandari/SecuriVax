@@ -20,8 +20,8 @@ const TagsPage = lazy(() => import("./pages/TagsPage"));
 function NotFound() {
   return (
     <Layout back>
-      <p className="py-16 text-center text-muted">
-        Nothing here. <Link to="/" className="underline">Go home</Link>
+      <p className="py-16 text-center text-neutral-400">
+        Nothing here. <Link to="/" className="text-accent-400 underline underline-offset-2">Go home</Link>
       </p>
     </Layout>
   );
