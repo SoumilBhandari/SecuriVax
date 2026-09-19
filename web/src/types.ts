@@ -461,3 +461,26 @@ export interface Impact {
   };
   sweep: { seeds: number; days: number; summary: Record<PolicyId, Record<string, MetricStat>> };
 }
+
+export type Band = "ok" | "warm" | "cold" | "freeze";
+
+export interface LiveReading {
+  id: number;
+  node_id: string;
+  label: string;
+  kind: string;
+  ts: number;
+  received_at: number;
+  ts_source: "device" | "reconstructed";
+  temp_c: number;
+  rh: number | null;
+  battery_v: number | null;
+  band: Band;
+}
+
+export interface LiveRecent {
+  readings: LiveReading[];
+  last_id: number;
+  band: { min_c: number; max_c: number; freeze_c: number };
+  server_time: number;
+}

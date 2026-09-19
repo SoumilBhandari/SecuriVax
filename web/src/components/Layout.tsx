@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router";
 
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
-import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, TapIcon, XIcon } from "./Icons";
+import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, TapIcon, XIcon } from "./Icons";
 
 /** The phone-width column, the bottom tab bar, and the banners every page shares. */
 export function Layout({ children }: { back?: boolean; children: ReactNode }) {
@@ -25,6 +25,7 @@ export function Layout({ children }: { back?: boolean; children: ReactNode }) {
 
 const TABS = [
   { to: "/", label: "Boxes", Icon: BoxIcon, match: (p: string) => p === "/" || p.startsWith("/box") || p.startsWith("/node") || p.startsWith("/tags") },
+  { to: "/live", label: "Live", Icon: PulseIcon, match: (p: string) => p.startsWith("/live") },
   { to: "/climate", label: "Climate", Icon: ClimateIcon, match: (p: string) => p.startsWith("/climate") },
   { to: "/plan", label: "Plan", Icon: PlanIcon, match: (p: string) => p.startsWith("/plan") },
   { to: "/impact", label: "Impact", Icon: ImpactIcon, match: (p: string) => p.startsWith("/impact") },
@@ -35,7 +36,7 @@ function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed bottom-0 left-1/2 z-[1100] grid w-full max-w-[480px] -translate-x-1/2 grid-cols-4 gap-1 px-3 pt-2 backdrop-blur-md"
+      className="fixed bottom-0 left-1/2 z-[1100] grid w-full max-w-[480px] -translate-x-1/2 grid-cols-5 gap-1 px-3 pt-2 backdrop-blur-md"
       style={{
         paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))",
         background:

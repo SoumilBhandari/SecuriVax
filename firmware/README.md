@@ -51,6 +51,18 @@ the probe and LED), so the morning is only config and upload:
 4. Only then add the extras: `HAS_DS18B20 1` (probe in a water vial) and
    `VERDICT_LED_PIN 2`.
 
+## No WiFi yet? Send over USB
+
+```bash
+cd backend && .venv/bin/python -m scripts.serial_bridge --port /dev/cu.usbserial-0001
+```
+
+The bridge restarts the board to catch its boot id, then uploads every reading
+the node prints, with the node's own boot id and sequence numbers (so if the
+node later sends the same readings over WiFi, they count as duplicates). Watch
+them arrive on the app's **Live** tab. Boxes loaded into `DEMO-01` are judged
+on these readings, at demo speed.
+
 ## Build
 
 ```bash

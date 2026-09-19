@@ -46,7 +46,7 @@ def capture() -> dict:
 
     boxes = fetch("/api/boxes")
     for path in ("/api/boxes/fleet/summary", "/api/boxes/learning/summary", "/api/products", "/api/facilities",
-                 "/api/climate/stores", "/api/climate/carriers", "/api/impact"):
+                 "/api/climate/stores", "/api/climate/carriers", "/api/impact", "/api/live/recent?limit=120"):
         fetch(path)
     nodes = fetch("/api/nodes")
     for b in boxes:

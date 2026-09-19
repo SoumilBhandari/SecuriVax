@@ -89,6 +89,16 @@ h3 {
   }
 }
 
+/* A reading that just arrived in the live feed. */
+@keyframes vt-arrive {
+  from {
+    background: var(--color-accent-900);
+  }
+  to {
+    background: transparent;
+  }
+}
+
 @layer components {
   /* The phone-width column, with the accent's glow behind the top of the page. */
   .shell {

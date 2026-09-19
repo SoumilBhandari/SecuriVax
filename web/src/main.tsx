@@ -16,6 +16,7 @@ const ClimatePage = lazy(() => import("./pages/ClimatePage"));
 const PlanPage = lazy(() => import("./pages/PlanPage"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
+const LivePage = lazy(() => import("./pages/LivePage"));
 
 function NotFound() {
   return (
@@ -45,6 +46,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/box/:id" element={page(<BoxPage />)} />
         <Route path="/node/:id" element={page(<NodePage />)} />
         <Route path="/tags" element={page(<TagsPage />)} />
+        <Route path="/live" element={page(<LivePage />)} />
         <Route path="/climate" element={page(<ClimatePage />)} />
         <Route path="/plan" element={page(<PlanPage />)} />
         <Route path="/impact" element={page(<ImpactPage />)} />

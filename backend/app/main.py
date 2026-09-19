@@ -14,7 +14,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine, init_db
-from app.routers import admin, boxes, climate, ingest, nodes, products
+from app.routers import admin, boxes, climate, ingest, live, nodes, products
 from app.seed import seed
 
 settings = get_settings()
@@ -73,7 +73,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for router in (ingest.router, boxes.router, nodes.router, products.router, climate.router, admin.router):
+for router in (ingest.router, boxes.router, nodes.router, products.router, climate.router, admin.router, live.router):
     app.include_router(router)
 
 

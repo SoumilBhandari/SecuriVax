@@ -147,3 +147,9 @@ export const ScanIcon = (p: IconProps) => (
     <circle cx="12" cy="12" r="3.5" />
   </Icon>
 );
+
+export const PulseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3 12h4l2.5-6 5 12 2.5-6h4" />
+  </Icon>
+);

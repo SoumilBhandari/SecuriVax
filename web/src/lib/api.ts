@@ -10,6 +10,7 @@ import type {
   Impact,
   LearnedRate,
   LearningSummary,
+  LiveRecent,
   NodeDetail,
   NodeSummary,
   Product,
@@ -143,6 +144,9 @@ export const api = {
   facilities: () => request<Facility[]>("/api/facilities"),
   storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),
   carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
+  liveRecent: (limit = 120) => request<LiveRecent>(`/api/live/recent?limit=${limit}`),
+  /** Server-sent events of new readings; the browser reconnects and resumes on its own. */
+  liveStreamUrl: (after: number) => `${BASE}/api/live/stream?after=${after}`,
   plan: (body: { product_id: string; origin_id: string; carrier_id?: string | null; session_h?: number }) =>
     request<TripPlan>("/api/climate/plan", { method: "POST", body: JSON.stringify(body) }),
 };
