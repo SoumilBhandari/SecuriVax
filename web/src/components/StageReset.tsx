@@ -1,12 +1,15 @@
 import { useState } from "react";
 
 import { api } from "../lib/api";
+import { useSignInFirst } from "../lib/auth";
 
 /** Puts the live stage demo (DEMO-01, BOX-9001/9002) back to the start. */
 export function StageReset({ onDone }: { onDone?: (message: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const signInFirst = useSignInFirst();
   const reset = () => {
+    if (signInFirst()) return;
     if (!window.confirm("Reset the stage demo? DEMO-01's readings and BOX-9001/9002's history are cleared. The lanes stay.")) return;
     setBusy(true);
     api

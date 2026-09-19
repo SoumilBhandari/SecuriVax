@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { api } from "../lib/api";
+import { useSignInFirst } from "../lib/auth";
 import type { AgentAdvice, Facility } from "../types";
 
 const TOOL_LABEL: Record<string, string> = {
@@ -41,8 +42,9 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
       .finally(() => setBusy(false));
   };
 
+  const signInFirst = useSignInFirst();
   const accept = () => {
-    if (!advice) return;
+    if (!advice || signInFirst()) return;
     const { action, facility_id } = advice.recommendation;
     setAccepting(true);
     api

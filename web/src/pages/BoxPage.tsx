@@ -14,6 +14,7 @@ import { TripConditions } from "../components/TripConditions";
 import { Numbers, Reasons, VerdictHero } from "../components/Verdict";
 import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
+import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
 import { time } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
@@ -44,6 +45,8 @@ export default function BoxPage() {
   const tapHandled = useRef(false);
   const vvmHandoff = useRef(false);
   const canTap = useCanTapTags();
+  const { user, ready } = useAuth();
+  const signInFirst = useSignInFirst();
 
   useEffect(() => {
     setLive(Boolean(data?.current_node_id));
@@ -58,10 +61,16 @@ export default function BoxPage() {
 
   // Arriving from an NFC tag: finish a pending link (then refresh), or start one.
   useEffect(() => {
-    if (tapHandled.current || !takeTap()) return;
+    if (!ready || tapHandled.current || !takeTap()) return;
     tapHandled.current = true;
     if (!canTapTags()) return; // a tag's URL opened on a computer: there's no second tap to pair it with
     const arm = getArm();
+    if (arm?.kind === "node" && !user) {
+      // Loading needs an operator: keep the pending link, sign in, and come back to finish it.
+      setArm("node", arm.id);
+      signInFirst(`/box/${id}?tap=1`);
+      return;
+    }
     if (arm?.kind === "node") {
       clearArm();
       api
@@ -72,17 +81,18 @@ export default function BoxPage() {
     } else {
       setArm("box", id);
     }
-  }, [id, refresh]);
+  }, [id, refresh, ready, user, signInFirst]);
 
   // A computer's QR code opens the box here with ?vvm=1: go straight to the label check.
   useEffect(() => {
     if (takeVvmHandoff()) vvmHandoff.current = true;
   }, []);
   useEffect(() => {
-    if (!vvmHandoff.current || !data) return;
+    if (!vvmHandoff.current || !data || !ready) return;
     vvmHandoff.current = false;
-    if (data.product.kind === "vaccine" && data.product.has_vvm !== false) setScanning(true);
-  }, [data]);
+    if (data.product.kind !== "vaccine" || data.product.has_vvm === false) return;
+    if (!signInFirst(`/box/${id}?vvm=1`)) setScanning(true);
+  }, [data, ready, signInFirst, id]);
 
   const nodeId = data?.current_node_id ?? null;
   const forecast = usePoll<CarrierForecast | null>(
@@ -145,7 +155,7 @@ export default function BoxPage() {
         sub={
           <>
             {report.box.id} · {report.box.quantity.toLocaleString()} {unit}
-            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : "delivered"}
+            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : report.segments.length ? "delivered" : "not dispatched"}
           </>
         }
       />
@@ -157,7 +167,7 @@ export default function BoxPage() {
 
             <div className="mt-6 flex flex-col gap-3">
               {hasVvm && (
-                <button onClick={() => setScanning(true)} className="btn-primary">
+                <button onClick={() => signInFirst() || setScanning(true)} className="btn-primary">
                   <ScanIcon size={22} />
                   {canTap ? "Scan the VVM label" : "Check the VVM label"}
                 </button>
@@ -168,7 +178,7 @@ export default function BoxPage() {
                   {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
                 </p>
               )}
-              <button onClick={() => setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
+              <button onClick={() => signInFirst() || setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
                 Move this box
               </button>
               {moving && <MoveBox report={report} onMoved={changed} />}

@@ -20,7 +20,6 @@ from app.config import get_settings
 
 COOKIE = "sv_session"
 MAX_AGE_S = 30 * 24 * 3600
-DEMO = {"id": 0, "email": None, "name": "Demo", "role": "viewer"}
 
 _N, _R, _P = 2**14, 8, 1  # scrypt cost: ~16 MB and a few tens of ms per hash
 
@@ -94,8 +93,8 @@ def signed_in(request: Request, session) -> dict | None:
 
     token = request.cookies.get(COOKIE)
     user = read(token) if token else None
-    if not user or user["id"] == 0:
-        return user  # nobody, or the demo viewer (no account behind it)
+    if not user:
+        return None
     account = session.get(Account, user["id"])
     if account is None:
         return None

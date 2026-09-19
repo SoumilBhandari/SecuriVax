@@ -2,11 +2,11 @@ import time
 
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from app.security import agent_limit, require_operator
+from app.security import agent_hourly_limit, agent_limit, require_operator
 
 from app.db import get_session
 from app.models import Custody, Facility, IngestLog, Node, Reading, Scan
@@ -111,16 +111,36 @@ def destinations(node_id: str, session: Session = Depends(get_session)) -> list[
     return rows
 
 
-@router.post("/{node_id}/agent", dependencies=[Depends(require_operator), Depends(agent_limit)])
-def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
-    """Gemini dispatch agent (rules fallback): continue, divert or hold."""
+AGENT_REUSE_S = 300
+_agent_answers: dict[tuple, tuple[float, dict]] = {}
+
+
+def clear_agent_answers() -> None:
+    _agent_answers.clear()
+
+
+@router.post("/{node_id}/agent", dependencies=[Depends(agent_limit)])
+def location_agent(node_id: str, body: AgentIn, request: Request, session: Session = Depends(get_session)) -> dict:
+    """Gemini dispatch agent (rules fallback): continue, divert or hold. Anyone
+    can ask (it only advises; acting on it is /decisions, for operators). The
+    same question about the same carrier gets the same answer for five
+    minutes, and Gemini's total use is capped per hour."""
     from app.services.location_agent import recommend
 
     if session.get(Node, node_id) is None:
         raise HTTPException(404, f"no node {node_id}")
     if body.destination_id and session.get(Facility, body.destination_id) is None:
         raise HTTPException(404, f"no facility {body.destination_id}")
-    return recommend(session, node_id, body.destination_id, body.question[:500])
+    key = (node_id, body.destination_id, body.question[:500])
+    hit = _agent_answers.get(key)
+    if hit and time.time() - hit[0] < AGENT_REUSE_S:
+        return hit[1]
+    agent_hourly_limit(request)
+    answer = recommend(session, node_id, body.destination_id, body.question[:500])
+    if len(_agent_answers) > 500:
+        _agent_answers.clear()
+    _agent_answers[key] = (time.time(), answer)
+    return answer
 
 
 @router.post("/{node_id}/decisions", dependencies=[Depends(require_operator)])

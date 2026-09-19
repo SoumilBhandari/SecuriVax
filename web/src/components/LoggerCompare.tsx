@@ -10,7 +10,7 @@ export function LoggerCompare({ report }: { report: Report }) {
       ? `${units} saved from a needless discard: the budget says they survived.`
       : log.outcome === "CAUGHT"
         ? `${units} stopped: no alarm fired, but damage accrued.`
-        : "Both reach the same call here.";
+        : log.note;
   return (
     <div>
       <div className="grid grid-cols-2 gap-3">

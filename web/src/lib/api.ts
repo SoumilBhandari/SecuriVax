@@ -45,7 +45,10 @@ function describe(status: number, body: unknown): string {
 }
 
 // Who's asking travels in the sign-in cookie (HttpOnly, same origin): changes
-// need an operator account, and the server says so when they don't have one.
+// need an operator account. A change refused for want of a sign-in raises
+// SIGN_IN_EVENT, and the app goes to sign-in and back.
+export const SIGN_IN_EVENT = "securivax:sign-in";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (SNAPSHOT) return fromSnapshot<T>(path, init);
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
@@ -56,6 +59,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch (e) {
     const timeout = e instanceof DOMException && e.name === "TimeoutError";
     throw new ApiError(0, timeout ? "The server took too long. Check your signal and try again." : "Can't reach SecuriVax. Check your signal.");
+  }
+  if (res.status === 401 && init?.method && init.method !== "GET" && !path.startsWith("/api/auth/")) {
+    window.dispatchEvent(new Event(SIGN_IN_EVENT));
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -87,7 +93,6 @@ export const api = {
     me: () => request<{ user: User }>("/api/auth/me"),
     login: (email: string, password: string) => request<{ user: User }>("/api/auth/login", post({ email, password })),
     register: (b: { email: string; password: string; name: string; operator_code: string }) => request<{ user: User }>("/api/auth/register", post(b)),
-    demo: () => request<{ user: User }>("/api/auth/demo", post()),
     logout: () => request<{ user: null }>("/api/auth/logout", post()),
   },
   boxes: () => request<BoxSummary[]>("/api/boxes"),

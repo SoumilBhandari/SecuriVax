@@ -57,9 +57,10 @@ def test_only_operators_change_things(client, monkeypatch):
     load = lambda: client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-01"})  # noqa: E731
     assert load().status_code == 401  # nobody signed in
 
-    client.post("/api/auth/demo")
+    client.post("/api/auth/register", json={"email": "v@x.org", "password": "viewer-pass"})
     assert client.get("/api/auth/me").json()["user"]["role"] == "viewer"
-    assert load().status_code == 403  # the demo viewer can look, not change
+    assert load().status_code == 403  # a viewer can look, not change
+    client.post("/api/auth/logout")
 
     client.post("/api/auth/register", json={"email": "o@x.org", "password": "operator-pass", "operator_code": "site-1234"})
     assert load().status_code == 200
@@ -97,3 +98,18 @@ def test_demo_reset_keeps_accounts(engine):
     with Session(engine) as s:
         assert [a.email for a in s.exec(select(Account)).all()] == ["keep@x.org"]
     assert KEEP_ON_RESET == {"account"}
+
+
+def test_looking_needs_no_sign_in_and_the_agent_is_open(client, monkeypatch):
+    """A judge's own phone: every read works signed out, and so does asking the
+    dispatch agent (advice only). Acting on its advice needs an operator."""
+    monkeypatch.setattr(get_settings(), "operator_token", "site-1234")
+    assert client.get("/api/boxes").status_code == 200
+    assert client.get("/api/boxes/BOX-0001/report").status_code == 200
+    assert client.get("/api/nodes/CAR-02").status_code == 200
+    first = client.post("/api/nodes/CAR-02/agent", json={"question": "what now?"})
+    assert first.status_code == 200 and first.json()["source"] == "rules"  # no key in tests
+    again = client.post("/api/nodes/CAR-02/agent", json={"question": "what now?"})
+    assert again.json() == first.json()  # the same answer, reused
+    assert client.post("/api/nodes/CAR-02/decisions", json={"action": "CONTINUE"}).status_code == 401
+

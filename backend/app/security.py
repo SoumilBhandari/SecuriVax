@@ -36,22 +36,24 @@ def require_operator(request: Request, x_operator_token: str = Header(default=""
 
 
 class RateLimit:
-    """Sliding window: at most `limit` calls per `window_s` per client IP."""
+    """Sliding window: at most `limit` calls per `window_s` per client IP, or
+    across everyone with per_client=False (a cap on a paid API's total use)."""
 
-    def __init__(self, name: str, limit: int, window_s: int = 60):
-        self.name, self.limit, self.window_s = name, limit, window_s
+    def __init__(self, name: str, limit: int, window_s: int = 60, per_client: bool = True):
+        self.name, self.limit, self.window_s, self.per_client = name, limit, window_s, per_client
         self._hits: dict[str, deque] = defaultdict(deque)
         self._lock = threading.Lock()
 
     def __call__(self, request: Request) -> None:
-        client = request.client.host if request.client else "unknown"
+        client = (request.client.host if request.client else "unknown") if self.per_client else "everyone"
         now = time.monotonic()
         with self._lock:
             hits = self._hits[client]
             while hits and now - hits[0] > self.window_s:
                 hits.popleft()
             if len(hits) >= self.limit:
-                raise HTTPException(429, f"too many {self.name} requests, try again in a minute")
+                wait = "a minute" if self.window_s <= 60 else "a while"
+                raise HTTPException(429, f"too many {self.name} requests, try again in {wait}")
             hits.append(now)
             if len(self._hits) > 10_000:  # don't let a scan of IPs grow memory forever
                 self._hits.clear()
@@ -63,8 +65,10 @@ class RateLimit:
 
 explain_limit = RateLimit("report", 30)
 agent_limit = RateLimit("agent", 12)
+# The agent is open to anyone (it only advises), so Gemini's total use is capped too.
+agent_hourly_limit = RateLimit("dispatch agent", 60, 3600, per_client=False)
 vvm_limit = RateLimit("photo", 20)
 plan_limit = RateLimit("plan", 20)
 sign_in_limit = RateLimit("sign-in", 10)
 sign_up_limit = RateLimit("sign-up", 5)
-ALL_LIMITS = (explain_limit, agent_limit, vvm_limit, plan_limit, sign_in_limit, sign_up_limit)
+ALL_LIMITS = (explain_limit, agent_limit, agent_hourly_limit, vvm_limit, plan_limit, sign_in_limit, sign_up_limit)

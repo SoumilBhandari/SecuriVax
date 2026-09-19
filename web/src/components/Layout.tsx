@@ -6,7 +6,7 @@ import { useCanTapTags } from "../lib/device";
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
 import { Logo, ThemeToggle } from "./Brand";
-import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, SignOutIcon, XIcon } from "./Icons";
+import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, SignInIcon, SignOutIcon, XIcon } from "./Icons";
 
 /**
  * The page frame: on a phone, one column with the tab bar at the bottom; from
@@ -93,11 +93,26 @@ function Sidebar() {
   );
 }
 
-/** Who's signed in, and the way out. */
+/** Who's signed in and the way out; signed out, the way in for staff. */
 export function Account({ compact = false }: { compact?: boolean }) {
-  const { user, signOut } = useAuth();
-  if (!user) return null;
-  // Signed out, the page's guard sends them to sign-in (and back here after).
+  const { user, ready, signOut } = useAuth();
+  const { pathname } = useLocation();
+  if (!ready) return null;
+  if (!user) {
+    const to = `/login?next=${encodeURIComponent(pathname)}`;
+    return compact ? (
+      <Link to={to} aria-label="Staff sign-in" title="Staff sign-in" className="back-btn">
+        <SignInIcon size={18} />
+      </Link>
+    ) : (
+      <Link to={to} className="flex items-center justify-between gap-3 text-text no-underline">
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-500">Staff sign-in</span>
+        <span className="back-btn !h-9 !w-9">
+          <SignInIcon size={16} />
+        </span>
+      </Link>
+    );
+  }
   const out = () => void signOut();
   if (compact) {
     return (
@@ -110,7 +125,7 @@ export function Account({ compact = false }: { compact?: boolean }) {
     <div className="flex items-center justify-between gap-3">
       <span className="flex min-w-0 flex-col">
         <span className="truncate text-sm font-semibold">{user.name}</span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500">{user.id === 0 ? "View only" : user.role}</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500">{user.role === "operator" ? "Operator" : "View only"}</span>
       </span>
       <button onClick={out} aria-label="Sign out" title="Sign out" className="back-btn !h-9 !w-9">
         <SignOutIcon size={16} />

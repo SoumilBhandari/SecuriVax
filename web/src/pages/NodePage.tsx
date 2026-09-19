@@ -8,6 +8,7 @@ import { ForecastCard } from "../components/Forecast";
 import { NfcIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { api } from "../lib/api";
+import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
 import { ago, demoRate } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
@@ -21,6 +22,8 @@ export default function NodePage() {
   const [allBoxes, setAllBoxes] = useState<BoxSummary[]>([]);
   const boxes = allBoxes.filter((b) => b.current_node_id === id);
   const canTap = useCanTapTags();
+  const { user, ready } = useAuth();
+  const signInFirst = useSignInFirst();
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const tapHandled = useRef(false);
@@ -37,10 +40,16 @@ export default function NodePage() {
   }, [id]);
 
   useEffect(() => {
-    if (tapHandled.current || !takeTap()) return;
+    if (!ready || tapHandled.current || !takeTap()) return;
     tapHandled.current = true;
     if (!canTapTags()) return; // a tag's URL opened on a computer: there's no second tap to pair it with
     const arm = getArm();
+    if (arm?.kind === "box" && !user) {
+      // Loading needs an operator: keep the pending link, sign in, and come back to finish it.
+      setArm("box", arm.id);
+      signInFirst(`/node/${id}?tap=1`);
+      return;
+    }
     if (arm?.kind === "box") {
       clearArm();
       api
@@ -53,7 +62,7 @@ export default function NodePage() {
     } else {
       setArm("node", id);
     }
-  }, [id, refresh]);
+  }, [id, refresh, ready, user, signInFirst]);
 
   useEffect(() => {
     refresh();
@@ -189,8 +198,10 @@ export default function NodePage() {
 function LoadBox({ nodeId, boxes, onDone }: { nodeId: string; boxes: BoxSummary[]; onDone: (message: string) => void }) {
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
+  const signInFirst = useSignInFirst();
   const choices = boxes.filter((b) => b.current_node_id !== nodeId);
   const load = () => {
+    if (signInFirst()) return;
     setBusy(true);
     api
       .load(target, nodeId)

@@ -1,4 +1,4 @@
-"""Sign up, sign in, the demo viewer, sign out."""
+"""Sign up, sign in, sign out. Looking needs no account; changing things needs an operator."""
 
 import hmac
 import re
@@ -70,12 +70,6 @@ def login(body: SignInIn, request: Request, response: Response, session: Session
     if not account or not auth.check_password(body.password, account.password_hash):
         raise HTTPException(401, "wrong email or password")
     return _start(request, response, _public(account))
-
-
-@router.post("/demo", dependencies=[Depends(sign_in_limit)])
-def demo(request: Request, response: Response) -> dict:
-    """Look around without an account: a viewer that can't change anything."""
-    return _start(request, response, dict(auth.DEMO))
 
 
 @router.post("/logout")

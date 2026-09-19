@@ -213,6 +213,13 @@ export const SignOutIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const SignInIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+    <path d="M9 8l4 4-4 4M13 12H4" />
+  </Icon>
+);
+
 export const StageIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect x="3" y="4" width="18" height="12" rx="2" />

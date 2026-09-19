@@ -13,17 +13,25 @@ function until(ts: number | null | undefined): string {
 }
 
 /** One sentence: will this carrier keep its boxes in range, and until when? */
+// The twin forecasts the carrier warming (ice melting), so its "breach" is
+// crossing the top of the range; below the bottom is said as it is now.
 export function forecastLine(fc: CarrierForecast): string {
   const max = fc.storage_max_c ?? 8;
+  const min = fc.storage_min_c ?? 2;
   const { breach, state, forecast } = fc;
   if (!breach || !state || !forecast) return "Forecast incomplete.";
-  if (state.inside_c > max) return `Already above ${max} °C. Inside is ${state.inside_c.toFixed(1)} °C now.`;
-  if (breach.prob >= 0.5) return `Leaves 2–${max} °C ${until(breach.p50)}. ${pct(breach.prob)} chance within ${forecast.horizon_h} h.`;
-  return `Stays in range for the next ${forecast.horizon_h} h. ${pct(1 - breach.prob)} of forecast runs keep it at 2–${max} °C.`;
+  const now = state.inside_c.toFixed(1);
+  if (state.inside_c > max) return `Above ${max} °C now: ${now} °C inside.`;
+  const below = state.inside_c < min ? `Below ${min} °C now: ${now} °C inside. ` : "";
+  if (breach.prob >= 0.5) return `${below}Warms past ${max} °C ${until(breach.p50)}. ${pct(breach.prob)} chance within ${forecast.horizon_h} h.`;
+  if (below) return `${below}Stays under ${max} °C for the next ${forecast.horizon_h} h in ${pct(1 - breach.prob)} of forecast runs.`;
+  return `Stays in range for the next ${forecast.horizon_h} h. ${pct(1 - breach.prob)} of forecast runs keep it at ${min}–${max} °C.`;
 }
 
 export function forecastAtRisk(fc: CarrierForecast): boolean {
-  return !!fc.breach && !!fc.state && (fc.breach.prob >= 0.5 || fc.state.inside_c > (fc.storage_max_c ?? 8));
+  if (!fc.breach || !fc.state) return false;
+  const t = fc.state.inside_c;
+  return fc.breach.prob >= 0.5 || t > (fc.storage_max_c ?? 8) || t < (fc.storage_min_c ?? 2);
 }
 
 /** The carrier's twin: how long the cold lasts, with the forecast fan behind it. */

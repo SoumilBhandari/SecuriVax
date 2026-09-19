@@ -27,12 +27,12 @@ in our backtest than heat, and it's the thing a VVM can't show.
   possible freeze; with today's DHT11 (±2 °C) anything at or below about 1.2 °C does, and the verdict
   says it's allowing for the DHT11's error.
 - iPhone: Safari in a normal tab (not Private, not the home-screen app). Unlock before each tap.
-- **Sign in on every demo phone with an operator account first.** The app is behind a sign-in (the
-  landing page isn't). Create the account once at `/login` → *Create an account*, with the site's
-  operator code in the *Operator code* field; that makes it an operator, and the phone stays signed in
-  for 30 days. Anything that changes data (a carrier tap then a box tap, *Move this box*, asking the
-  dispatch agent, a VVM check) needs an operator. Judges on their own phones press *Try the demo*: they
-  can look at everything but not change it. Hand them a demo phone to tap.
+- **Sign in on every demo phone with an operator account first.** Looking needs no account: a judge's
+  own phone can tap any sticker and see the verdict, and anyone can ask the dispatch agent (Gemini).
+  Changing data (a carrier tap then a box tap, *Move this box*, a VVM check, acting on the agent's
+  advice, a stage reset) needs an operator. Create the account once at `/login` → *Create an account*
+  with the site's operator code; the phone stays signed in for 30 days. A signed-out phone that tries a
+  change goes to sign-in and comes back to finish it (a pending carrier-then-box link included).
 - **The site opens on a landing page** (`/`); the app itself starts at `/boxes`, and an installed
   phone app opens straight there. Stickers still open `/box/…` and `/node/…` directly.
 - **On a laptop there's no NFC**, so the app swaps each tap for a click. Boxes has a box search

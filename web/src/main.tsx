@@ -2,7 +2,7 @@ import "./index.css";
 
 import { lazy, StrictMode, Suspense, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, HashRouter, Link, Outlet, Route, Routes } from "react-router";
+import { BrowserRouter, HashRouter, Link, Route, Routes } from "react-router";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout, Spinner } from "./components/Layout";
@@ -10,7 +10,7 @@ import BoxPage from "./pages/BoxPage";
 import HomePage from "./pages/HomePage";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
-import { AuthProvider, RequireAuth } from "./lib/auth";
+import { AuthProvider } from "./lib/auth";
 import NodePage from "./pages/NodePage";
 import { freezeClock, SNAPSHOT } from "./lib/snapshot";
 import { applyTheme, followSystemTheme } from "./lib/theme";
@@ -52,24 +52,16 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/" element={page(<LandingPage />)} />
           <Route path="/login" element={page(<LoginPage />)} />
-          {/* The app: signed in (an account or the demo viewer). */}
-          <Route
-            element={
-              <RequireAuth>
-                <Outlet />
-              </RequireAuth>
-            }
-          >
-            <Route path="/boxes" element={page(<HomePage />)} />
-            <Route path="/box/:id" element={page(<BoxPage />)} />
-            <Route path="/node/:id" element={page(<NodePage />)} />
-            <Route path="/tags" element={page(<TagsPage />)} />
-            <Route path="/live" element={page(<LivePage />)} />
-            <Route path="/stage" element={page(<StagePage />)} />
-            <Route path="/climate" element={page(<ClimatePage />)} />
-            <Route path="/plan" element={page(<PlanPage />)} />
-            <Route path="/impact" element={page(<ImpactPage />)} />
-          </Route>
+          {/* Open to look at; changes ask for an operator sign-in when they happen. */}
+          <Route path="/boxes" element={page(<HomePage />)} />
+          <Route path="/box/:id" element={page(<BoxPage />)} />
+          <Route path="/node/:id" element={page(<NodePage />)} />
+          <Route path="/tags" element={page(<TagsPage />)} />
+          <Route path="/live" element={page(<LivePage />)} />
+          <Route path="/stage" element={page(<StagePage />)} />
+          <Route path="/climate" element={page(<ClimatePage />)} />
+          <Route path="/plan" element={page(<PlanPage />)} />
+          <Route path="/impact" element={page(<ImpactPage />)} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AuthProvider>

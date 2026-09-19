@@ -275,6 +275,7 @@ export interface CarrierForecast {
   readings?: number;
   fit?: { one_step_rmse_c: number | null; min_effective_particles: number };
   storage_max_c?: number;
+  storage_min_c?: number;
   prior?: { cold_life_h: number | null; from: string };
   state?: {
     inside_c: number;

@@ -137,6 +137,12 @@ def _storage_max(session: Session, custodies) -> float:
     return min(limits, default=STORAGE_MAX_C)
 
 
+def _storage_min(session: Session, custodies) -> float:
+    """The tightest lower limit among the products on board (2 C for vaccines)."""
+    limits = [PRODUCTS_BY_ID[session.get(Box, c.box_id).product_id].storage_min_c for c in custodies]
+    return max(limits, default=2.0)
+
+
 def _compute(session, node_id, readings, trip_start, open_custody, now) -> dict:
 
     ambient, (lat, lon) = outside_fn(readings)
@@ -166,6 +172,7 @@ def _compute(session, node_id, readings, trip_start, open_custody, now) -> dict:
         },
         "prior": {"cold_life_h": known, "from": prior_from if known else "a wide default (no trip history anywhere)"},
         "storage_max_c": storage_max,
+        "storage_min_c": _storage_min(session, open_custody),
         "state": {
             "inside_c": round(float(np.sum(p.weight * p.temp)), 2),
             "outside_c": round(now_out, 1),

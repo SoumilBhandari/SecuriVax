@@ -393,8 +393,12 @@ def _threshold_logger(
         outcome, note = "SAVED", "A threshold logger would condemn this box; its stability budget says it survived."
     elif not alarm and verdict not in USABLE:
         outcome, note = "CAUGHT", "No threshold alarm would have fired, but damage accrued anyway."
+    elif alarm and verdict == "QUARANTINE":
+        outcome, note = "AGREE", "Both flag it, but not the same way: the logger's alarm means discard; SecuriVax holds it for a check first."
+    elif alarm:
+        outcome, note = "AGREE", "Both say discard."
     else:
-        outcome, note = "AGREE", "The threshold logger and the stability budget agree."
+        outcome, note = "AGREE", "Both say use it."
     return {
         "alarm": alarm,
         "alarms": alarms,
