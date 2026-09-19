@@ -69,9 +69,9 @@ app = FastAPI(
     title="SecuriVax API",
     version="0.1.0",
     lifespan=lifespan,
-    docs_url="/docs" if settings.api_docs else None,
-    redoc_url="/redoc" if settings.api_docs else None,
-    openapi_url="/openapi.json" if settings.api_docs else None,
+    docs_url="/docs" if settings.show_api_docs else None,
+    redoc_url="/redoc" if settings.show_api_docs else None,
+    openapi_url="/openapi.json" if settings.show_api_docs else None,
 )
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)

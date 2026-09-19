@@ -130,6 +130,11 @@ def test_api_docs_can_be_turned_off():
 
     # The app reads the setting when it's built, so check it in a fresh process.
     code = "from fastapi.testclient import TestClient; from app.main import app; print(TestClient(app).get('/openapi.json').status_code)"
-    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
-                         env={"API_DOCS": "false", "DATABASE_URL": "sqlite://", "DEMO_HISTORY": "false", "PATH": ""}, cwd=".")
-    assert out.stdout.strip().endswith("404"), out.stderr[-500:]
+    def status(env: dict) -> str:
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=".",
+                             env={"DATABASE_URL": "sqlite://", "DEMO_HISTORY": "false", "PATH": "", **env})
+        return out.stdout.strip()[-3:] or out.stderr[-300:]
+
+    assert status({}) == "200"  # a laptop
+    assert status({"API_DOCS": "false"}) == "404"
+    assert status({"STATIC_DIR": "/app/static"}) == "404"  # a deploy serving the app: off by default

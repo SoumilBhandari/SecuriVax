@@ -46,8 +46,13 @@ class Settings(BaseSettings):
     demo_reset: bool = False
     # Directory holding the built web app. When set, FastAPI serves it.
     static_dir: str = ""
-    # The interactive API docs (/docs, /openapi.json): handy on a laptop, off on a deploy.
-    api_docs: bool = True
+    # The interactive API docs (/docs, /openapi.json): on a laptop, off on a deploy
+    # (one serving the built app) unless API_DOCS says otherwise.
+    api_docs: bool | None = None
+
+    @property
+    def show_api_docs(self) -> bool:
+        return self.api_docs if self.api_docs is not None else not self.static_dir
 
     @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", mode="before")
     @classmethod
