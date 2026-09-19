@@ -226,32 +226,40 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
  * screen up in place, like a file pulled up out of a drawer.
  * They fade out under the words and at both ends of the diagonal.
  */
+const DRIFT = 0.06; // screens per second
+const EASE_S = 0.45; // how long the drift takes to settle when a hover stops or starts it
+
 function Stack({ screens }: { screens: Screen[] }) {
-  const [drift, setDrift] = useState(0);
-  const [scrolled, setScrolled] = useState(0);
+  const [offset, setOffset] = useState(0);
   const held = useRef(false);
   const n = screens.length;
 
+  // One loop moves everything. The drift eases down to a stop under the
+  // pointer and back up after it (never an abrupt halt), and the scroll
+  // position is followed smoothly rather than jumped to.
   useEffect(() => {
     const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     let last = performance.now();
+    let speed = still ? 0 : DRIFT;
+    let drift = 0;
+    let shownScroll = window.scrollY;
     const tick = (now: number) => {
       const dt = Math.min(now - last, 100) / 1000;
       last = now;
-      if (!still && !held.current && !document.hidden) setDrift((d) => d + dt * 0.06);
+      if (!document.hidden) {
+        const target = still || held.current ? 0 : DRIFT;
+        speed += (target - speed) * (1 - Math.exp(-dt / (EASE_S / 3)));
+        drift += speed * dt;
+        shownScroll += (window.scrollY - shownScroll) * (still ? 1 : 1 - Math.exp(-dt / 0.12));
+        setOffset(drift + shownScroll / 320);
+      }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    const onScroll = () => setScrolled(window.scrollY);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("scroll", onScroll);
-    };
+    return () => cancelAnimationFrame(frame);
   }, []);
 
-  const offset = drift + scrolled / 320;
   return (
     <div className="lp-stack pointer-events-none absolute inset-0 z-10 overflow-hidden">
       {screens.map((sc, i) => {
