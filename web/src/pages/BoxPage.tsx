@@ -3,11 +3,13 @@ import { useParams } from "react-router";
 
 import { Custody } from "../components/Custody";
 import { Environment } from "../components/Environment";
+import { ForecastCard } from "../components/Forecast";
 import { SparkIcon } from "../components/Icons";
 import { Card, ErrorNote, Layout, Spinner, Toast } from "../components/Layout";
 import { RouteMap } from "../components/RouteMap";
 import { TempChart } from "../components/TempChart";
 import { BudgetCard, Reasons, VerdictCard } from "../components/Verdict";
+import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
 import { ago } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
@@ -97,6 +99,16 @@ export default function BoxPage() {
       <Card title="Why">
         <Reasons reasons={report.reasons} />
       </Card>
+      {report.current_node_id && (
+        <Card title="Carrier forecast" aside={report.current_node_id}>
+          <ForecastCard nodeId={report.current_node_id} boxId={report.box.id} />
+        </Card>
+      )}
+      {report.product.kind === "vaccine" && (
+        <Card title="Second witness: the VVM label" aside="camera + Gemini">
+          <VvmCheck boxId={report.box.id} latest={report.label_check} highlight={report.confidence.borderline} onConfirmed={refresh} />
+        </Card>
+      )}
       <WorkerReport boxId={id} verdict={report.verdict} onPlaces={(places) => setReport((r) => (r ? { ...r, places: { ...r.places, ...places } } : r))} />
       <Card title="Temperature" aside={report.data_through ? `updated ${ago(report.data_through)}` : undefined}>
         <TempChart segments={report.segments} product={report.product} />

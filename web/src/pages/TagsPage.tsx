@@ -23,6 +23,14 @@ export default function TagsPage() {
         a sticker opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it.
         Print the same URL as a QR code on the sticker for phones without NFC.
       </p>
+      <Card title="VVM test card">
+        <p className="mb-2 text-sm text-slate-600">
+          Print this and stick one VVM on the demo bottle to try the camera check.
+        </p>
+        <a href="/vvm-card.svg" target="_blank" rel="noreferrer">
+          <img src="/vvm-card.svg" alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-lg border border-slate-200" />
+        </a>
+      </Card>
       <Card title="Carriers and storage boxes">
         <TagList items={nodes.map((n) => ({ id: n.id, label: n.label, url: `${origin}/node/${n.id}?tap=1` }))} />
       </Card>

@@ -1,5 +1,6 @@
 import type {
   BoxSummary,
+  CarrierForecast,
   CarrierPerformance,
   Explanation,
   Facility,
@@ -9,6 +10,7 @@ import type {
   Report,
   StoresAtRisk,
   TripPlan,
+  VvmResult,
 } from "../types";
 
 // Same origin in production (FastAPI serves the app); proxied by Vite in dev.
@@ -52,6 +54,14 @@ export const api = {
     }),
   nodes: () => request<NodeSummary[]>("/api/nodes"),
   node: (id: string) => request<NodeDetail>(`/api/nodes/${encodeURIComponent(id)}`),
+  forecast: (nodeId: string) => request<CarrierForecast>(`/api/nodes/${encodeURIComponent(nodeId)}/forecast`),
+  checkVvm: (boxId: string, image: string) =>
+    request<VvmResult>(`/api/boxes/${encodeURIComponent(boxId)}/vvm`, { method: "POST", body: JSON.stringify({ image }) }),
+  confirmVvm: (boxId: string, checkId: number, stage?: number) =>
+    request<{ confirmed: boolean }>(`/api/boxes/${encodeURIComponent(boxId)}/vvm/${checkId}/confirm`, {
+      method: "POST",
+      body: JSON.stringify(stage ? { stage } : {}),
+    }),
   products: () => request<Product[]>("/api/products"),
   facilities: () => request<Facility[]>("/api/facilities"),
   storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),

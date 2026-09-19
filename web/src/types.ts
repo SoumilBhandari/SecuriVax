@@ -128,6 +128,76 @@ export interface Report {
   product: Product;
   current_node_id: string | null;
   places: Record<string, string>;
+  confidence: Confidence;
+  label_check: LabelCheck | null;
+}
+
+export interface Confidence {
+  confidence: number;
+  p_use: number;
+  p_quarantine: number;
+  p_discard: number;
+  budget_p10: number;
+  budget_p50: number;
+  budget_p90: number;
+  borderline: boolean;
+  samples: number;
+}
+
+export interface LabelCheck {
+  id: number;
+  ts: number;
+  progress: number;
+  stage: number;
+  past_endpoint: boolean;
+  sensor_budget: number;
+  agreement: "AGREE" | "LABEL_AHEAD" | "SENSOR_AHEAD";
+  gemini_stage: number | null;
+  confirmed: boolean;
+  worker_stage: number | null;
+}
+
+export interface VvmResult {
+  found: boolean;
+  message?: string;
+  check_id?: number;
+  reading?: { progress: number; stage: number; past_endpoint: boolean; radius_px: number };
+  witnesses?: { code: LabelCheck["agreement"]; text: string; label: number; sensor: number };
+  gemini?: { found: boolean; inner_vs_outer: string; stage: number | null; confidence: number; note?: string } | null;
+}
+
+export interface BoxRisk {
+  box_id: string;
+  product: string;
+  budget_now: number;
+  budget_p50_end: number;
+  p_quarantine_or_worse: number;
+  p_discard: number;
+  p_freeze: number | null;
+  verdict_now: Verdict;
+}
+
+export interface CarrierForecast {
+  node_id: string;
+  available: boolean;
+  reason?: string;
+  trip_start?: number;
+  readings?: number;
+  fit?: { one_step_rmse_c: number; min_effective_particles: number };
+  prior?: { cold_life_h: number | null; from: string };
+  state?: {
+    inside_c: number;
+    outside_c: number;
+    ice_left_h: [number, number, number];
+    effective_cold_life_h: [number, number, number];
+    hold_c: number;
+    heat_gain_c: number;
+    ice_gone_prob: number;
+  };
+  forecast?: { times: number[]; p10: number[]; p50: number[]; p90: number[]; outside_p50: number[]; horizon_h: number };
+  breach?: { prob: number; p10: number | null; p50: number | null; p90: number | null };
+  weather_source?: string;
+  boxes?: BoxRisk[];
 }
 
 export interface Explanation {

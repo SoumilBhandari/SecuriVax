@@ -21,7 +21,16 @@ export function VerdictCard({ report }: { report: Report }) {
       <p className="text-xs font-medium uppercase tracking-wider opacity-70">Verdict</p>
       <p className="mt-1 text-4xl font-bold tracking-tight">{report.verdict}</p>
       <p className="mt-2 text-base leading-snug">{report.action}</p>
+      <p className="mt-2 text-xs opacity-80">
+        {pct(report.confidence.confidence)} sure · budget {pct(report.confidence.budget_p10)}–{pct(report.confidence.budget_p90)} across{" "}
+        {report.confidence.samples} what-ifs (sensor bias, batch variation)
+      </p>
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
+        {report.confidence.borderline && (
+          <a href="#vvm" className="rounded-full bg-amber-200 px-2 py-0.5 font-medium text-amber-900">
+            Borderline: check the VVM label
+          </a>
+        )}
         {report.provisional && (
           <span className="rounded-full bg-white/70 px-2 py-0.5">
             Provisional: data through {time(report.data_through)}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { BatteryIcon, DropIcon, OfflineIcon, TapIcon, ThermoIcon } from "../components/Icons";
+import { ForecastCard } from "../components/Forecast";
 import { Card, ErrorNote, Layout, Spinner, Toast } from "../components/Layout";
 import { VerdictChip } from "../components/Verdict";
 import { api } from "../lib/api";
@@ -117,6 +118,12 @@ export default function NodePage() {
           <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{humidity(node.latest?.rh)}</p>
         </div>
       </div>
+
+      {node.kind !== "rdt_box" && !node.backup_for && (
+        <Card title="Forecast" aside="digital twin">
+          <ForecastCard nodeId={node.id} />
+        </Card>
+      )}
 
       <Card title="Last readings" aside={`${node.recent.length} shown`}>
         <Sparkline values={node.recent.map((r) => r.temp_c)} />

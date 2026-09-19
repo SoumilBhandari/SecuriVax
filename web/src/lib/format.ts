@@ -102,3 +102,11 @@ export function weatherSource(source: string): string {
   if (source === "model") return "Weather: offline climate model (not observed)";
   return "Weather: Open-Meteo + offline model";
 }
+
+/** "in 4.6 h" style, from now. */
+export function fromNow(ts: number | null | undefined): string {
+  if (!ts) return "–";
+  const h = (ts - Date.now() / 1000) / 3600;
+  if (h < 0) return "now";
+  return h < 1 ? `in ${Math.round(h * 60)} min` : `in ${h.toFixed(1)} h`;
+}
