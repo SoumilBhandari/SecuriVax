@@ -149,7 +149,7 @@ function Studio({ ground }: { ground: Ground }) {
   }, [gl, scene, ground, invalidate]);
   return (
     <>
-      <directionalLight position={[-2.5, 4.5, 3]} intensity={ground === "dark" ? 2.0 : 2.3} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004} shadow-radius={6}>
+      <directionalLight position={[-2.5, 4.5, 3]} intensity={ground === "dark" ? 2.0 : 2.3} castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.0004} shadow-radius={6}>
         <orthographicCamera attach="shadow-camera" args={[-2, 2, 2, -2, 0.5, 12]} />
       </directionalLight>
       <directionalLight position={[3, 1.5, 1]} intensity={ground === "dark" ? 0.5 : 0.6} />

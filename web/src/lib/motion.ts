@@ -16,6 +16,18 @@ gsap.registerPlugin(ScrollTrigger, Flip, useGSAP);
 
 gsap.defaults({ ease: "expo.out", duration: 0.8 });
 
+// Anything scrubbed has to match the scroll, not a smoothed idea of elapsed
+// time. GSAP's lag smoothing pretends a long frame was 33 ms, so after any
+// stall (a chapter's WebGL starting up, a background tab) a scrubbed timeline
+// crawls towards the scroll position and the reader sees a half-finished
+// chapter. Real time instead: a stall is followed by an immediate catch-up.
+gsap.ticker.lagSmoothing(0);
+
+// On a phone, flicking up brings the browser's own bars back, which changes
+// the viewport height. Re-measuring every chapter in the middle of that flick
+// is a visible stutter, and the reader gained nothing by it.
+ScrollTrigger.config({ ignoreMobileResize: true });
+
 // In development the scroll triggers are reachable from the console and the screenshot scripts.
 if (import.meta.env.DEV) (window as unknown as { ScrollTrigger: typeof ScrollTrigger }).ScrollTrigger = ScrollTrigger;
 

@@ -181,7 +181,7 @@ function Numbers({ fleet, impact }: { fleet: FleetSummary | null; impact: Impact
         },
       });
     },
-    { scope: root, dependencies: [ready] },
+    { scope: root, dependencies: [ready], revertOnUpdate: true },
   );
 
   return (

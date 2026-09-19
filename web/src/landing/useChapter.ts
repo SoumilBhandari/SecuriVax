@@ -7,9 +7,11 @@ import { gsap, ScrollTrigger, useGSAP } from "../lib/motion";
  * scrolls through it. This wires a paused timeline to that scroll: the
  * timeline's 0 to 1 is the section's top reaching the viewport's top to its
  * bottom reaching the viewport's bottom. `build` adds the tweens; a light
- * smoothing follows the wheel without lagging it. Rebuilt when `deps` change
- * (data arriving), with the previous build fully reverted first. An unpinned
- * section can pass its own `start` and `end`.
+ * smoothing follows the wheel without lagging it, and the moment the scroll
+ * leaves the chapter the timeline is settled on that end, so a fast flick can
+ * never leave a chapter half played. Rebuilt when `deps` change (data
+ * arriving), with the previous build fully reverted first. An unpinned section
+ * can pass its own `start` and `end`.
  */
 export function useChapter(
   section: RefObject<HTMLElement | null>,
@@ -25,6 +27,12 @@ export function useChapter(
       if (!el) return;
       const tl = gsap.timeline({ paused: true, defaults: { ease: "none" } });
       builder.current(tl);
+      // Past either end there is nothing left to smooth: finish the catch-up
+      // at once so the chapter reads as its first or last frame, never as
+      // something in between.
+      const settle = (self: ScrollTrigger) => {
+        self.getTween()?.progress(1);
+      };
       ScrollTrigger.create({
         trigger: el,
         start,
@@ -32,9 +40,15 @@ export function useChapter(
         scrub: 0.4,
         animation: tl,
         invalidateOnRefresh: true,
+        fastScrollEnd: true,
+        onLeave: settle,
+        onLeaveBack: settle,
       });
     },
-    { scope: section, dependencies: deps },
+    // revertOnUpdate: without it a rebuild leaves the old timeline and its
+    // scroll trigger alive, and two of them then drive the same words and the
+    // same object to different frames.
+    { scope: section, dependencies: deps, revertOnUpdate: true },
   );
 }
 

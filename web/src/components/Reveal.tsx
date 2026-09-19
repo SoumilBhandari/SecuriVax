@@ -43,7 +43,7 @@ export function Reveal({
         onEnter: (batch) => gsap.to(batch, { opacity: 1, y: 0, duration, ease: EASE.out, stagger, delay, overwrite: true }),
       });
     },
-    { scope: ref, dependencies: [each] },
+    { scope: ref, dependencies: [each], revertOnUpdate: true },
   );
 
   return createElement(Tag, { ref, className, style }, children);

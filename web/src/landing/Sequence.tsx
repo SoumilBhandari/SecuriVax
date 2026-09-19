@@ -107,11 +107,21 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Mount the live renderer only while the chapter is within a screen of the viewport.
+  // Mount the live renderer when the chapter first comes within a screen of
+  // the viewport, and keep it: tearing a WebGL context down and building it
+  // again costs a few hundred milliseconds, which lands as a stall in the
+  // middle of the scroll it was meant to save.
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setNear(e.isIntersecting), { rootMargin: "100% 0px 100% 0px" });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (!e.isIntersecting) return;
+        setNear(true);
+        io.disconnect();
+      },
+      { rootMargin: "100% 0px 100% 0px" },
+    );
     io.observe(el);
     return () => io.disconnect();
   }, []);
