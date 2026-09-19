@@ -1,7 +1,7 @@
 {
   "stage12": 2.61,
   "stage12_progress": 0.29,
-  "discard": 1.0,
+  "discard": 1.02,
   "stage34": 0.62,
   "rho_fresh": 3.024,
   "rho_sigma": 0.063,
@@ -11,9 +11,9 @@
   "photos": 488,
   "held_out": {
     "photos": 250,
-    "stage_accuracy": 0.88,
+    "stage_accuracy": 0.876,
     "spent_read_as_usable": 0.0,
-    "usable_read_as_spent": 0.009,
+    "usable_read_as_spent": 0.018,
     "confusion_true_by_read": [
       [
         55,
@@ -23,8 +23,8 @@
       ],
       [
         3,
-        53,
-        1,
+        52,
+        2,
         0
       ],
       [

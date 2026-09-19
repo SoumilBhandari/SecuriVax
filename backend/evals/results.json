@@ -1,5 +1,5 @@
 {
- "generated": 1789798138,
+ "generated": 1789798373,
  "suites": [
   {
    "name": "verdicts",
@@ -101,7 +101,7 @@
   {
    "name": "confidence",
    "description": "Monte Carlo verdict confidence: consistency with the engine and calibration",
-   "seconds": 12.1,
+   "seconds": 12.0,
    "passed": true,
    "metrics": [
     {
@@ -148,7 +148,7 @@
   {
    "name": "twin",
    "description": "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration",
-   "seconds": 3.5,
+   "seconds": 3.4,
    "passed": true,
    "metrics": [
     {
@@ -268,7 +268,7 @@
   {
    "name": "vvm",
    "description": "Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare, shadow, colour cast, JPEG)",
-   "seconds": 20.4,
+   "seconds": 20.5,
    "passed": true,
    "metrics": [
     {
@@ -318,7 +318,7 @@
     },
     {
      "name": "stage correct",
-     "value": 0.9020408163265307,
+     "value": 0.8775510204081632,
      "target": 0.8,
      "higher_is_better": true,
      "unit": "%",
@@ -372,7 +372,7 @@
     },
     {
      "name": "calibrated discard cutoff (rho at or below)",
-     "value": 1.0,
+     "value": 1.02,
      "target": null,
      "higher_is_better": true,
      "unit": "",
@@ -390,7 +390,7 @@
     },
     {
      "name": "held-out: usable read as spent",
-     "value": 0.009,
+     "value": 0.018,
      "target": null,
      "higher_is_better": true,
      "unit": "%",
@@ -446,7 +446,7 @@
     },
     {
      "name": "record predicts the camera's stage",
-     "value": 0.9336099585062241,
+     "value": 0.9253112033195021,
      "target": 0.8,
      "higher_is_better": true,
      "unit": "%",
@@ -637,12 +637,12 @@
   {
    "name": "api",
    "description": "API latency and payload size on the eight-lane demo with full history (in-process, laptop)",
-   "seconds": 2.8,
+   "seconds": 2.7,
    "passed": true,
    "metrics": [
     {
      "name": "box list, p95 (ms)",
-     "value": 60.23594140096975,
+     "value": 60.050621401751414,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -651,7 +651,7 @@
     },
     {
      "name": "fleet summary, p95 (ms)",
-     "value": 60.536507901269935,
+     "value": 58.93102120062394,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -660,7 +660,7 @@
     },
     {
      "name": "box report (verdict + Monte Carlo), p95 (ms)",
-     "value": 33.34487914817146,
+     "value": 32.529620549939864,
      "target": 400.0,
      "higher_is_better": false,
      "unit": "",
@@ -669,7 +669,7 @@
     },
     {
      "name": "carrier forecast, first call (ms)",
-     "value": 29.071790999296354,
+     "value": 29.750665999017656,
      "target": 3000.0,
      "higher_is_better": false,
      "unit": "",
@@ -678,7 +678,7 @@
     },
     {
      "name": "carrier forecast, cached, p95 (ms)",
-     "value": 2.5318248000985473,
+     "value": 2.632820700819138,
      "target": 100.0,
      "higher_is_better": false,
      "unit": "",
@@ -687,7 +687,7 @@
     },
     {
      "name": "stores at risk, p95 (ms)",
-     "value": 44.613227752779494,
+     "value": 45.07340625132201,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -696,7 +696,7 @@
     },
     {
      "name": "VVM photo read + cross-check, p95 (ms)",
-     "value": 23.649800599378068,
+     "value": 23.565641001187032,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -705,7 +705,7 @@
     },
     {
      "name": "largest box report, gzipped (KB)",
-     "value": 16.3623046875,
+     "value": 16.47265625,
      "target": 40.0,
      "higher_is_better": false,
      "unit": "",

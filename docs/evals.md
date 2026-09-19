@@ -64,15 +64,15 @@ Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare,
 | labels read, all photos · retakes are asked for glare | 81.7% | context |  |
 | median progress error | 0.0201 | ≤ 0.08 | ✅ |
 | progress within 0.15 | 95.9% | ≥ 85.0% | ✅ |
-| stage correct | 90.2% | ≥ 80.0% | ✅ |
+| stage correct | 87.8% | ≥ 80.0% | ✅ |
 | spent labels read as usable · the dangerous error | 0.0% | ≤ 5.0% | ✅ |
 | fresh labels read as spent | 0.0% | ≤ 3.0% | ✅ |
 | VVM 'found' on photos with no VVM | 0.0% | ≤ 10.0% | ✅ |
 | same discard call in bright and dim light · rho = L_square / L_ring, photo at 100% and 45% exposure | 100.0% | ≥ 98.0% | ✅ |
 | median rho change, bright vs dim | 0.9% | ≤ 5.0% | ✅ |
-| calibrated discard cutoff (rho at or below) · synthetic phone photos (488 fit, 250 held out) | 1 | context |  |
+| calibrated discard cutoff (rho at or below) · synthetic phone photos (488 fit, 250 held out) | 1.02 | context |  |
 | held-out: spent read as usable | 0.0% | context |  |
-| held-out: usable read as spent | 0.9% | context |  |
+| held-out: usable read as spent | 1.8% | context |  |
 
 ## crosscheck ✅
 
@@ -84,7 +84,7 @@ Camera vs temperature record: planted disagreements (unrecorded heat, wrong witn
 |   unrecorded heat (label ahead) flagged | 98.0% | context |  |
 |   wrong witness (record ahead) flagged | 87.5% | context |  |
 | honest boxes flagged (false alarm) | 4.1% | ≤ 5.0% | ✅ |
-| record predicts the camera's stage · stages 3 and 4 both count as discard | 93.4% | ≥ 80.0% | ✅ |
+| record predicts the camera's stage · stages 3 and 4 both count as discard | 92.5% | ≥ 80.0% | ✅ |
 | photos needing a retake | 22.7% | context |  |
 
 ## learning ✅
@@ -122,11 +122,11 @@ API latency and payload size on the eight-lane demo with full history (in-proces
 
 | Metric | Value | Target | |
 | --- | --- | --- | --- |
-| box list, p95 (ms) | 60.2 | ≤ 250 | ✅ |
-| fleet summary, p95 (ms) | 60.5 | ≤ 250 | ✅ |
-| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 33.3 | ≤ 400 | ✅ |
-| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 29.1 | ≤ 3e+03 | ✅ |
-| carrier forecast, cached, p95 (ms) | 2.53 | ≤ 100 | ✅ |
-| stores at risk, p95 (ms) | 44.6 | ≤ 1.5e+03 | ✅ |
+| box list, p95 (ms) | 60.1 | ≤ 250 | ✅ |
+| fleet summary, p95 (ms) | 58.9 | ≤ 250 | ✅ |
+| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 32.5 | ≤ 400 | ✅ |
+| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 29.8 | ≤ 3e+03 | ✅ |
+| carrier forecast, cached, p95 (ms) | 2.63 | ≤ 100 | ✅ |
+| stores at risk, p95 (ms) | 45.1 | ≤ 1.5e+03 | ✅ |
 | VVM photo read + cross-check, p95 (ms) · Gemini off | 23.6 | ≤ 1.5e+03 | ✅ |
-| largest box report, gzipped (KB) · 113 KB raw | 16.4 | ≤ 40 | ✅ |
+| largest box report, gzipped (KB) · 113 KB raw | 16.5 | ≤ 40 | ✅ |

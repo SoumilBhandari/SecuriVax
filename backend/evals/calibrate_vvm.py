@@ -8,10 +8,11 @@ Photograph real VVMs at known stages (WHO's reference card, or vials kept warm
 on purpose) under different light, and drop them in a folder.
 
 The fit:
-- discard cutoff: the smallest rho >= 1 (the physical end point) at which at
-  most 3% of spent calibration labels read as usable. A bigger margin buys
-  little (the rest are glare the reader didn't catch) and costs a lot of
-  good labels read as spent;
+- discard cutoff: the smallest rho at which at most 3% of spent calibration
+  labels read as usable, and never closer to 1 (the physical end point) than
+  1.02: the same label moves about 1% between photos, so a label exactly at
+  its end point must not read usable on a lucky photo. A bigger margin buys
+  little and costs a lot of good labels read as spent;
 - stage 1|2: fewest misclassified photos, on paper-normalised progress when the
   paper around the label is visible (faded print squeezes rho, the
   normalisation undoes it), else on rho;
@@ -40,6 +41,7 @@ from app.engine.vvm import CALIBRATION_FILE, Calibration, read_vvm, stage_for, s
 from evals.vvm import photo
 
 MAX_SPENT_AS_USABLE = 0.03
+MIN_MARGIN = 0.02  # photo-to-photo noise of rho for one label is about 1%
 
 
 def synthetic(seed: int, n: int) -> list[dict]:
@@ -100,7 +102,7 @@ def fit(rows: list[dict], source: str) -> Calibration:
     rho = np.array([r["rho"] for r in rows])
     stage = np.array([r["stage"] for r in rows])
     usable = stage <= 2
-    grid = np.round(np.arange(1.0, 1.4, 0.005), 3)
+    grid = np.round(np.arange(1.0 + MIN_MARGIN, 1.4, 0.005), 3)
     missed = np.array([np.mean(rho[~usable] > c) for c in grid])
     ok = np.nonzero(missed <= MAX_SPENT_AS_USABLE)[0]
     discard = float(grid[ok[0]] if len(ok) else grid[int(np.argmin(missed))])

@@ -18,7 +18,8 @@ or sun. Glare is different: it adds light, so it is detected and refused.
 
 rho > 1 (square lighter than the ring) is usable; rho <= 1 is the discard
 point. The cutoffs are calibrated from labelled photos (evals/calibrate_vvm.py
-writes vvm_calibration.json), and the discard cutoff is never looser than 1.
+writes vvm_calibration.json), and the discard cutoff is never closer to 1
+than photo noise allows (1.02).
 
 Cross-check: our temperature record predicts where the label should be
 (budget used = VVM progress, since the budget uses the VVM's own Arrhenius
@@ -57,7 +58,7 @@ class Calibration:
 
     stage12: float = 2.2  # rho at or above: stage 1 (when the paper isn't visible)
     stage12_progress: float = 0.25  # paper-normalised progress below: stage 1
-    discard: float = 1.0  # rho at or below: discard point (stage 3 or 4)
+    discard: float = 1.02  # rho at or below: discard point (stage 3 or 4)
     stage34: float = 0.85  # rho at or below: stage 4
     rho_fresh: float = 3.5  # typical rho of an unheated label (paper-white square)
     rho_sigma: float = 0.05  # spread of rho for one label across photos
