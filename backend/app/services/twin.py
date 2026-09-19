@@ -25,7 +25,7 @@ HORIZON_H = 12
 LOOKBACK_S = 12 * 3600
 STORAGE_MAX_C = 8.0
 MODEL_FLOOR = 0.15  # never claim tighter than +/-15%: the model itself is simple
-_cache: dict[tuple[str, int], tuple[float, dict]] = {}
+_cache: dict[tuple[str, int], tuple[float, dict, twin.Forecast | None]] = {}
 _track_record: dict[tuple[str, int], float | None] = {}
 _legs: dict[tuple[str, int, int, int], tuple[list[float], float] | None] = {}
 
@@ -100,6 +100,10 @@ def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> 
     key = (node_id, readings[-1].ts)
     if key in _cache and time.time() - _cache[key][0] < 60:
         return _cache[key][1]
+    return _compute(session, node_id, readings, trip_start, open_custody, now, key)
+
+
+def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> dict:
 
     ambient, (lat, lon) = outside_fn(readings)
     known = track_record(session, node_id, trip_start)
@@ -136,8 +140,21 @@ def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> 
         "weather_source": source,
         "boxes": _box_risks(session, open_custody, fc, now),
     }
-    _cache[key] = (time.time(), out)
+    _cache[key] = (time.time(), out, fc)
     return out
+
+
+def p_breach_within(session: Session, node_id: str, minutes: float) -> float | None:
+    """Share of forecast trajectories that leave 2-8 C within `minutes`."""
+    out = carrier_forecast(session, node_id)
+    if not out.get("available"):
+        return None
+    fc = next((v[2] for k, v in _cache.items() if k[0] == node_id and v[1] is out), None)
+    if fc is None:
+        return out["breach"]["prob"]
+    steps = int(minutes / 60 / fc.dt_h)
+    window = fc.trajectories[:, : max(steps, 1)]
+    return round(float(((window > STORAGE_MAX_C) | (window <= FREEZE_THRESHOLD_C)).any(axis=1).mean()), 3)
 
 
 def _box_risks(session: Session, custodies, fc: twin.Forecast, now: int) -> list[dict]:

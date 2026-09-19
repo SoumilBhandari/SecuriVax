@@ -1,10 +1,11 @@
 import time
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.models import Custody, IngestLog, Node, Reading
+from app.models import Custody, Facility, IngestLog, Node, Reading, Scan
 
 router = APIRouter(prefix="/api/nodes", tags=["nodes"])
 
@@ -64,3 +65,37 @@ def node_forecast(node_id: str, session: Session = Depends(get_session)) -> dict
     if session.get(Node, node_id) is None:
         raise HTTPException(404, f"no node {node_id}")
     return carrier_forecast(session, node_id)
+
+
+class AgentIn(BaseModel):
+    destination_id: str | None = None
+    question: str = "What should this carrier do now?"
+
+
+class DecisionIn(BaseModel):
+    action: str
+    facility_id: str | None = None
+    note: str = ""
+
+
+@router.post("/{node_id}/agent")
+async def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
+    """Gemini dispatch agent (rules fallback): continue, divert or hold."""
+    from app.services.location_agent import recommend
+
+    if session.get(Node, node_id) is None:
+        raise HTTPException(404, f"no node {node_id}")
+    if body.destination_id and session.get(Facility, body.destination_id) is None:
+        raise HTTPException(404, f"no facility {body.destination_id}")
+    return await recommend(session, node_id, body.destination_id, body.question[:500])
+
+
+@router.post("/{node_id}/decisions")
+def record_decision(node_id: str, body: DecisionIn, session: Session = Depends(get_session)) -> dict:
+    """The supervisor accepted a recommendation: log it against every box inside."""
+    boxes = session.exec(select(Custody.box_id).where(Custody.node_id == node_id, Custody.end_ts.is_(None))).all()
+    for box_id in boxes:
+        session.add(Scan(box_id=box_id, node_id=node_id, action=f"dispatch:{body.action.lower()}",
+                         note=(body.facility_id or "") + (f" {body.note}" if body.note else "")))
+    session.commit()
+    return {"logged": len(boxes)}
