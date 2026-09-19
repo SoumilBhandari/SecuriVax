@@ -113,7 +113,7 @@ export default function BoxPage() {
             <p className="m-0 mt-2 text-neutral-300">
               No box has the ID {id}. Check the sticker, or pick the box from the list.
             </p>
-            <Link to="/" className="btn-secondary mt-4">
+            <Link to="/boxes" className="btn-secondary mt-4">
               See all boxes
             </Link>
           </div>
@@ -180,7 +180,7 @@ export default function BoxPage() {
             {fc && inside && (
               <Link
                 to={`/node/${inside.node_id}`}
-                className="mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline hover:border-line-strong"
+                className="lift mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline"
               >
                 <span className="flex flex-col gap-1">
                   <span className="eyebrow">Carrier · {inside.node_label}</span>
@@ -272,7 +272,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4 lg:max-w-lg lg:rounded-3xl lg:px-6 lg:pt-6"
+        className="modal-in max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4 lg:max-w-lg lg:rounded-3xl lg:px-6 lg:pt-6"
         style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between gap-3">

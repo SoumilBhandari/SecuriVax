@@ -2,7 +2,7 @@
   "name": "SecuriVax",
   "short_name": "SecuriVax",
   "description": "Potency in every drop: one verdict for each box, at the moment of use.",
-  "start_url": "/",
+  "start_url": "/boxes",
   "display": "standalone",
   "background_color": "#f5f8fa",
   "theme_color": "#0b2545",

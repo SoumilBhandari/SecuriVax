@@ -74,7 +74,7 @@ export default function NodePage() {
           <div role="alert" className="panel p-4">
             <p className="ui-heading m-0">Carrier not found</p>
             <p className="m-0 mt-2 text-neutral-300">No carrier or cold room has the ID {id}. Check the sticker.</p>
-            <Link to="/" className="btn-secondary mt-4">
+            <Link to="/boxes" className="btn-secondary mt-4">
               See all boxes
             </Link>
           </div>

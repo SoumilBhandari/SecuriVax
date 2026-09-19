@@ -34,10 +34,8 @@ export default function TagsPage() {
         </p>
       ) : (
         <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
-          A computer can't read or write NFC, so the stickers are written from a phone: open this page there and write each
-          URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Here, each tag's QR code opens
-          its page on a phone, and prints as a sticker for phones without NFC. To load a box from a computer, use the
-          carrier's page or <i>Move this box</i>.
+          Write each URL to an NTAG213/215 sticker as a URL record, from a phone (NFC Tools works on iPhone and Android). Each
+          tag's QR code opens the same page and prints as a fallback sticker.
         </p>
       )}
 
@@ -127,7 +125,7 @@ function TagList({ items }: { items: { id: string; label: string; url: string }[
           {shown === item.id && (
             <div className="flex basis-full items-center gap-4 pt-1">
               <QrCode text={item.url} size={136} label={`QR code for ${item.id}`} />
-              <p className="ui-caption m-0">Scan with a phone to open {item.id}, as a tap on its sticker would. Print it for phones without NFC.</p>
+              <p className="ui-caption m-0">Opens {item.id} on a phone, like tapping its sticker.</p>
             </div>
           )}
         </li>

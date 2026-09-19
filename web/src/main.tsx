@@ -8,6 +8,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout, Spinner } from "./components/Layout";
 import BoxPage from "./pages/BoxPage";
 import HomePage from "./pages/HomePage";
+import LandingPage from "./pages/LandingPage";
 import NodePage from "./pages/NodePage";
 import { freezeClock, SNAPSHOT } from "./lib/snapshot";
 import { applyTheme, followSystemTheme } from "./lib/theme";
@@ -24,7 +25,7 @@ function NotFound() {
   return (
     <Layout back>
       <p className="py-16 text-center text-neutral-400">
-        Nothing here. <Link to="/" className="text-accent-400 underline underline-offset-2">Go home</Link>
+        Nothing here. <Link to="/boxes" className="text-accent-400 underline underline-offset-2">See all boxes</Link>
       </p>
     </Layout>
   );
@@ -46,7 +47,8 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <Router>
       <Routes>
-        <Route path="/" element={page(<HomePage />)} />
+        <Route path="/" element={page(<LandingPage />)} />
+        <Route path="/boxes" element={page(<HomePage />)} />
         <Route path="/box/:id" element={page(<BoxPage />)} />
         <Route path="/node/:id" element={page(<NodePage />)} />
         <Route path="/tags" element={page(<TagsPage />)} />

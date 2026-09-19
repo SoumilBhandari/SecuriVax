@@ -11,7 +11,7 @@ export function BoxCard({ box: b, compact = false }: { box: BoxSummary; compact?
   return (
     <Link
       to={`/box/${b.id}`}
-      className={`grid w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline hover:border-line-strong active:scale-[.99] ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[40px_minmax(0,1fr)_auto]"}`}
+      className={`lift grid w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline active:scale-[.99] ${compact ? "grid-cols-[minmax(0,1fr)_auto]" : "grid-cols-[40px_minmax(0,1fr)_auto]"}`}
     >
       {!compact && <BudgetRing value={Math.round(Math.min(b.budget_used, 1) * 100)} size={40} glyph={false} />}
       <span className="flex min-w-0 flex-col gap-0.5">

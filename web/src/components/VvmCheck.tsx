@@ -341,9 +341,7 @@ function FromComputer({
             <PhoneIcon size={18} />
             Or use a phone's camera
           </p>
-          <p className="ui-caption m-0 mt-1">
-            Scan this with a phone to open the same check there. A confirmed result shows on this page within a minute.
-          </p>
+          <p className="ui-caption m-0 mt-1">Scan to do this check on the phone.</p>
         </div>
       </div>
       <p className="mt-3 text-xs leading-snug text-neutral-400">

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { BoxCard } from "../components/BoxCard";
@@ -26,6 +26,8 @@ const VIEW_KEY = "securivax.boxView";
 type View = "list" | "map";
 
 function savedView(): View {
+  const asked = new URLSearchParams(window.location.search).get("view");
+  if (asked === "map" || asked === "list") return asked;
   try {
     return localStorage.getItem(VIEW_KEY) === "map" ? "map" : "list";
   } catch {
@@ -138,8 +140,10 @@ export default function HomePage() {
         </Suspense>
       ) : (
         <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-          {visible.map((b) => (
-            <BoxCard key={b.id} box={b} />
+          {visible.map((b, i) => (
+            <div key={b.id} className="rise-in" style={{ "--i": Math.min(i, 12) } as CSSProperties}>
+              <BoxCard box={b} />
+            </div>
           ))}
         </div>
       )}
@@ -196,7 +200,6 @@ function FindBox({ query, onChange, onOpen }: { query: string; onChange: (q: str
           className="select-pill w-full pl-12"
         />
       </label>
-      <p className="ui-caption m-0 mt-2">A computer can't read the stickers: find the box here, or tap its sticker with a phone.</p>
     </form>
   );
 }

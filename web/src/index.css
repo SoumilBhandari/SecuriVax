@@ -50,6 +50,20 @@
   font-display: swap;
 }
 
+/* Geist Mono (SIL Open Font License 1.1): the small uppercase labels. */
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./assets/fonts/geist-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./assets/fonts/geist-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
 /* Brand palette and the light theme. */
 :root,
 [data-theme="light"] {
@@ -101,6 +115,7 @@
   --ring-track-on-inverse: #ffffff66;
   --ring-arc-on-inverse: var(--glacier-500);
   --toast: var(--ink-700);
+  --soft-line: color-mix(in srgb, var(--ink-900) 20%, transparent); /* outlines on buttons and inputs */
   color-scheme: light;
 }
 
@@ -122,6 +137,7 @@
   --ring-track: #ffffff66;
   --ring-arc: var(--glacier-500);
   --toast: var(--ink-700);
+  --soft-line: #ffffff3d;
   color-scheme: dark;
 }
 
@@ -132,6 +148,7 @@
 @theme {
   --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Sora", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -303,19 +320,25 @@
     }
   }
 
-  /* Eyebrow labels: DM Sans 700 in capitals, +14% tracking. */
+  /* Labels: small Geist Mono capitals. A section opens on a hairline. */
   .eyebrow,
   .section-title {
-    font-family: var(--font-sans);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     line-height: 16px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
+  .section-title h3 {
+    font: inherit;
+    letter-spacing: inherit;
+  }
   .section-title {
-    margin: 32px 0 12px;
+    margin: 36px 0 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
   }
 
   .ui-title {
@@ -350,6 +373,19 @@
   .panel {
     overflow: hidden;
   }
+  .lift {
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.2s,
+      box-shadow 0.35s;
+  }
+  @media (hover: hover) {
+    .lift:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+      box-shadow: 0 14px 30px -22px rgb(11 37 69 / 0.45);
+    }
+  }
 
   .tile {
     padding: 12px 16px;
@@ -361,14 +397,16 @@
   .pill {
     display: inline-flex;
     align-items: center;
-    padding: 4px 12px;
-    border-radius: 8px;
-    border: 1.5px solid var(--border-strong);
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--soft-line);
     color: var(--text);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     line-height: 16px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -378,7 +416,7 @@
     background: var(--border);
   }
 
-  /* The one main action per screen: Glacier fill, Ink label. */
+  /* The one main action per screen: a solid Ink pill. */
   .btn-accent,
   .btn-primary {
     display: flex;
@@ -388,30 +426,30 @@
     justify-content: center;
     gap: 10px;
     padding: 0 24px;
-    border: 1.5px solid var(--action);
-    border-radius: 12px;
+    border: 1px solid var(--text);
+    border-radius: 999px;
+    background: var(--text);
+    color: var(--bg);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 22px;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
+  }
+  .btn-accent {
+    border-color: var(--action);
     background: var(--action);
     color: var(--on-action);
-    font-family: var(--font-display);
-    font-size: 18px;
-    line-height: 24px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
-    text-decoration: none;
   }
   .btn-accent:hover:not(:disabled),
   .btn-primary:hover:not(:disabled) {
-    background: var(--action-hover);
-    border-color: var(--action-hover);
-  }
-  .btn-accent:active:not(:disabled),
-  .btn-primary:active:not(:disabled) {
-    background: var(--action-pressed);
-    border-color: var(--action-pressed);
-    color: var(--on-action-pressed);
+    opacity: 0.86;
   }
 
-  /* Everything else: an outline. */
+  /* Everything else: an outlined pill. */
   .btn-quiet,
   .btn-outline,
   .btn-secondary {
@@ -420,22 +458,25 @@
     align-items: center;
     justify-content: center;
     gap: 10px;
-    padding: 0 20px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: 12px;
+    padding: 0 22px;
+    border: 1px solid var(--soft-line);
+    border-radius: 999px;
     background: transparent;
     color: var(--text);
-    font-family: var(--font-display);
+    font-family: var(--font-sans);
     font-size: 16px;
     line-height: 22px;
     font-weight: 600;
-    letter-spacing: -0.01em;
     text-decoration: none;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s;
   }
   .btn-quiet:hover:not(:disabled),
   .btn-outline:hover:not(:disabled),
   .btn-secondary:hover:not(:disabled) {
     border-color: var(--text);
+    background: var(--quiet);
   }
   .btn-quiet:active:not(:disabled),
   .btn-outline:active:not(:disabled),
@@ -457,9 +498,9 @@
   .select-pill {
     min-width: 0;
     min-height: 52px;
-    padding: 0 12px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: 12px;
+    padding: 0 14px;
+    border: 1px solid var(--soft-line);
+    border-radius: 14px;
     background: var(--surface);
     color: var(--text);
     font: inherit;
@@ -472,13 +513,17 @@
     width: 44px;
     height: 44px;
     place-items: center;
-    border: 1.5px solid var(--border-strong);
+    border: 1px solid var(--soft-line);
     border-radius: 50%;
     background: var(--surface);
     color: var(--text);
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
   }
   .back-btn:hover {
     border-color: var(--text);
+    background: var(--quiet);
   }
 
   /* The row that opens an accordion section. */
@@ -501,21 +546,25 @@
     background: var(--quiet);
   }
 
-  /* Filter chips: outlined; the chosen one is filled with Ink. */
+  /* Filter chips: outlined pills; the chosen one is filled with Ink. */
   .chip {
     display: inline-flex;
     flex: none;
     align-items: center;
     gap: 8px;
-    min-height: 40px;
-    padding: 0 12px;
-    border: 1.5px solid var(--border-strong);
-    border-radius: 12px;
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--soft-line);
+    border-radius: 999px;
     background: var(--surface);
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
+    transition:
+      background-color 0.2s,
+      border-color 0.2s,
+      color 0.2s;
   }
   .chip:hover {
     border-color: var(--text);
@@ -605,10 +654,11 @@
   }
   .sv-verdict__eyebrow {
     margin: 0;
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     line-height: 16px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--text-muted-on-inverse);
   }
@@ -640,12 +690,13 @@
   .sv-badge {
     display: inline-block;
     flex: none;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     line-height: 16px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
+    font-weight: 500;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -689,6 +740,107 @@
   }
 }
 
+/* Motion: content rises in as it arrives (lists one after another), dialogs
+   scale in. Short, eased, and off for anyone who asks for less motion. */
+@keyframes sv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sv-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.rise-in {
+  animation: sv-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.modal-in {
+  animation: sv-modal-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise-in,
+  .modal-in {
+    animation: none;
+  }
+}
+
+/* The landing page ("/"): small mono labels, hairline rules, pill buttons. */
+.mono-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.pill-btn {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 22px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    opacity 0.2s;
+}
+.pill-btn:hover {
+  border-color: var(--text);
+  background: var(--quiet);
+}
+.pill-btn--solid {
+  border-color: var(--text);
+  background: var(--text);
+  color: var(--bg);
+}
+.pill-btn--solid:hover {
+  background: var(--text);
+  opacity: 0.86;
+}
+.lp-screen {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  box-shadow: 0 30px 60px -36px rgb(11 37 69 / 0.45);
+  backdrop-filter: blur(10px);
+}
+.lp-screen__body .section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+/* The fanned screens fade out under the words and toward the top edge. */
+.lp-stack {
+  -webkit-mask-image:
+    linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
+  mask-composite: intersect;
+}
 /* Shipments map: verdict pins and trip lines (ShipmentsMap). */
 .sv-pin {
   background: none;

@@ -31,7 +31,9 @@ in our backtest than heat, and it's the thing a VVM can't show.
   then a box tap, *Move this box*, asking the dispatch agent) asks for it once, in a browser pop-up,
   and the phone remembers it. Do one load on each demo phone before judging so the pop-up never
   appears on stage. Judges on their own phones can look at everything; hand them a demo phone to tap.
-- **On a laptop there's no NFC**, so the app swaps each tap for a click. Home has a box search
+- **The site opens on a landing page** (`/`); the app itself starts at `/boxes`, and an installed
+  phone app opens straight there. Stickers still open `/box/…` and `/node/…` directly.
+- **On a laptop there's no NFC**, so the app swaps each tap for a click. Boxes has a box search
   (press `/`) instead of the tap button. A carrier page loads boxes from a list. *Check the VVM
   label* takes a photo file (or a drop), the webcam, or shows a QR code that opens the same check on
   a phone. The Tags page shows every sticker's QR code. The operator code pop-up appears on the laptop

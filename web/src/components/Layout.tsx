@@ -25,7 +25,7 @@ export function Layout({ children }: { back?: boolean; children: ReactNode }) {
             </p>
           )}
           <ArmBanner />
-          {children}
+          <main className="rise-in">{children}</main>
           <TabBar />
         </div>
       </div>
@@ -55,11 +55,11 @@ const TOP = "lg:[&>.section-title:first-child]:mt-0";
 function Sidebar() {
   const { pathname } = useLocation();
   return (
-    <aside className="fixed inset-y-0 left-0 z-[1100] hidden w-[248px] flex-col border-r border-line bg-surface px-4 py-7 lg:flex">
-      <Link to="/" className="mb-9 px-3" aria-label="SecuriVax home">
-        <Logo height={32} />
+    <aside className="fixed inset-y-0 left-0 z-[1100] hidden w-[248px] flex-col border-r border-line bg-surface px-5 py-7 lg:flex">
+      <Link to="/" className="mb-10 px-3" aria-label="SecuriVax home">
+        <Logo height={30} />
       </Link>
-      <nav aria-label="Main" className="flex flex-col gap-1">
+      <nav aria-label="Main" className="flex flex-col gap-0.5">
         {TABS.map(({ to, label, Icon, match }) => {
           const current = match(pathname);
           return (
@@ -67,20 +67,22 @@ function Sidebar() {
               key={to}
               to={to}
               aria-current={current ? "page" : undefined}
-              className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] no-underline hover:bg-neutral-900"
-              style={{
-                background: current ? "var(--quiet)" : undefined,
-                color: current ? "var(--text)" : "var(--text-muted)",
-                fontWeight: current ? 700 : 500,
-              }}
+              className="group relative flex min-h-10 items-center gap-3 px-3 font-mono text-[11px] font-medium uppercase tracking-[0.12em] no-underline transition-colors hover:text-text"
+              style={{ color: current ? "var(--text)" : "var(--text-muted)" }}
             >
-              <Icon size={22} />
+              <span
+                className="absolute inset-y-2 left-0 w-0.5 rounded-full transition-opacity"
+                style={{ background: "var(--text)", opacity: current ? 1 : 0 }}
+                aria-hidden="true"
+              />
+              <Icon size={18} />
               {label}
             </Link>
           );
         })}
       </nav>
-      <div className="mt-auto px-3">
+      <div className="mt-auto flex items-center justify-between border-t border-line px-3 pt-5">
+        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-500">Theme</span>
         <ThemeToggle />
       </div>
     </aside>
@@ -88,7 +90,7 @@ function Sidebar() {
 }
 
 const TABS = [
-  { to: "/", label: "Boxes", Icon: BoxIcon, match: (p: string) => p === "/" || p.startsWith("/box") || p.startsWith("/node") || p.startsWith("/tags") },
+  { to: "/boxes", label: "Boxes", Icon: BoxIcon, match: (p: string) => p.startsWith("/box") || p.startsWith("/node") || p.startsWith("/tags") },
   { to: "/live", label: "Live", Icon: PulseIcon, match: (p: string) => p.startsWith("/live") },
   { to: "/climate", label: "Climate", Icon: ClimateIcon, match: (p: string) => p.startsWith("/climate") },
   { to: "/plan", label: "Plan", Icon: PlanIcon, match: (p: string) => p.startsWith("/plan") },
@@ -110,11 +112,10 @@ function TabBar() {
             key={to}
             to={to}
             aria-current={current ? "page" : undefined}
-            className="-mt-1.5 flex min-h-[52px] flex-col items-center justify-center gap-1 border-t-2 pt-1.5 text-xs no-underline hover:text-text"
+            className="-mt-1.5 flex min-h-[52px] flex-col items-center justify-center gap-1 border-t-2 pt-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.08em] no-underline hover:text-text"
             style={{
               borderColor: current ? "var(--text)" : "transparent",
               color: current ? "var(--text)" : "var(--text-muted)",
-              fontWeight: current ? 700 : 500,
             }}
           >
             <Icon size={22} />
@@ -129,7 +130,7 @@ function TabBar() {
 /** Back button and the logo, above a page's eyebrow and title. */
 export function BackHeader() {
   const navigate = useNavigate();
-  const back = () => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate("/"));
+  const back = () => ((window.history.state?.idx ?? 0) > 0 ? navigate(-1) : navigate("/boxes"));
   return (
     <div className="flex items-center gap-3 pb-6 pt-4">
       <button onClick={back} aria-label="Back" className="back-btn">
@@ -157,7 +158,7 @@ export function PageTitle({ eyebrow, title, sub, top = false }: { eyebrow: React
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <div className="section-title flex items-baseline justify-between gap-3">
-      <h3 className="m-0 font-sans text-xs font-bold tracking-[0.14em]">{children}</h3>
+      <h3 className="m-0">{children}</h3>
       {aside && <span className="text-right normal-case tracking-normal">{aside}</span>}
     </div>
   );
