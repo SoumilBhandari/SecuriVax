@@ -7,49 +7,9 @@
  * system before the first paint. Signal colours are for verdicts only.
  */
 
-@font-face {
-  font-family: "Sora";
-  src: url("./assets/fonts/sora-300.woff2") format("woff2");
-  font-weight: 300;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Sora";
-  src: url("./assets/fonts/sora-400.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Sora";
-  src: url("./assets/fonts/sora-600.woff2") format("woff2");
-  font-weight: 600;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Sora";
-  src: url("./assets/fonts/sora-700.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-@font-face {
-  font-family: "DM Sans";
-  src: url("./assets/fonts/dm-sans-400.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "DM Sans";
-  src: url("./assets/fonts/dm-sans-500.woff2") format("woff2");
-  font-weight: 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: "DM Sans";
-  src: url("./assets/fonts/dm-sans-700.woff2") format("woff2");
-  font-weight: 700;
-  font-display: swap;
-}
-
+/* Type is SF Pro: the system font on Apple devices (Apple's licence doesn't
+   allow serving its files), with each other platform's own system font in its
+   place. Only the mono labels' Geist Mono is served from here. */
 /* Geist Mono (SIL Open Font License 1.1): the small uppercase labels. */
 @font-face {
   font-family: "Geist Mono";
@@ -146,8 +106,8 @@
  * theme: neutral-* are text and quiet-surface steps, accent-* are Glacier.
  */
 @theme {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Sora", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --color-bg: var(--bg);

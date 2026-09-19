@@ -173,7 +173,7 @@ function Group({ members }: { members: Located[] }) {
     return divIcon({
       className: "sv-pin",
       iconSize: [size, size],
-      html: `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#fff"/>${arcs}<text x="50" y="50" dy="0.35em" text-anchor="middle" font-size="30" font-weight="700" fill="#0b2545" font-family="Sora, sans-serif">${members.length}</text></svg>`,
+      html: `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#fff"/>${arcs}<text x="50" y="50" dy="0.35em" text-anchor="middle" font-size="30" font-weight="700" fill="#0b2545" font-family="-apple-system, BlinkMacSystemFont, system-ui, sans-serif">${members.length}</text></svg>`,
     });
   }, [counts.join(), members.length, size]); // eslint-disable-line react-hooks/exhaustive-deps
 
