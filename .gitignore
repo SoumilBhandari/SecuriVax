@@ -29,3 +29,4 @@ dist/
 # Local dev HTTPS certificate and saved test photos
 web/.cert/
 vvm-photos/
+dist-snapshot/

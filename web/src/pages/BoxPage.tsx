@@ -17,6 +17,7 @@ import { api } from "../lib/api";
 import { time } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { usePoll } from "../lib/usePoll";
+import { SNAPSHOT } from "../lib/snapshot";
 import type { CarrierForecast, Explanation, NodeSummary, Report } from "../types";
 
 const RouteMap = lazy(() => import("../components/RouteMap"));
@@ -129,7 +130,7 @@ const TAB_LABEL: Record<TabId, string> = { why: "Why", history: "History", carri
 
 /** Which tab is open, kept in the URL hash so back and reload keep it. */
 function useTabs(available: TabId[]) {
-  const [want, setWant] = useState<TabId>(() => (window.location.hash.slice(1) as TabId) || "why");
+  const [want, setWant] = useState<TabId>(() => (SNAPSHOT ? "why" : (window.location.hash.slice(1) as TabId) || "why"));
   const [visited, setVisited] = useState<Set<TabId>>(() => new Set([want]));
   const bar = useRef<HTMLDivElement>(null);
   const current = available.includes(want) ? want : "why";
@@ -137,7 +138,7 @@ function useTabs(available: TabId[]) {
   const open = useCallback((id: TabId) => {
     setWant(id);
     setVisited((v) => (v.has(id) ? v : new Set(v).add(id)));
-    history.replaceState(history.state, "", `${window.location.pathname}${window.location.search}#${id}`);
+    if (!SNAPSHOT) history.replaceState(history.state, "", `${window.location.pathname}${window.location.search}#${id}`);
     const top = bar.current?.getBoundingClientRect().top ?? 0;
     if (top <= 1 || top > window.innerHeight * 0.6) bar.current?.scrollIntoView({ block: "start", behavior: "smooth" });
   }, []);

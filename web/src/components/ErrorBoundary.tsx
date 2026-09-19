@@ -1,5 +1,7 @@
 import { Component, type ReactNode } from "react";
 
+import { asset } from "../lib/snapshot";
+
 /** One broken card must never take the verdict down with it. */
 export class ErrorBoundary extends Component<{ children: ReactNode; label?: string; page?: boolean }, { failed: boolean }> {
   state = { failed: false };
@@ -22,7 +24,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; label?: stri
             <button onClick={() => location.reload()} className="rounded-lg bg-ink px-4 text-white">
               Reload
             </button>
-            <a href="/" className="button inline-flex items-center rounded-lg border border-line px-4">
+            <a href={asset("/")} className="button inline-flex items-center rounded-lg border border-line px-4">
               Home
             </a>
           </div>

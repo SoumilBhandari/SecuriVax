@@ -2,13 +2,14 @@ import "./index.css";
 
 import { lazy, StrictMode, Suspense, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Link, Route, Routes } from "react-router";
+import { BrowserRouter, HashRouter, Link, Route, Routes } from "react-router";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout, Spinner } from "./components/Layout";
 import BoxPage from "./pages/BoxPage";
 import HomePage from "./pages/HomePage";
 import NodePage from "./pages/NodePage";
+import { freezeClock, SNAPSHOT } from "./lib/snapshot";
 
 // Pages off the tap-a-sticker path load on demand (they pull in the map).
 const ClimatePage = lazy(() => import("./pages/ClimatePage"));
@@ -32,9 +33,13 @@ const page = (el: ReactNode) => (
   </ErrorBoundary>
 );
 
+// A snapshot is one file: its routes live in the hash.
+const Router = SNAPSHOT ? HashRouter : BrowserRouter;
+freezeClock();
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={page(<HomePage />)} />
         <Route path="/box/:id" element={page(<BoxPage />)} />
@@ -45,6 +50,6 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/impact" element={page(<ImpactPage />)} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   </StrictMode>,
 );

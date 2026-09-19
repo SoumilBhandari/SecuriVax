@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Card, Layout } from "../components/Layout";
 import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
+import { asset } from "../lib/snapshot";
 import type { BoxSummary, NodeSummary } from "../types";
 
 /** The URL to write onto each NFC sticker. */
@@ -34,13 +35,13 @@ export default function TagsPage() {
       <Card title="VVM test card">
         <p className="mb-2 text-sm text-slate-600">
           Print this and stick one VVM on the demo bottle to try the camera check. Or open the{" "}
-          <a href="/vvm-target.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+          <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
             single-VVM test target
           </a>{" "}
           on a laptop and point the phone at it: pick a stage, or slide through every shade.
         </p>
-        <a href="/vvm-card.svg" target="_blank" rel="noreferrer">
-          <img src="/vvm-card.svg" alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-lg border border-slate-200" />
+        <a href={asset("/vvm-card.svg")} target="_blank" rel="noreferrer">
+          <img src={asset("/vvm-card.svg")} alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-lg border border-slate-200" />
         </a>
       </Card>
       <Card title="Carriers and storage boxes">

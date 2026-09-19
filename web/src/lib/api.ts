@@ -18,6 +18,7 @@ import type {
   TripPlan,
   VvmResult,
 } from "../types";
+import { SNAPSHOT } from "./snapshot";
 
 // Same origin in production (FastAPI serves the app); proxied by Vite in dev.
 const BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -52,6 +53,7 @@ function describe(status: number, body: unknown): string {
 }
 
 async function request<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+  if (SNAPSHOT) return fromSnapshot<T>(path, init);
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
   if (init?.body) headers["Content-Type"] = "application/json"; // no preflight for plain GETs
   const code = operatorCode();
@@ -79,6 +81,22 @@ async function request<T>(path: string, init?: RequestInit, retried = false): Pr
     throw new ApiError(res.status, describe(res.status, body));
   }
   return res.json();
+}
+
+/** Snapshot mode: the saved answer for this exact call, or a clear refusal. */
+async function fromSnapshot<T>(path: string, init?: RequestInit): Promise<T> {
+  await new Promise((r) => setTimeout(r, 120));
+  const method = init?.method ?? "GET";
+  const body = typeof init?.body === "string" ? init.body : "";
+  const table = method === "GET" ? SNAPSHOT!.get : SNAPSHOT!.post;
+  const key = body ? `${path} ${body}` : path;
+  if (key in table) return structuredClone(table[key]) as T;
+  throw new ApiError(
+    0,
+    method === "GET"
+      ? "Not saved in this snapshot."
+      : "This is a snapshot, so it can't change anything or ask new questions. That needs the live app.",
+  );
 }
 
 export const api = {

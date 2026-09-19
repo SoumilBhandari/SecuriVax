@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api } from "../lib/api";
 import { pct } from "../lib/format";
+import { asset } from "../lib/snapshot";
 import type { LabelCheck, VvmResult, Witnesses } from "../types";
 
 const STAGES: Record<number, string> = {
@@ -120,7 +121,7 @@ export function VvmCheck({
           </p>
           <p className="mt-2 text-xs text-muted">
             No VVM to hand? Open the{" "}
-            <a href="/vvm-target.html" target="_blank" rel="noreferrer" className="underline underline-offset-2">
+            <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
               test target
             </a>{" "}
             on another screen, or print the test card from the Tags page.

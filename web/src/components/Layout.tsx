@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
+import { asset, SNAPSHOT } from "../lib/snapshot";
 import { BackIcon, TapIcon, XIcon } from "./Icons";
 
 export function Layout({ back, children }: { back?: boolean; children: ReactNode }) {
@@ -10,7 +11,7 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
       <header className="mb-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight text-slate-900">
           {back && <BackIcon className="text-slate-500" />}
-          <img src="/icon.svg" alt="" className="h-7 w-7" />
+          <img src={asset("/icon.svg")} alt="" className="h-7 w-7" />
           Vialtality
         </Link>
         <nav className="-mr-2 flex text-sm text-muted [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:px-2">
@@ -25,6 +26,12 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
           </Link>
         </nav>
       </header>
+      {SNAPSHOT && (
+        <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          Snapshot of the app from {new Date(SNAPSHOT.taken_at * 1000).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.
+          Every page opens; loading boxes, reading a VVM photo or asking the agent needs the live app.
+        </p>
+      )}
       <ArmBanner />
       {children}
     </div>
