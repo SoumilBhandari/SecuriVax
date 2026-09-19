@@ -6,6 +6,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine, init_db
+from app.routers import ingest
 from app.seed import seed
 
 settings = get_settings()
@@ -27,6 +28,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ingest.router)
 
 
 @app.get("/api/health")
