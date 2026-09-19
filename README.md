@@ -1,4 +1,4 @@
-# ColdTrace
+# Vialtality
 
 **Last-mile cold chain monitor for vaccines and rapid diagnostic tests.**
 
@@ -8,7 +8,7 @@
 Two stretches of the chain have no monitoring today: the district-store-to-clinic
 trip, and outreach carriers. Rapid tests aren't monitored anywhere.
 
-ColdTrace puts a cheap, battery-powered ESP32 node (temperature + humidity)
+Vialtality puts a cheap, battery-powered ESP32 node (temperature + humidity)
 inside the carrier, plus a Samsung SmartTag for location. Every box gets an
 NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
 DISCARD** for *that product*, worked out from everything the box has been

@@ -1,4 +1,4 @@
-# ColdTrace node firmware (skeleton)
+# Vialtality node firmware (skeleton)
 
 ESP32 + SHT31 temperature/humidity sensor, running on a LiPo cell or power
 bank. It rides inside a vaccine carrier, cold box or rapid-test storage box.

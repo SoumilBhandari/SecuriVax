@@ -4,7 +4,7 @@
 // --- Identity: must match a node registered on the server -------------------
 #define NODE_ID   "DEMO-01"                // second ESP32 in the same carrier: "DEMO-01B"
 #define NODE_KEY  "dev-node-key"          // X-Node-Key; NODE_KEY env on the server
-#define API_BASE  "https://coldtrace.onrender.com"
+#define API_BASE  "https://vialtality.onrender.com"
 
 // --- WiFi (ESP32 is 2.4 GHz only; on iPhone hotspots enable Maximize Compatibility)
 #define WIFI_SSID "your-hotspot"

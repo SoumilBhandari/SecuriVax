@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    database_url: str = "sqlite:///./coldtrace.db"
+    database_url: str = "sqlite:///./vialtality.db"
     node_key: str = "dev-node-key"
     # Gemini names places along the route (Google Maps grounding).
     gemini_api_key: str = ""

@@ -5,7 +5,7 @@
 // iPhones open tag URLs in the browser, never in a home-screen web app, and
 // the two keep separate storage, so both taps must happen in the browser.
 
-const KEY = "coldtrace.arm";
+const KEY = "vialtality.arm";
 export const ARM_TTL_MS = 2 * 60 * 1000;
 
 export interface Arm {
@@ -29,7 +29,7 @@ export function setArm(kind: Arm["kind"], id: string): void {
   } catch {
     /* private mode: tap-to-link falls back to the manual picker */
   }
-  window.dispatchEvent(new Event("coldtrace-arm"));
+  window.dispatchEvent(new Event("vialtality-arm"));
 }
 
 export function clearArm(): void {
@@ -38,7 +38,7 @@ export function clearArm(): void {
   } catch {
     /* ignore */
   }
-  window.dispatchEvent(new Event("coldtrace-arm"));
+  window.dispatchEvent(new Event("vialtality-arm"));
 }
 
 /** True once per page load if the URL came from an NFC tag; strips ?tap=1. */

@@ -1,4 +1,4 @@
-# Samsung SmartTag → ColdTrace location bridge
+# Samsung SmartTag → Vialtality location bridge
 
 A SmartTag inside the carrier gives its position without a GPS module on the
 node. The server attaches that position to every temperature reading by time,
@@ -14,7 +14,7 @@ community Home Assistant integration
 reads SmartThings Find (it's reverse-engineered, so it may break).
 
 SmartTags are located by nearby Galaxy phones, so fixes arrive every few
-minutes in town and rarely out in the countryside. ColdTrace joins fixes up to
+minutes in town and rarely out in the countryside. Vialtality joins fixes up to
 2 hours apart, and uses a lone fix for readings within 30 minutes of it.
 
 ## Setup
@@ -26,12 +26,12 @@ minutes in town and rarely out in the countryside. ColdTrace joins fixes up to
 
 ```yaml
 rest_command:
-  coldtrace_location:
-    url: "https://YOUR-COLDTRACE-DOMAIN/api/ingest/locations"
+  vialtality_location:
+    url: "https://YOUR-VIALTALITY-DOMAIN/api/ingest/locations"
     method: POST
     content_type: "application/json"
     headers:
-      X-Node-Key: !secret coldtrace_node_key
+      X-Node-Key: !secret vialtality_node_key
     payload: >
       {"node_id": "{{ node_id }}", "source": "smarttag",
        "points": [{"ts": {{ ts }}, "lat": {{ lat }}, "lon": {{ lon }},
@@ -41,13 +41,13 @@ rest_command:
 3. Add an automation for each tag (`automations.yaml`):
 
 ```yaml
-- alias: "SmartTag DEMO-01 to ColdTrace"
+- alias: "SmartTag DEMO-01 to Vialtality"
   trigger:
     - platform: state
       entity_id: device_tracker.smarttag_demo_01
       attribute: latitude
   action:
-    - service: rest_command.coldtrace_location
+    - service: rest_command.vialtality_location
       data:
         node_id: DEMO-01
         ts: "{{ as_timestamp(trigger.to_state.last_updated) | int }}"
@@ -65,7 +65,7 @@ use that for `ts` instead of `last_updated`.
 Anything that can POST JSON works: a phone shortcut, a script, a CSV import.
 
 ```bash
-curl -X POST https://YOUR-COLDTRACE-DOMAIN/api/ingest/locations \
+curl -X POST https://YOUR-VIALTALITY-DOMAIN/api/ingest/locations \
   -H "X-Node-Key: $NODE_KEY" -H "Content-Type: application/json" \
   -d '{"node_id":"DEMO-01","source":"smarttag","points":[{"ts":1789790000,"lat":-0.0917,"lon":34.768}]}'
 ```

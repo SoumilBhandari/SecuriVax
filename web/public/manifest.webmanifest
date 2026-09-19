@@ -1,6 +1,6 @@
 {
-  "name": "ColdTrace",
-  "short_name": "ColdTrace",
+  "name": "Vialtality",
+  "short_name": "Vialtality",
   "description": "Last-mile cold chain monitor for vaccines and rapid tests",
   "start_url": "/",
   "display": "standalone",

@@ -11,7 +11,7 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight text-slate-900">
           {back && <BackIcon className="text-slate-500" />}
           <img src="/icon.svg" alt="" className="h-7 w-7" />
-          ColdTrace
+          Vialtality
         </Link>
         <nav className="flex gap-4 text-sm text-slate-500">
           <Link to="/climate" className="hover:text-slate-800">
@@ -38,13 +38,13 @@ function ArmBanner() {
 
   useEffect(() => {
     const refresh = () => setArmState(getArm());
-    window.addEventListener("coldtrace-arm", refresh);
+    window.addEventListener("vialtality-arm", refresh);
     const timer = setInterval(() => {
       refresh();
       tick((n) => n + 1);
     }, 1000);
     return () => {
-      window.removeEventListener("coldtrace-arm", refresh);
+      window.removeEventListener("vialtality-arm", refresh);
       clearInterval(timer);
     };
   }, []);

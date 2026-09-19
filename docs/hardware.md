@@ -25,7 +25,7 @@ nodes. Power: a USB power bank, or LiPo cells if you have them.
  └────────────────────────────────────────────┘
         │ WiFi (phone hotspot, 2.4 GHz)
         ▼
-   ColdTrace server ◀── Home Assistant ◀── SmartThings Find (SmartTag)
+   Vialtality server ◀── Home Assistant ◀── SmartThings Find (SmartTag)
 ```
 
 1. **SHT31 → ESP32 #1**: SDA→GPIO21, SCL→GPIO22, VIN→3V3, GND→GND.

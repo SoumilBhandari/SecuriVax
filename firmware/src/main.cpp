@@ -1,4 +1,4 @@
-// ColdTrace node firmware (skeleton).
+// Vialtality node firmware (skeleton).
 //
 // Every wake: read temperature, humidity and battery, sometimes a GPS fix,
 // append one record to a queue in flash, and every few wakes push the queue to
@@ -258,7 +258,7 @@ void flushQueue() {
 
 void loadBootId() {
   Preferences prefs;
-  prefs.begin("coldtrace", false);
+  prefs.begin("vialtality", false);
   boot_id = prefs.getUInt("boot_id", 0);
   if (esp_reset_reason() != ESP_RST_DEEPSLEEP) {
     boot_id++;  // fresh power-on: seq restarts, so (boot_id, seq) stays unique
@@ -290,7 +290,7 @@ void setup() {
   loadBootId();
 
 #if DEMO_MODE
-  Serial.printf("ColdTrace %s demo mode, boot %u\n", NODE_ID, boot_id);
+  Serial.printf("Vialtality %s demo mode, boot %u\n", NODE_ID, boot_id);
 #else
   cycle();
   esp_sleep_enable_timer_wakeup((uint64_t)SAMPLE_INTERVAL_S * 1000000ULL);
