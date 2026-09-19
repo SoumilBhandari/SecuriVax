@@ -1545,6 +1545,26 @@
   color: var(--text);
   box-shadow: var(--shadow-card);
 }
+/*
+ * Touch: the 44px targets docs/ui-overhaul.md promises. A finger has no tip,
+ * so the filter pills, the chips and the map's buttons grow on a touch screen
+ * while a pointer keeps the compact sizes the design was drawn at.
+ */
+@media (pointer: coarse) {
+  .segmented__btn {
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .chip {
+    min-height: 44px;
+  }
+  .map-btn {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+}
 .map-btn:hover {
   background: var(--surface);
 }
