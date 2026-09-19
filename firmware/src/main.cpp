@@ -31,9 +31,15 @@
 #ifndef VERDICT_LED_PIN
 #define VERDICT_LED_PIN -1
 #endif
+#ifndef DHT_PIN
+#define DHT_PIN -1
+#endif
 #if HAS_DS18B20
 #include <DallasTemperature.h>
 #include <OneWire.h>
+#endif
+#if DHT_PIN >= 0
+#include <DHT.h>
 #endif
 
 static const char *FW_VERSION = "0.1.0";
@@ -68,6 +74,15 @@ Adafruit_SHT31 sht31;
 #if HAS_DS18B20
 OneWire oneWire(DS18B20_PIN);
 DallasTemperature probe(&oneWire);
+#endif
+
+// Which sensor gives the temperature: a DS18B20 probe if one answers, else the
+// SHT31, else a DHT11/DHT22.
+bool use_probe = false;
+bool sht_ok = false;
+bool use_dht = false;
+#if DHT_PIN >= 0
+DHT dht(DHT_PIN, DHT_TYPE);
 #endif
 
 // Worst verdict in the carrier, from the last ack: 0 none, 1 USE, 2 USE FIRST,
@@ -132,15 +147,22 @@ void updateGps() {
 }
 
 bool sample(Record &r) {
+  float t = NAN;
+  float h = sht_ok ? sht31.readHumidity() : NAN;  // air humidity, if the SHT31 is fitted
 #if HAS_DS18B20
-  probe.requestTemperatures();  // ~750 ms at 12-bit
-  float t = probe.getTempCByIndex(0);
-  // -127: probe disconnected; 85: power-on value before the first conversion.
-  if (t == DEVICE_DISCONNECTED_C || t == 85.0f) t = NAN;
-  float h = sht31.readHumidity();  // air humidity, if the SHT31 is fitted
-#else
-  float t = sht31.readTemperature();
-  float h = sht31.readHumidity();
+  if (use_probe) {
+    probe.requestTemperatures();  // ~750 ms at 12-bit
+    t = probe.getTempCByIndex(0);
+    // -127: probe disconnected; 85: power-on value before the first conversion.
+    if (t == DEVICE_DISCONNECTED_C || t == 85.0f) t = NAN;
+  }
+#endif
+  if (!use_probe && sht_ok) t = sht31.readTemperature();
+#if DHT_PIN >= 0
+  if (!use_probe && !sht_ok && use_dht) {
+    t = dht.readTemperature();
+    h = dht.readHumidity();
+  }
 #endif
   if (isnan(t)) {
     Serial.println("temperature read failed; skipping this sample");
@@ -161,6 +183,7 @@ bool sample(Record &r) {
 // --------------------------------------------------------------- queue -----
 
 size_t queuedCount() {
+  if (!LittleFS.exists(QUEUE_PATH)) return 0;  // nothing queued yet (and no error log)
   File f = LittleFS.open(QUEUE_PATH, "r");
   size_t n = f ? f.size() / sizeof(Record) : 0;
   if (f) f.close();
@@ -178,6 +201,7 @@ void enqueue(const Record &r) {
 }
 
 size_t peek(Record *out, size_t max) {
+  if (!LittleFS.exists(QUEUE_PATH)) return 0;
   File f = LittleFS.open(QUEUE_PATH, "r");
   if (!f) return 0;
   size_t n = f.read((uint8_t *)out, max * sizeof(Record)) / sizeof(Record);
@@ -188,6 +212,7 @@ size_t peek(Record *out, size_t max) {
 // Drop every record the server has acked (seq <= ack). Crash-safe: write a
 // new file, then rename over the old one.
 void dropAcked(uint32_t ack) {
+  if (!LittleFS.exists(QUEUE_PATH)) return;
   File in = LittleFS.open(QUEUE_PATH, "r");
   if (!in) return;
   File out = LittleFS.open(QUEUE_TMP, "w");
@@ -323,11 +348,25 @@ void setup() {
   setenv("TZ", "UTC0", 1);  // mktime() on GPS time must not apply a zone
   tzset();
   Wire.begin(I2C_SDA, I2C_SCL);
-  if (!sht31.begin(0x44)) Serial.println("SHT31 not found");
+  sht_ok = sht31.begin(0x44) || sht31.begin(0x45);  // 0x45 when the board's ADR pin is high
 #if HAS_DS18B20
   probe.begin();
-  if (probe.getDeviceCount() == 0) Serial.println("DS18B20 not found");
+  use_probe = probe.getDeviceCount() > 0;
 #endif
+#if DHT_PIN >= 0
+  if (!use_probe && !sht_ok) {
+    dht.begin();
+    for (int i = 0; i < 3 && !use_dht; i++) {  // it needs a moment after power-up
+      delay(1200);
+      use_dht = !isnan(dht.readTemperature(false, true));
+    }
+  }
+#endif
+  if (use_probe) Serial.printf("temperature: DS18B20 probe on GPIO %d%s\n", DS18B20_PIN, sht_ok ? ", humidity: SHT31" : "");
+  else if (sht_ok) Serial.printf("temperature and humidity: SHT31 on SDA %d / SCL %d\n", I2C_SDA, I2C_SCL);
+  else if (use_dht) Serial.printf("temperature and humidity: %s on GPIO %d\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", DHT_PIN);
+  else Serial.printf("no temperature sensor found: SHT31 on SDA %d / SCL %d, DS18B20 on GPIO %d (4.7k pull-up), or DHT on GPIO %d\n",
+                     I2C_SDA, I2C_SCL, HAS_DS18B20 ? DS18B20_PIN : -1, DHT_PIN);
 #if VERDICT_LED_PIN >= 0
   pinMode(VERDICT_LED_PIN, OUTPUT);
 #endif

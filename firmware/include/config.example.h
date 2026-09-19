@@ -23,8 +23,14 @@
 // among the vaccines. When that water really freezes the reading drops, then
 // sits at 0 °C while it turns to ice: proof of a freeze, which neither a VVM
 // nor a freeze indicator can give. The SHT31 still gives the air humidity.
-#define HAS_DS18B20 0
-#define DS18B20_PIN 4                     // data line, with a 4.7k pull-up to 3.3V
+#define HAS_DS18B20 1                     // used when one answers on the pin, else the SHT31
+#define DS18B20_PIN 13                    // data line, with a 4.7k pull-up to 3.3V
+
+// DHT11 or DHT22 module (S/OUT/DATA pin to this GPIO, + to 3V3, - to GND).
+// A DHT11 reads 0-50 °C in whole degrees: fine for heat, blind to freezing.
+// A DHT22 reads -40-80 °C. -1 = none.
+#define DHT_PIN 4
+#define DHT_TYPE DHT11                    // or DHT22
 
 // Status LED showing the worst verdict among the boxes in this carrier
 // (demo build only; the battery build sleeps). -1 = no LED.
