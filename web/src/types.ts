@@ -353,3 +353,22 @@ export interface AgentAdvice {
   };
   steps: { tool: string; args: Record<string, unknown>; result: unknown }[];
 }
+
+export interface MetricStat {
+  mean: number;
+  p10: number;
+  p90: number;
+}
+
+export type PolicyId = "status_quo" | "alarm_logger" | "vialtality" | "vialtality_planned";
+
+export interface Impact {
+  run: {
+    weather: { source: string; start: string; end: string };
+    days: number;
+    trips: number;
+    assumptions: { name: string; value: number; note: string }[];
+    policies: ({ id: PolicyId; description: string; doses: number } & Record<string, unknown>)[];
+  };
+  sweep: { seeds: number; days: number; summary: Record<PolicyId, Record<string, MetricStat>> };
+}

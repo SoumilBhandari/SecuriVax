@@ -20,8 +20,8 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
           <Link to="/plan" className="hover:text-slate-800">
             Plan
           </Link>
-          <Link to="/tags" className="hover:text-slate-800">
-            Tags
+          <Link to="/impact" className="hover:text-slate-800">
+            Impact
           </Link>
         </nav>
       </header>

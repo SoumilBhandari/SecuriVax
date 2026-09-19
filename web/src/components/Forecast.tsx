@@ -19,7 +19,7 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
     return () => clearInterval(timer);
   }, [nodeId]);
 
-  if (!data) return null;
+  if (!data) return <p className="py-4 text-center text-sm text-slate-500">Running the forecast…</p>;
   if (!data.available) {
     return <p className="text-sm text-slate-500">{data.reason}</p>;
   }

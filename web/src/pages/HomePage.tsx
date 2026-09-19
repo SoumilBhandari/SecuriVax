@@ -103,6 +103,11 @@ export default function HomePage() {
           </ul>
         </Card>
       )}
+      <p className="text-center text-sm text-slate-500">
+        <Link to="/tags" className="underline underline-offset-2">
+          NFC tags and the VVM test card
+        </Link>
+      </p>
     </Layout>
   );
 }
