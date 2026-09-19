@@ -60,6 +60,7 @@ def build_facts(box: Box, profile: ProductProfile, report: Report, places: dict[
                 "to": _place(places, s.end_lat, s.end_lon),
                 "start": _iso(s.start_ts),
                 "end": _iso(s.end_ts) or "still inside",
+                "hours": round(((s.end_ts or report.computed_at) - s.start_ts) / 3600, 1),
                 "min_temp_c": s.min_temp_c,
                 "max_temp_c": s.max_temp_c,
                 "budget_used_pct": round(s.budget_used * 100, 1),
@@ -80,6 +81,12 @@ def build_facts(box: Box, profile: ProductProfile, report: Report, places: dict[
     }
 
 
+def _duration(hours: float) -> str:
+    if hours < 1:
+        return f"{max(hours * 60, 1):.0f} min"
+    return f"{hours:.0f} h" if hours < 48 else f"{hours / 24:.1f} days"
+
+
 COORDS = re.compile(r"^-?\d+\.\d+, -?\d+\.\d+$")
 
 
@@ -87,7 +94,7 @@ def template_text(facts: dict) -> str:
     """Used when Grok is unavailable: the engine's own words, lightly joined."""
     legs = []
     for leg in facts["legs"]:
-        line = f"{leg['node']}, {leg['start']} to {leg['end']}"
+        line = f"{leg['node']} ({_duration(leg['hours'])}{', still inside' if leg['end'] == 'still inside' else ''})"
         if leg["from"] and leg["to"] and not COORDS.match(leg["from"]) and not COORDS.match(leg["to"]):
             line += f", {leg['from']} to {leg['to']}"
         legs.append(line)

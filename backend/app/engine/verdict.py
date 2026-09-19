@@ -98,7 +98,7 @@ def _how_long(runs: list) -> str:
 
 
 def _pct(x: float) -> str:
-    return f"{x * 100:.0f}%"
+    return "under 1%" if 0 < x < 0.005 else f"{x * 100:.0f}%"
 
 
 def evaluate(
@@ -247,7 +247,7 @@ def evaluate(
     )
 
     stats = _summary(profile, segments, now)
-    logger = _threshold_logger(results, verdict, stats["hours_out_of_range"])
+    logger = _threshold_logger(profile, results, verdict, stats["hours_out_of_range"])
     return Report(
         verdict=verdict,
         action=action,
@@ -298,15 +298,18 @@ def _summary(profile: ProductProfile, segments: list[Segment], now: int) -> dict
     }
 
 
-def _threshold_logger(results: list[SegmentResult], verdict: str, hours_out: float) -> dict:
+def _threshold_logger(
+    profile: ProductProfile, results: list[SegmentResult], verdict: str, hours_out: float
+) -> dict:
     """What a threshold logger would have concluded from the same record: it
-    alarms on 10 h continuously above +8 C or 60 min at or below -0.5 C, for any
-    product, and alarm-only practice is to discard. Compare with our verdict."""
-    heat = max((r.minutes for s in results for r in s.runs if r.kind == "heat" and r.extreme > HEAT_ALARM_C), default=0.0)
+    alarms on 10 h continuously above the labelled maximum (+8 C for vaccines)
+    or 60 min at or below -0.5 C, and alarm-only practice is to discard.
+    Compare with our verdict."""
+    heat = max((r.minutes for s in results for r in s.runs if r.kind == "heat"), default=0.0)
     freeze = max((r.minutes for s in results for r in s.runs if r.kind == "freeze"), default=0.0)
     alarms = []
     if heat >= HEAT_ALARM_MINUTES:
-        alarms.append(f"{heat / 60:.0f} h above 8 °C")
+        alarms.append(f"{heat / 60:.0f} h in a row above {profile.storage_max_c:g} °C")
     if freeze >= FREEZE_ALARM_MINUTES:
         alarms.append(f"{freeze:.0f} min at or below -0.5 °C")
     alarm = bool(alarms)
