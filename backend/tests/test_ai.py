@@ -32,8 +32,9 @@ def test_explain_without_keys_uses_template_and_coordinates(client, session):
     body = client.post("/api/boxes/BOX-0001/explain").json()
     assert body["verdict"] == "QUARANTINE"
     assert body["source"] == "template" and body["places_source"] == "coords"
-    assert body["text"].startswith("QUARANTINE")
+    assert "QUARANTINE: Hold this box" in body["text"]
     assert "shake test" in body["text"]
+    assert "34." not in body["text"]  # no raw coordinates in prose
     assert all("," in name for name in body["places"].values())
 
 

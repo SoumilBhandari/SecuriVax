@@ -8,6 +8,7 @@ fails, a deterministic template is used instead.
 import hashlib
 import json
 import logging
+import re
 from datetime import datetime, timezone
 
 import httpx
@@ -79,16 +80,22 @@ def build_facts(box: Box, profile: ProductProfile, report: Report, places: dict[
     }
 
 
+COORDS = re.compile(r"^-?\d+\.\d+, -?\d+\.\d+$")
+
+
 def template_text(facts: dict) -> str:
-    what = " ".join(facts["reasons"])
-    legs = [leg for leg in facts["legs"] if leg["from"]]
-    route = ""
-    if legs:
-        route = f" It travelled in {legs[-1]['node']} from {legs[0]['from']} to {legs[-1]['to']}."
+    """Used when Grok is unavailable: the engine's own words, lightly joined."""
+    legs = []
+    for leg in facts["legs"]:
+        line = f"{leg['node']}, {leg['start']} to {leg['end']}"
+        if leg["from"] and leg["to"] and not COORDS.match(leg["from"]) and not COORDS.match(leg["to"]):
+            line += f", {leg['from']} to {leg['to']}"
+        legs.append(line)
+    rode = f" It rode in {'; then '.join(legs)}." if legs else ""
     demo = " (Demo: time is accelerated.)" if facts["demo_time"] else ""
     return (
-        f"{facts['verdict']}: {facts['product']}, box {facts['box']}. "
-        f"{facts['budget_used_pct']}% of its heat budget is used. {what}{route}\n\n{facts['action']}{demo}"
+        f"{facts['product']}, box {facts['box']}, has used {facts['budget_used_pct']}% of its heat budget."
+        f"{rode} {' '.join(facts['reasons'])}\n\n{facts['verdict']}: {facts['action']}{demo}"
     )
 
 
