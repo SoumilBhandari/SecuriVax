@@ -690,7 +690,7 @@
   },
   {
    "name": "api",
-   "description": "API latency and payload size on the eight-lane demo with full history (in-process, laptop)",
+   "description": "API latency and payload size on the nine-lane demo with full history (in-process, laptop)",
    "seconds": 2.8,
    "passed": true,
    "metrics": [

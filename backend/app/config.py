@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     weather_offline: bool = False
     # Fill a fresh database with a few days of demo trips.
     demo_history: bool = True
-    # "lanes": eight shipments across Africa; "kisumu": one district (tests, backtest).
+    # "lanes": eight shipments across Africa and an outreach day; "kisumu": one district (tests, backtest).
     demo_dataset: str = "lanes"
     # Keep the simulated lane carriers reporting while the server runs, so the
     # demo doesn't go stale an hour after it was seeded.

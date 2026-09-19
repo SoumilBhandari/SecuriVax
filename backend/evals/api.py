@@ -1,4 +1,4 @@
-"""API latency and payload size on the full demo (eight lanes, days of history).
+"""API latency and payload size on the full demo (nine lanes, days of history).
 
 Measured in-process (no network) on whatever machine runs the evals, so the
 targets are for a laptop; a 1 vCPU deploy is roughly 2x slower. What matters is
@@ -75,7 +75,7 @@ def run(quick: bool) -> SuiteResult:
         Metric("largest box report, gzipped (KB)", gz_kb, 40, higher_is_better=False, note=f"{raw_kb:.0f} KB raw"),
     ]
     return SuiteResult(
-        "api", "API latency and payload size on the eight-lane demo with full history (in-process, laptop)",
+        "api", "API latency and payload size on the nine-lane demo with full history (in-process, laptop)",
         metrics, time.time() - started, {"boxes": len(boxes), "carriers": carriers, "reps": reps},
     )
 

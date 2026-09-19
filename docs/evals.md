@@ -124,7 +124,7 @@ Node-to-server ingest over a lossy, reordering link, with reboots, unset clocks 
 
 ## api ✅
 
-API latency and payload size on the eight-lane demo with full history (in-process, laptop)
+API latency and payload size on the nine-lane demo with full history (in-process, laptop)
 
 | Metric | Value | Target | |
 | --- | --- | --- | --- |

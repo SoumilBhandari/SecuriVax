@@ -1,8 +1,10 @@
-"""Demo dataset: eight shipments across Africa, from central store to district.
+"""Demo dataset: eight shipments across Africa, from central store to district,
+and the last mile after them: a health worker's outreach day with a vaccine
+carrier, where the VVM is often the only monitor and can't see freezing.
 
 Each lane is a chain of stops. At every stop the box sits in that facility's
 cold room (a monitored fridge); between stops it rides in the lane's truck
-cold box. Temperatures come from physics on real weather at each position
+cold box, or on an outreach lane in a vaccine carrier on a motorbike. Temperatures come from physics on real weather at each position
 (Open-Meteo; the offline climate model if there's no network), plus the
 incident each lane is built around (a hub power cut, a hot trunk road, a
 freezing cold room). Nothing here sets a verdict: the engine decides.
@@ -53,6 +55,22 @@ class Lane:
     truck_gain_c: float = 1.0
     speed_kmh: float = 45.0
     extra: dict = field(default_factory=dict)
+    vehicle: str = "truck"  # truck | carrier (a health worker's vaccine carrier)
+    # Hours the carrier is out, when it's a day of work rather than a drive
+    # (an outreach session: the ride out, the session, the ride back).
+    leg_h: float | None = None
+    # Ice packs put in straight from the freezer, not conditioned: the carrier
+    # dips below 0 C for the first hours of the trip.
+    frozen_packs: bool = False
+
+
+def carrier_id(lane: "Lane") -> str:
+    return f"{lane.code}-TRK" if lane.vehicle == "truck" else f"{lane.code}-VC"
+
+
+def carrier_label(lane: "Lane") -> str:
+    a, b = lane.stops[0], lane.stops[-1]
+    return f"Truck cold box {a.city}–{b.city}" if lane.vehicle == "truck" else f"Vaccine carrier {a.city}–{b.city} (motorbike)"
 
 
 LANES: list[Lane] = [
@@ -97,6 +115,13 @@ LANES: list[Lane] = [
         Stop("TAM-PRA", "Regional store", "Tambacounda", 13.7707, -13.6673, "hub", 24),
         Stop("KED-CS", "Health centre store room", "Kédougou", 12.5556, -12.1743, "clinic", 60),
     ], delivered=True, truck_cold_life_h=12, extra={"store_room": True}),
+    # The last mile: a day's outreach session from a rural health centre. 60
+    # doses in a vaccine carrier on a motorbike, packed with ice packs straight
+    # from the freezer. Pentavalent is freeze-sensitive, and its VVM can't show it.
+    Lane("KO", "BOX-KO-0915", "penta", "PT-24K915", 60, 0.08, [
+        Stop("KMB-HC", "Health centre", "Kombewa", -0.1036, 34.5146, "hub", 20),
+        Stop("KW-OUT", "Outreach session at a primary school", "Kisumu West", -0.0400, 34.6200, "clinic"),
+    ], delivered=False, truck_cold_life_h=18, vehicle="carrier", leg_h=9, frozen_packs=True),
 ]
 
 
@@ -130,9 +155,8 @@ def facilities() -> list[Facility]:
 def nodes(key: str) -> list[Node]:
     out = []
     for lane in LANES:
-        a, b = lane.stops[0], lane.stops[-1]
-        out.append(Node(id=f"{lane.code}-TRK", label=f"Truck cold box {a.city}–{b.city}", kind="cold_box",
-                        facility=a.city, key=key))
+        out.append(Node(id=carrier_id(lane), label=carrier_label(lane), kind="cold_box" if lane.vehicle == "truck" else "carrier",
+                        facility=lane.stops[0].city, key=key))
         for s in lane.stops[:-1] if not lane.delivered else lane.stops:
             out.append(Node(id=f"{s.id}-CR", label=f"{s.city} {_lower_first(s.name)}", kind="cold_room",
                             facility=f"{s.city} · {s.name}", key=key))
@@ -186,6 +210,18 @@ def _store_room(stop: Stop) -> Callable[[int], float]:
     return lambda ts: outside(ts) + 3.0
 
 
+# Unconditioned ice packs: the carrier falls below freezing within half an
+# hour, bottoms out near -2 C, and stays under -0.5 C for over an hour while
+# the packs warm (a fast chill, then a slow recovery).
+FROZEN_PACK_DIP_C = 8.5
+FROZEN_PACK_CHILL_H = 0.2
+FROZEN_PACK_RECOVER_H = 3.5
+
+
+def _pack_chill(hours: float) -> float:
+    return FROZEN_PACK_DIP_C * (1 - math.exp(-hours / FROZEN_PACK_CHILL_H)) * math.exp(-hours / FROZEN_PACK_RECOVER_H)
+
+
 def _truck(lane: Lane, a: Stop, b: Stop, start: int, end: int, life_h: float) -> Callable[[int], float]:
     mid_lat, mid_lon = (a.lat + b.lat) / 2, (a.lon + b.lon) / 2
     outside = _outside(mid_lat, mid_lon)
@@ -195,7 +231,13 @@ def _truck(lane: Lane, a: Stop, b: Stop, start: int, end: int, life_h: float) ->
         twin.step(p, outside(t + STEP), STEP / 3600, None)
         t += STEP
         temps[t] = float(p.temp[0])
+        if lane.frozen_packs:
+            temps[t] -= _pack_chill((t - start) / H)
     return lambda ts: temps.get(ts, temps[max(k for k in temps if k <= ts)])
+
+
+def _leg_h(lane: Lane, a: Stop, b: Stop) -> float:
+    return lane.leg_h if lane.leg_h is not None else _km(a, b) / lane.speed_kmh
 
 
 def backfill(session: Session, now: int) -> None:
@@ -208,12 +250,12 @@ def backfill(session: Session, now: int) -> None:
     for lane in LANES:
         legs = []  # (node_id, start, end, temp_fn, where_fn, rh_fn, note)
         # Work backwards from now so in-transit lanes are mid-leg right now.
-        total_h = sum(s.dwell_h for s in lane.stops[:-1]) + sum(_km(a, b) / lane.speed_kmh for a, b in zip(lane.stops, lane.stops[1:]))
+        total_h = sum(s.dwell_h for s in lane.stops[:-1]) + sum(_leg_h(lane, a, b) for a, b in zip(lane.stops, lane.stops[1:]))
         if lane.delivered:
             total_h += lane.stops[-1].dwell_h + 2
             t = now - int(total_h * H)
         else:
-            t = now - int((total_h - 0.55 * _km(lane.stops[-2], lane.stops[-1]) / lane.speed_kmh) * H)
+            t = now - int((total_h - 0.55 * _leg_h(lane, lane.stops[-2], lane.stops[-1])) * H)
         for i, stop in enumerate(lane.stops):
             last = i == len(lane.stops) - 1
             if last and not lane.delivered:
@@ -226,12 +268,12 @@ def backfill(session: Session, now: int) -> None:
             if last:
                 break
             nxt = lane.stops[i + 1]
-            drive_end = t + int(_km(stop, nxt) / lane.speed_kmh * H)
+            drive_end = t + int(_leg_h(lane, stop, nxt) * H)
             open_leg = (i + 1 == len(lane.stops) - 1) and not lane.delivered
             end = min(drive_end, now - 60) if open_leg else drive_end
             temp = _truck(lane, stop, nxt, t, max(end, t + STEP), lane.truck_cold_life_h)
             where = (lambda a, b: (lambda f: (a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f)))(stop, nxt)
-            legs.append((f"{lane.code}-TRK", t, end, temp, where, lambda ts: 50.0, None if open_leg else f"to {nxt.city}"))
+            legs.append((carrier_id(lane), t, end, temp, where, lambda ts: 50.0, None if open_leg else f"to {nxt.city}"))
             t = drive_end
         for node_id, start, end, temp, where, rh, note in legs:
             _write(session, node_id, start, end, temp, where, rh)
@@ -248,7 +290,7 @@ def _lower_first(name: str) -> str:
 
 
 def lane_node_ids() -> set[str]:
-    return {f"{lane.code}-TRK" for lane in LANES} | {f"{s.id}-CR" for lane in LANES for s in lane.stops}
+    return {carrier_id(lane) for lane in LANES} | {f"{s.id}-CR" for lane in LANES for s in lane.stops}
 
 
 def keep_alive(session: Session, now: int, rng: random.Random | None = None) -> int:
