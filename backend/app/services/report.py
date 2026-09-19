@@ -11,8 +11,8 @@ from app.engine import history
 from app.engine.location import MAX_INTERPOLATE_S, attach_positions
 from app.engine.profiles import PRODUCTS_BY_ID
 from app.engine.redundancy import merge
-from app.engine.verdict import Report, evaluate
-from app.models import Box, Custody, LocationPoint, Node, Reading, TextCache
+from app.engine.verdict import LabelCheck, Report, evaluate
+from app.models import Box, Custody, LocationPoint, Node, Reading, TextCache, VvmCheck
 
 # Enough to draw a route; excursion points are always kept.
 MAX_ROUTE_POINTS = 400
@@ -72,10 +72,21 @@ def box_segments(session: Session, box_id: str, now: int) -> list[history.Segmen
     return segments
 
 
+def latest_label(session: Session, box_id: str) -> VvmCheck | None:
+    return session.exec(
+        select(VvmCheck).where(VvmCheck.box_id == box_id, VvmCheck.confirmed).order_by(VvmCheck.ts.desc())
+    ).first()
+
+
+def _label(check: VvmCheck | None) -> LabelCheck | None:
+    return LabelCheck(check.ts, check.progress, check.past_endpoint) if check else None
+
+
 def evaluate_box(session: Session, box: Box, now: int | None = None) -> Report:
     now = int(time.time()) if now is None else now
     profile = PRODUCTS_BY_ID[box.product_id]
-    return evaluate(profile, box_segments(session, box.id, now), now, box.initial_budget_used)
+    label = _label(latest_label(session, box.id))
+    return evaluate(profile, box_segments(session, box.id, now), now, box.initial_budget_used, label)
 
 
 def _thin(points: list[dict], keep_if=lambda p: False) -> list[dict]:
@@ -114,12 +125,15 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     now = int(time.time()) if now is None else now
     profile = PRODUCTS_BY_ID[box.product_id]
     segments = box_segments(session, box.id, now)
-    report = evaluate(profile, segments, now, box.initial_budget_used)
+    check = latest_label(session, box.id)
+    report = evaluate(profile, segments, now, box.initial_budget_used, _label(check))
     data = asdict(report)
-    forced = any(r.code in ("HISTORY_GAP", "NODE_OFFLINE") for r in report.reasons)
-    data["confidence"] = asdict(
-        verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced)
-    )
+    forced = any(r.code in ("HISTORY_GAP", "NODE_OFFLINE", "VVM_NEAR_ENDPOINT") for r in report.reasons)
+    confidence = verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced)
+    if check and check.past_endpoint:  # a person confirmed the label: no sensor doubt applies
+        confidence.confidence, confidence.p_discard, confidence.borderline = 1.0, 1.0, False
+    data["confidence"] = asdict(confidence)
+    data["label_check"] = check.model_dump() if check else None
     from app.services.climate import leg_environment  # avoids an import cycle
 
     for seg, result in zip(data["segments"], report.segments):
@@ -133,3 +147,4 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["current_node_id"] = open_seg.node_id if open_seg else None
     data["places"] = cached_places(session, key_points(report))
     return data
+

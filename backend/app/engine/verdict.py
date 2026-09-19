@@ -38,6 +38,15 @@ class Reason:
 
 
 @dataclass
+class LabelCheck:
+    """A confirmed camera reading of the vial's VVM label."""
+
+    ts: int
+    progress: float
+    past_endpoint: bool
+
+
+@dataclass
 class Report:
     verdict: str
     action: str
@@ -80,6 +89,7 @@ def evaluate(
     segments: list[Segment],
     now: int | None = None,
     initial_budget_used: float = 0.0,
+    label: LabelCheck | None = None,
 ) -> Report:
     now = int(time.time()) if now is None else now
     results = [analyze_segment(profile, s, now) for s in segments]
@@ -154,6 +164,22 @@ def evaluate(
                     f"No temperature record for {fmt_minutes(gap.minutes)} in {r.node_label}.",
                 ))
             checks.append("Ask a supervisor to review the missing temperature record")
+
+    # The second witness: the vial's own VVM, read by the camera and confirmed
+    # by a person. WHO practice is that a VVM at its discard point means discard,
+    # whatever else says; otherwise the more cautious witness decides.
+    if label is not None:
+        if label.past_endpoint:
+            reasons.insert(0, Reason(
+                "VVM_PAST_ENDPOINT", "discard",
+                f"The vial's VVM is at its discard point (camera {label.progress * 100:.0f}%, confirmed).",
+            ))
+        elif label.progress >= QUARANTINE_AT and budget < QUARANTINE_AT:
+            reasons.insert(0, Reason(
+                "VVM_NEAR_ENDPOINT", "quarantine",
+                f"The vial's VVM is close to its discard point (camera {label.progress * 100:.0f}%).",
+            ))
+            checks.append("Compare every vial's VVM before use")
 
     severities = {r.severity for r in reasons}
     if "discard" in severities:

@@ -137,3 +137,22 @@ class TextCache(SQLModel, table=True):
     text: str = Field(sa_column=Column(Text, nullable=False))
     source: str  # grok | gemini | template | coords
     created_at: int = Field(default_factory=now_ts)
+
+
+class VvmCheck(SQLModel, table=True):
+    """A photo of the vial's VVM label, read by the camera and confirmed by a person."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    box_id: str = Field(foreign_key="box.id", index=True)
+    ts: int = Field(default_factory=now_ts)
+    progress: float  # 0 fresh label, 1 discard point (camera measurement)
+    stage: int
+    past_endpoint: bool
+    sensor_budget: float  # what our record said at the moment of the photo
+    agreement: str  # AGREE | LABEL_AHEAD | SENSOR_AHEAD
+    gemini_stage: int | None = None
+    gemini_confidence: float | None = None
+    gemini_note: str = ""
+    # Human in the loop: nothing counts until a person confirms (or corrects) it.
+    confirmed: bool = False
+    worker_stage: int | None = None
