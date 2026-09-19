@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     grok_model: str = "grok-4.6"
     # Seconds to wait on either model before falling back to templates.
     ai_timeout_s: float = 12.0
+    # Grok's written report takes 15-30 s; it's only asked for when someone
+    # opens it (and then cached), so it gets longer before the template stands in.
+    report_timeout_s: float = 45.0
     cors_origins: str = "http://localhost:5173"
     # Weather from Open-Meteo (free, no key). Offline, a climate model stands in.
     weather_offline: bool = False

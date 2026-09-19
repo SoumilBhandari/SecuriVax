@@ -119,7 +119,7 @@ def _output_text(data: dict) -> str:
 
 async def _ask_grok(facts: dict) -> str:
     settings = get_settings()
-    async with httpx.AsyncClient(timeout=settings.ai_timeout_s) as client:
+    async with httpx.AsyncClient(timeout=settings.report_timeout_s) as client:
         res = await client.post(
             XAI_URL,
             headers={"Authorization": f"Bearer {settings.xai_api_key}"},

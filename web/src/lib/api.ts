@@ -108,7 +108,8 @@ export const api = {
   counterfactual: (id: string) => request<CounterfactualRow[]>(`/api/boxes/${encodeURIComponent(id)}/counterfactual`),
   report: (id: string) => request<Report>(`/api/boxes/${encodeURIComponent(id)}/report`),
   explain: (id: string) =>
-    request<Explanation>(`/api/boxes/${encodeURIComponent(id)}/explain`, { method: "POST" }),
+    // Grok can take half a minute to write it; the server falls back to a template after 45 s.
+    request<Explanation>(`/api/boxes/${encodeURIComponent(id)}/explain`, { method: "POST", signal: AbortSignal.timeout(60000) }),
   load: (boxId: string, nodeId: string) =>
     request<{ status: string; action?: string; node_id: string }>(
       `/api/boxes/${encodeURIComponent(boxId)}/load`,
@@ -133,6 +134,7 @@ export const api = {
     request<AgentAdvice>(`/api/nodes/${encodeURIComponent(nodeId)}/agent`, {
       method: "POST",
       body: JSON.stringify({ destination_id: destinationId }),
+      signal: AbortSignal.timeout(60000), // Gemini may call several tools in turn
     }),
   decide: (nodeId: string, action: string, facilityId: string | null) =>
     request<{ logged: number }>(`/api/nodes/${encodeURIComponent(nodeId)}/decisions`, {
