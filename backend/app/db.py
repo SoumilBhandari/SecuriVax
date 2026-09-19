@@ -7,7 +7,7 @@ from app.config import get_settings
 
 
 def normalize_url(url: str) -> str:
-    """Render hands out postgres:// URLs; SQLAlchemy wants the psycopg driver."""
+    """Hosts hand out postgres:// URLs; SQLAlchemy wants the psycopg driver."""
     for prefix in ("postgres://", "postgresql://"):
         if url.startswith(prefix):
             return "postgresql+psycopg://" + url[len(prefix):]

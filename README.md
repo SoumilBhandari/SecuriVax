@@ -284,17 +284,13 @@ cd backend && .venv/bin/python -m pytest
 Add `TEST_DATABASE_URL=postgresql://...` to run the same suite on Postgres.
 Reset the demo data with `python -m simulator.backfill --reset`.
 
-## Deploy (Render)
+## Deploy
 
-`render.yaml` defines one Docker web service plus Postgres. FastAPI serves both
-the API and the built web app, so NFC stickers, nodes and phones all use one
-HTTPS domain.
-
-1. Render: **New > Blueprint** and pick this repo.
-2. Set `GEMINI_API_KEY` and `XAI_API_KEY`. Note the generated `NODE_KEY` for the firmware.
-3. Write the NFC stickers only once the domain is final. The `/tags` page lists each URL.
-
-The starter instance is on purpose: free instances sleep and take about a minute to wake.
+DigitalOcean App Platform, from [`.do/app.yaml`](.do/app.yaml): one Docker
+service (FastAPI serves the API and the built web app, so stickers, nodes and
+phones share one HTTPS domain) plus Postgres. Steps, secrets, a custom domain
+and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
+`/api/health` shows what a deploy has configured (never the values).
 
 ## API
 
@@ -315,11 +311,21 @@ The starter instance is on purpose: free instances sleep and take about a minute
 | POST | `/api/nodes/{id}/agent` | Gemini dispatch agent (rules fallback): continue / divert / hold, with its tool calls |
 | POST | `/api/boxes/{id}/vvm` · `/vvm/{check}/confirm` | Camera VVM reading vs sensor; worker confirms |
 | GET | `/api/impact` | 90-day ERA5 backtest results |
+| GET | `/api/boxes/learning/summary` | What confirmed VVM photos have taught the model, per product |
+| GET | `/api/health` | Liveness plus configuration (database, AI keys, weather, write protection, commit) |
+| POST | `/api/admin/reset-stage` | Stage demo back to the start (operator code) |
+| POST | `/api/admin/reset-demo` | Re-seed everything with history ending now (needs `OPERATOR_TOKEN` set) |
 
 ## Assumptions and limits
 
-- Time between custody segments (e.g. in a clinic fridge with its own logger)
-  is treated as covered by existing monitoring.
+- Time between custody segments (e.g. in a clinic fridge with its own logger,
+  or a box left on a table) is flagged as "unmonitored for X h" in the reasons
+  and the chain of custody. It isn't counted as cold, and it doesn't hold the
+  box on its own.
+- The carrier twin has only been tested on simulated data from its own
+  physics. A real cooler run (predicted against actual breach time) is next.
+- "Holds in N% of scenarios" is a robustness share over sensor bias, batch
+  variation and the starting budget, not a calibrated probability.
 - Rapid-test stability curves are illustrative until we have manufacturer data.
 - The carrier model is deliberately simple (one ice store, one time constant).
   It's for ranking options and spotting bad carriers, not for verdicts.
