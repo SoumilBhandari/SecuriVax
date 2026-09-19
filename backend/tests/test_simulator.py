@@ -26,3 +26,6 @@ def test_backfill_tells_each_boxs_story(session):
     assert "FREEZE_TOLERATED" in {r.code for r in verdicts["BOX-0003"].reasons}
     assert "BUDGET_LOW" in {r.code for r in verdicts["BOX-0002"].reasons}
     assert {"HUMIDITY", "HEAT_EXCURSION"} <= {r.code for r in verdicts["BOX-0101"].reasons}
+
+    seg = verdicts["BOX-0004"].segments[0]
+    assert seg.located_by == "smarttag" and len(seg.route) > 30

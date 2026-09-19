@@ -7,6 +7,10 @@ While it runs, type a letter and press Enter to change what the "sensor" sees:
     n  normal cold chain                  o  toggle offline (no signal)
     q  quit
 
+Without a GPS module (--no-gps), position comes from a Samsung SmartTag in
+the same carrier: every --tag-every readings a SmartTag-style fix is posted to
+/api/ingest/locations, the way the Home Assistant bridge does it.
+
 It speaks the same protocol as the firmware, so it exercises the real ingest
 path: readings are kept until the server acks them, and resent after an outage.
 """
@@ -36,6 +40,7 @@ class SimNode:
         self.offline = False
         self.temp = cold_box_temp(time.time())
         self.battery = 4.15
+        self.tag_fixes: list[dict] = []
         self.running = True
 
     def uptime_ms(self) -> int:
@@ -52,11 +57,17 @@ class SimNode:
         lat, lon = along(KISUMU_TO_KOMBEWA, elapsed / self.args.trip_seconds)
         self.battery = max(3.3, self.battery - 0.0004)
         self.seq += 1
-        return {
+        reading = {
             "seq": self.seq, "ts": int(now), "uptime_ms": self.uptime_ms(),
             "temp_c": round(self.temp, 2), "rh": round(min(max(rh, 0), 100), 1),
-            "lat": round(lat, 6), "lon": round(lon, 6), "battery_v": round(self.battery, 3),
+            "battery_v": round(self.battery, 3),
         }
+        if self.args.no_gps:
+            if self.seq % self.args.tag_every == 1:
+                self.tag_fixes.append({"ts": int(now), "lat": round(lat, 6), "lon": round(lon, 6), "accuracy_m": 25})
+        else:
+            reading.update(lat=round(lat, 6), lon=round(lon, 6))
+        return reading
 
     def upload(self, client: httpx.Client) -> str:
         if self.offline:
@@ -77,6 +88,16 @@ class SimNode:
             res.raise_for_status()
         except httpx.HTTPError as exc:
             return f"upload failed ({exc.__class__.__name__}), will retry"
+        if self.tag_fixes:
+            try:
+                client.post(
+                    f"{self.args.api}/api/ingest/locations",
+                    headers={"X-Node-Key": self.args.key},
+                    json={"node_id": self.args.location_node or self.args.node, "source": "smarttag", "points": self.tag_fixes},
+                ).raise_for_status()
+                self.tag_fixes = []
+            except httpx.HTTPError:
+                pass  # keep them for next time
         ack = res.json()["ack_seq"]
         if ack is not None:
             self.buffer = [r for r in self.buffer if r["seq"] > ack]
@@ -120,6 +141,9 @@ def main() -> None:
     parser.add_argument("--batch", type=int, default=200, help="max readings per upload")
     parser.add_argument("--trip-seconds", type=float, default=600, help="real seconds to drive the route")
     parser.add_argument("--scenario", choices=list(TARGETS), default="n", help="starting mode")
+    parser.add_argument("--no-gps", action="store_true", help="no GPS module: post SmartTag fixes instead")
+    parser.add_argument("--tag-every", type=int, default=6, help="readings between SmartTag fixes")
+    parser.add_argument("--location-node", help="carrier the SmartTag belongs to (default: --node)")
     SimNode(parser.parse_args()).run()
 
 
