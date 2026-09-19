@@ -30,3 +30,6 @@ dist/
 web/.cert/
 vvm-photos/
 dist-snapshot/
+
+# Vercel project link
+.vercel/

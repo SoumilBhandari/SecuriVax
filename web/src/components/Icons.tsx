@@ -10,7 +10,7 @@ function Icon({ size = 18, children, ...rest }: IconProps & { children: ReactNod
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.75}
+      strokeWidth={1.6}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -163,5 +163,33 @@ export const StageIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect x="3" y="4" width="18" height="12" rx="2" />
     <path d="M8 20h8M12 16v4" />
+  </Icon>
+);
+
+export const ListIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13" />
+    <circle cx="3.5" cy="6" r="1" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="12" r="1" fill="currentColor" stroke="none" />
+    <circle cx="3.5" cy="18" r="1" fill="currentColor" stroke="none" />
+  </Icon>
+);
+
+export const MapIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 4 3 6.5v14L9 18l6 2.5 6-2.5v-14L15 6.5 9 4Z" />
+    <path d="M9 4v14M15 6.5v14" />
+  </Icon>
+);
+
+export const PlusIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+);
+
+export const MinusIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 12h14" />
   </Icon>
 );

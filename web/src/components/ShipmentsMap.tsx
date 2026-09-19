@@ -2,12 +2,13 @@ import "leaflet/dist/leaflet.css";
 
 import { divIcon, latLngBounds } from "leaflet";
 import { useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, Polyline, Popup, useMap, useMapEvents } from "react-leaflet";
 import { Link } from "react-router";
 
 import { SEVERITY_ORDER } from "../lib/format";
 import type { BoxSummary, Verdict } from "../types";
 import { VERDICT_KEY, VerdictBadge, type VerdictKey } from "./Brand";
+import { coarsePointer, MapChrome, MapFrame, Tiles } from "./MapBase";
 
 type Located = BoxSummary & { lat: number; lon: number };
 
@@ -64,12 +65,10 @@ function ShipmentsMap({ boxes }: { boxes: BoxSummary[] }) {
   if (located.length === 0) return null;
   const bounds = latLngBounds(located.flatMap((b) => [[b.lat, b.lon] as [number, number], ...(b.from_lat != null && b.from_lon != null ? [[b.from_lat, b.from_lon] as [number, number]] : [])])).pad(0.15);
   return (
-    <div className="h-[420px] overflow-hidden rounded-2xl border border-line lg:h-[min(620px,calc(100dvh-300px))]">
-      <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full">
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        />
+    <MapFrame className="h-[420px] lg:h-[min(620px,calc(100dvh-300px))]">
+      <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} zoomControl={false} attributionControl={false} className="h-full w-full">
+        <Tiles />
+        <MapChrome />
         {located.map((b) =>
           b.from_lat != null && b.from_lon != null ? (
             <Trip key={`trip-${b.id}`} box={b} />
@@ -77,7 +76,7 @@ function ShipmentsMap({ boxes }: { boxes: BoxSummary[] }) {
         )}
         <Groups boxes={located} />
       </MapContainer>
-    </div>
+    </MapFrame>
   );
 }
 
@@ -173,7 +172,7 @@ function Group({ members }: { members: Located[] }) {
     return divIcon({
       className: "sv-pin",
       iconSize: [size, size],
-      html: `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#fff"/>${arcs}<text x="50" y="50" dy="0.35em" text-anchor="middle" font-size="30" font-weight="700" fill="#0b2545" font-family="-apple-system, BlinkMacSystemFont, system-ui, sans-serif">${members.length}</text></svg>`,
+      html: `<svg viewBox="0 0 100 100" width="${size}" height="${size}" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#fff"/>${arcs}<text x="50" y="50" dy="0.35em" text-anchor="middle" font-size="30" font-weight="700" fill="#1d1d1f" font-family="SF Pro Display, -apple-system, sans-serif">${members.length}</text></svg>`,
     });
   }, [counts.join(), members.length, size]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -260,7 +259,3 @@ function BoxLine({ box: b }: { box: Located }) {
   );
 }
 
-/** On phones a one-finger drag should scroll the page, not pan the map. */
-function coarsePointer(): boolean {
-  return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
-}

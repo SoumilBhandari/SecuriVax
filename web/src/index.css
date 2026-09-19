@@ -1,130 +1,284 @@
 @import "tailwindcss";
 
 /*
- * SecuriVax. Ink and Glacier on Snow: calm, flat and precise. Tokens come from
- * the brand kit (tokens.css); the theme is light by default and dark on
- * [data-theme="dark"], which index.html sets from the viewer's choice or their
- * system before the first paint. Signal colours are for verdicts only.
+ * SecuriVax. The Apple grammar: near-neutral grounds, SF Pro, glass chrome,
+ * one accent used rarely, and colour reserved for the verdict itself.
+ * The theme is light by default and dark on [data-theme="dark"], which
+ * index.html sets from the viewer's choice or their system before the first
+ * paint. The landing page art-directs its own sections and ignores the theme.
+ * See docs/ui-overhaul.md for the decisions behind every token here.
  */
 
-/* Type is SF Pro: the system font on Apple devices (Apple's licence doesn't
-   allow serving its files), with each other platform's own system font in its
-   place. Only the mono labels' Geist Mono is served from here. */
-/* Geist Mono (SIL Open Font License 1.1): the small uppercase labels. */
+/* ---- Fonts: SF Pro Display for 20px and up, SF Pro Text below, SF Mono for IDs and readings. */
 @font-face {
-  font-family: "Geist Mono";
-  src: url("./assets/fonts/geist-mono-400.woff2") format("woff2");
+  font-family: "SF Pro Display";
+  src: url("/fonts/sf-pro-display-regular.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
 @font-face {
-  font-family: "Geist Mono";
-  src: url("./assets/fonts/geist-mono-500.woff2") format("woff2");
+  font-family: "SF Pro Display";
+  src: url("/fonts/sf-pro-display-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/fonts/sf-pro-display-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Display";
+  src: url("/fonts/sf-pro-display-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/sf-pro-text-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/sf-pro-text-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/sf-pro-text-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Pro Text";
+  src: url("/fonts/sf-pro-text-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Mono";
+  src: url("/fonts/sf-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SF Mono";
+  src: url("/fonts/sf-mono-medium.woff2") format("woff2");
   font-weight: 500;
   font-display: swap;
 }
 
-/* Brand palette and the light theme. */
+/* ---- Tokens: the light theme. */
 :root,
 [data-theme="light"] {
-  --ink-900: #0b2545;
-  --ink-700: #1e3d63;
-  --ink-500: #4f6d8f;
-  --ink-300: #a3b6cc;
-  --glacier-700: #0b7a73;
-  --glacier-500: #35d0c3;
-  --glacier-300: #9debe4;
-  --glacier-100: #e3f8f6;
-  --snow: #f5f8fa;
-  --fog: #e4ecf1;
-  --slate: #5b6b7b;
-  --white: #ffffff;
+  /* The accent, and the shades it needs for text and tints. */
+  --accent: #35d0c3;
+  --accent-deep: #0b7a73;
+  --accent-tint: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent) 28%, transparent);
 
-  /* Verdict signals: fills behind the verdict word, nothing else. */
+  /* Verdict signals: the verdict field, the badge, the map pin, nothing else. */
   --signal-use: #157a52;
   --signal-quarantine: #f2b01e;
   --signal-discard: #c93535;
-  --on-signal-use: var(--white);
-  --on-signal-quarantine: var(--ink-900);
-  --on-signal-discard: var(--white);
+  --on-signal-use: #ffffff;
+  --on-signal-quarantine: #1d1d1f;
+  --on-signal-discard: #ffffff;
+  --white: #ffffff;
 
-  --bg: var(--snow);
-  --surface: var(--white);
-  --surface-inverse: var(--ink-900);
-  --text: var(--ink-900);
-  --text-2: var(--ink-700);
-  --text-muted: var(--slate);
-  --text-accent: var(--glacier-700);
-  --text-on-inverse: var(--white);
-  --text-muted-on-inverse: var(--ink-300);
-  --border: var(--fog);
-  --border-strong: var(--ink-500);
-  --quiet: var(--snow); /* hover rows and quiet panels on a surface */
-  --track: var(--fog); /* bar tracks */
-  --band: var(--glacier-100); /* the safe 2-8 C band on charts */
-  --line: var(--ink-900); /* chart lines */
-  --focus-ring: var(--glacier-700);
-  --ring-track: var(--glacier-300);
-  --ring-arc: var(--ink-900);
-  --toast: var(--ink-700);
-  --soft-line: color-mix(in srgb, var(--ink-900) 20%, transparent); /* outlines on buttons and inputs */
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7; /* a quiet panel on a surface, a hover row */
+  --surface-inverse: #1d1d1f;
+  --text: #1d1d1f;
+  --text-2: #424245;
+  --text-muted: #6e6e73;
+  --text-faint: #86868b;
+  --text-accent: var(--accent-deep);
+  --text-on-inverse: #f5f5f7;
+  --text-muted-on-inverse: #a1a1a6;
+  --border: rgb(0 0 0 / 0.07); /* the hairline between things */
+  --border-strong: #aeaeb2;
+  --quiet: var(--surface-2);
+  --fill: #e9e9eb; /* a quiet control's ground: grey buttons, search fields, chips */
+  --fill-hover: #dedee2;
+  --track: #e8e8ed; /* bar and ring tracks */
+  --band: var(--accent-tint); /* the safe 2 to 8 band on charts */
+  --line: #1d1d1f; /* chart lines */
+  --line-2: #aeaeb2; /* a second, quieter chart line */
+  --line-3: #d2d2d7; /* gridlines and the faintest line */
+  --action: var(--text);
+  --on-action: var(--bg);
+  --focus-ring: var(--accent-deep);
+  --ring-track: #e8e8ed;
+  --ring-arc: #1d1d1f;
+  --ring-track-on-inverse: rgb(255 255 255 / 0.28);
+  --ring-arc-on-inverse: var(--accent);
+  --toast: rgb(29 29 31 / 0.92);
+  --soft-line: rgb(0 0 0 / 0.14); /* outlines on inputs and quiet buttons */
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-strong: rgb(255 255 255 / 0.86);
+  --scrim: rgb(0 0 0 / 0.4);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.1);
+  --shadow-float: 0 8px 32px rgb(0 0 0 / 0.14), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-lift: 0 18px 40px -20px rgb(0 0 0 / 0.28);
+
+  /* Old names, kept so nothing breaks; call sites move to the names above page by page. */
+  --ink-900: var(--text);
+  --ink-700: var(--text-2);
+  --ink-500: var(--text-faint);
+  --ink-300: var(--line-2);
+  --ink-100: var(--track);
+  --glacier-700: var(--accent-deep);
+  --glacier-500: var(--accent);
+  --glacier-300: var(--accent-tint-strong);
+  --glacier-100: var(--accent-tint);
+  --snow: var(--bg);
+  --fog: var(--track);
+  --slate: var(--text-muted);
+  --action-hover: var(--text-2);
+  --action-pressed: var(--text);
+  --on-action-pressed: var(--bg);
+  --arrive: var(--accent-tint);
+
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --bg: var(--ink-900);
-  --surface: var(--ink-900);
-  --surface-inverse: var(--ink-700);
-  --text: var(--white);
-  --text-2: #d5dfea;
-  --text-muted: var(--ink-300);
-  --text-accent: var(--glacier-500);
-  --border: #ffffff29;
-  --border-strong: var(--ink-300);
-  --quiet: #ffffff0f;
-  --track: #ffffff1f;
-  --band: #35d0c326;
-  --line: var(--white);
-  --focus-ring: var(--glacier-500);
-  --ring-track: #ffffff66;
-  --ring-arc: var(--glacier-500);
-  --toast: var(--ink-700);
-  --soft-line: #ffffff3d;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-inverse: #2c2c2e;
+  --text: #f5f5f7;
+  --text-2: #d1d1d6;
+  --text-muted: #a1a1a6;
+  --text-faint: #86868b;
+  --text-accent: var(--accent);
+  --text-on-inverse: #f5f5f7;
+  --text-muted-on-inverse: #a1a1a6;
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: #6e6e73;
+  --fill: #2c2c2e;
+  --fill-hover: #3a3a3c;
+  --track: #3a3a3c;
+  --line: #f5f5f7;
+  --line-2: #6e6e73;
+  --line-3: #3a3a3c;
+  --focus-ring: var(--accent);
+  --ring-track: #3a3a3c;
+  --ring-arc: #f5f5f7;
+  --toast: rgb(44 44 46 / 0.94);
+  --soft-line: rgb(255 255 255 / 0.18);
+  --glass: rgb(28 28 30 / 0.72);
+  --glass-strong: rgb(28 28 30 / 0.88);
+  --scrim: rgb(0 0 0 / 0.6);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
+  --shadow-float: 0 8px 32px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-lift: 0 18px 40px -20px rgb(0 0 0 / 0.7);
+  --on-signal-quarantine: #1d1d1f;
+
+  --ink-900: var(--surface);
+  --ink-700: var(--surface-2);
+  --arrive: var(--surface-2);
+
   color-scheme: dark;
 }
 
+/* Motion tokens: one ease for everything that settles, one for things that leave. */
+:root {
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: linear(
+    0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%,
+    1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1.004 83.8%, 1
+  );
+  --dur-fast: 160ms;
+  --dur: 280ms;
+  --dur-slow: 520ms;
+  --r-sm: 12px;
+  --r-md: 18px;
+  --r-lg: 28px;
+  --nav-h: 52px;
+}
+
 /*
- * Tailwind's colour names, mapped onto the brand so every utility follows the
- * theme: neutral-* are text and quiet-surface steps, accent-* are Glacier.
+ * Tailwind's names, mapped onto the tokens so every utility follows the theme.
+ * neutral-* are text and quiet-surface steps, accent-* are the accent.
  */
 @theme {
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro", system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Helvetica Neue", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
 
   --color-bg: var(--bg);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fill: var(--fill);
+  --color-fill-hover: var(--fill-hover);
   --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
   --color-line: var(--border);
   --color-line-strong: var(--border-strong);
+  --color-divider: var(--border);
 
-  --color-accent: var(--glacier-500);
+  --color-ink: var(--text);
+  --color-glacier: var(--accent);
+  --color-accent: var(--accent);
+  --color-accent-100: var(--accent-tint);
+  --color-accent-200: var(--accent-tint-strong);
   --color-accent-300: var(--text-accent);
   --color-accent-400: var(--text-accent);
+  --color-accent-500: var(--accent);
+  --color-accent-600: var(--accent-deep);
+  --color-accent-700: var(--accent-deep);
+  --color-accent-800: var(--border-strong);
+  --color-accent-900: var(--quiet);
 
+  --color-neutral-100: var(--text);
+  --color-neutral-200: var(--text);
   --color-neutral-300: var(--text-2);
   --color-neutral-400: var(--text-muted);
   --color-neutral-500: var(--text-muted);
+  --color-neutral-600: var(--text-faint);
   --color-neutral-700: var(--border-strong);
   --color-neutral-800: var(--track);
   --color-neutral-900: var(--quiet);
+
+  --color-good: var(--signal-use);
+  --color-good-fg: var(--on-signal-use);
+  --color-good-tint: var(--signal-use);
+  --color-warn: var(--signal-quarantine);
+  --color-warn-fg: var(--on-signal-quarantine);
+  --color-warn-tint: var(--signal-quarantine);
+  --color-hot: var(--signal-quarantine);
+  --color-hot-fg: var(--on-signal-quarantine);
+  --color-hot-tint: var(--signal-quarantine);
+  --color-bad: var(--signal-discard);
+  --color-bad-fg: var(--on-signal-discard);
+  --color-bad-tint: var(--signal-discard);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
+  --shadow-lift: var(--shadow-lift);
+  --ease-out: var(--ease-out);
+  --ease-spring: var(--ease-spring);
 }
 
-/* Element defaults sit in the base layer, so any utility class overrides them. */
+/* ---- Element defaults sit in the base layer, so any utility class overrides them. */
 @layer base {
   html {
     -webkit-tap-highlight-color: transparent;
     background: var(--bg);
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -132,10 +286,12 @@
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-sans);
-    font-size: 16px;
-    line-height: 24px;
-    font-feature-settings: "tnum";
+    font-size: 17px;
+    line-height: 25px;
+    letter-spacing: -0.022em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   h1,
@@ -143,18 +299,24 @@
   h3 {
     font-family: var(--font-display);
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   a {
     color: var(--text-accent);
+    text-decoration: none;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   ::selection {
-    background: color-mix(in srgb, var(--glacier-500) 35%, transparent);
+    background: var(--accent-tint-strong);
   }
 
-  /* Every tappable thing is at least 44px tall; form text is 16px so iOS doesn't zoom. */
+  /* Every tappable thing is at least 44px tall; form text is 16px+ so iOS doesn't zoom. */
   button,
   select,
   input:not([type="range"]),
@@ -165,28 +327,40 @@
   button {
     cursor: pointer;
     font-family: inherit;
+    letter-spacing: inherit;
   }
 
   select,
   input,
   textarea {
-    font-size: 16px;
+    font-size: 17px;
+    font-family: inherit;
   }
 
   button:focus-visible,
   a:focus-visible,
   select:focus-visible,
   input:focus-visible,
-  summary:focus-visible {
+  summary:focus-visible,
+  [tabindex]:focus-visible {
     outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
+    outline-offset: 3px;
+    border-radius: 6px;
   }
 
   button:active:not(:disabled) {
-    transform: scale(0.99);
+    transform: scale(0.98);
+  }
+
+  /* Numbers line up wherever they sit in a column. */
+  dd,
+  td,
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }
 
+/* ---- Keyframes. */
 @keyframes vt-pulse {
   0%,
   100% {
@@ -196,7 +370,6 @@
     opacity: 0.35;
   }
 }
-
 /* A verdict that just changed on the stage screen. */
 @keyframes vt-pop {
   0% {
@@ -211,7 +384,6 @@
     transform: scale(1);
   }
 }
-
 /* A reading that just arrived in the live feed. */
 @keyframes vt-arrive {
   from {
@@ -221,38 +393,82 @@
     background: transparent;
   }
 }
-:root {
-  --arrive: var(--glacier-100);
+/* Content rises in as it arrives (lists one after another); dialogs scale in. */
+@keyframes sv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
-[data-theme="dark"] {
-  --arrive: var(--ink-700);
+@keyframes sv-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes sv-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes sv-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @layer components {
-  /* The phone-width column. Flat: no gradients, no shadows. From laptop
-     width up the page uses the room, beside the sidebar (Layout). */
+  /* The page column. A phone's width below laptop size; a centred column
+     under the glass top bar from laptop width up (Layout). */
   .shell {
     position: relative;
-    max-width: 480px;
+    max-width: 520px;
     min-height: 100dvh;
     margin: 0 auto;
-    padding: 0 16px calc(112px + env(safe-area-inset-bottom, 0px));
+    padding: 0 20px calc(128px + env(safe-area-inset-bottom, 0px));
   }
   @media (min-width: 1024px) {
     .shell {
-      max-width: 1200px;
-      padding: 0 40px 64px;
+      max-width: 1180px;
+      padding: calc(var(--nav-h) + 36px) 40px 96px;
     }
   }
 
-  /* Labels: small Geist Mono capitals. A section opens on a hairline. */
+  /* Glass: the chrome that floats over content. */
+  .glass {
+    background: var(--glass);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+  }
+  .glass-strong {
+    background: var(--glass-strong);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    backdrop-filter: saturate(180%) blur(24px);
+  }
+
+  /* Labels: small SF Pro capitals with a touch of tracking. A section opens on a hairline. */
   .eyebrow,
-  .section-title {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
+  .section-title,
+  .mono-label {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted);
   }
@@ -261,37 +477,74 @@
     letter-spacing: inherit;
   }
   .section-title {
-    margin: 36px 0 14px;
-    padding-top: 14px;
+    margin: 40px 0 14px;
+    padding-top: 16px;
     border-top: 1px solid var(--border);
   }
 
+  /* The type scale. Display sizes carry the tighter tracking SF Pro Display wants. */
+  .ui-display {
+    font-family: var(--font-display);
+    font-size: clamp(48px, 8vw, 80px);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+  .ui-title-1 {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 5.5vw, 56px);
+    line-height: 1.07;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
   .ui-title {
     font-family: var(--font-display);
-    font-size: 28px;
-    line-height: 34px;
+    font-size: clamp(32px, 4vw, 40px);
+    line-height: 1.1;
     font-weight: 600;
-    letter-spacing: -0.02em;
-    text-wrap: pretty;
+    letter-spacing: -0.008em;
+    text-wrap: balance;
+  }
+  .ui-title-3 {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 32px;
+    font-weight: 600;
+    letter-spacing: -0.004em;
+    text-wrap: balance;
   }
   .ui-heading {
     font-family: var(--font-display);
-    font-size: 20px;
-    line-height: 26px;
+    font-size: 21px;
+    line-height: 25px;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     text-wrap: pretty;
+  }
+  .ui-body {
+    font-size: 17px;
+    line-height: 25px;
+    letter-spacing: -0.022em;
   }
   .ui-caption {
     font-size: 14px;
     line-height: 20px;
+    letter-spacing: -0.016em;
     color: var(--text-muted);
   }
+  .ui-footnote {
+    font-size: 12px;
+    line-height: 16px;
+    letter-spacing: -0.01em;
+    color: var(--text-faint);
+  }
 
-  /* Cards: a white surface on snow, set apart by a hairline. */
+  /* Cards: a white surface on the grey ground. No border in light, a hairline in dark. */
   .card-soft,
   .panel {
-    border-radius: 16px;
+    border-radius: var(--r-md);
     border: 1px solid var(--border);
     background: var(--surface);
   }
@@ -300,22 +553,22 @@
   }
   .lift {
     transition:
-      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-      border-color 0.2s,
-      box-shadow 0.35s;
+      transform var(--dur-slow) var(--ease-out),
+      box-shadow var(--dur-slow) var(--ease-out),
+      border-color var(--dur) ease;
   }
   @media (hover: hover) {
     .lift:hover {
       transform: translateY(-2px);
-      border-color: var(--border-strong);
-      box-shadow: 0 14px 30px -22px rgb(11 37 69 / 0.45);
+      box-shadow: var(--shadow-lift);
     }
   }
 
   .tile {
     padding: 12px 16px;
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid var(--border);
+    background: var(--surface);
   }
 
   /* A small outlined label for states that aren't verdicts (risk, sensor band). */
@@ -327,11 +580,10 @@
     border-radius: 999px;
     border: 1px solid var(--soft-line);
     color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -341,158 +593,187 @@
     background: var(--border);
   }
 
-  /* The one main action per screen: a solid Ink pill. */
+  /* The one main action per screen: a solid capsule in the text colour. */
+  .btn-accent,
   .btn-primary {
     display: flex;
     width: 100%;
-    min-height: 52px;
+    min-height: 50px;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 0 24px;
-    border: 1px solid var(--text);
+    border: 0;
     border-radius: 999px;
-    background: var(--text);
-    color: var(--bg);
+    background: var(--action);
+    color: var(--on-action);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 17px;
     line-height: 22px;
     font-weight: 600;
+    letter-spacing: -0.022em;
     text-decoration: none;
     transition:
-      opacity 0.2s,
-      transform 0.2s;
+      opacity var(--dur-fast) ease,
+      transform var(--dur-fast) ease,
+      box-shadow var(--dur) var(--ease-out);
   }
+  .btn-accent {
+    background: var(--accent);
+    color: #1d1d1f;
+  }
+  .btn-accent:hover:not(:disabled),
   .btn-primary:hover:not(:disabled) {
-    opacity: 0.86;
+    opacity: 0.88;
   }
 
-  /* Everything else: an outlined pill. */
+  /* Everything else: the quiet grey capsule iOS uses. */
   .btn-quiet,
   .btn-outline,
   .btn-secondary {
     display: flex;
-    min-height: 52px;
+    min-height: 50px;
     align-items: center;
     justify-content: center;
     gap: 10px;
     padding: 0 22px;
-    border: 1px solid var(--soft-line);
+    border: 0;
     border-radius: 999px;
-    background: transparent;
+    background: var(--fill);
     color: var(--text);
     font-family: var(--font-sans);
-    font-size: 16px;
+    font-size: 17px;
     line-height: 22px;
     font-weight: 600;
+    letter-spacing: -0.022em;
     text-decoration: none;
     transition:
-      background-color 0.2s,
-      border-color 0.2s;
+      background-color var(--dur-fast) ease,
+      transform var(--dur-fast) ease;
+  }
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--soft-line);
   }
   .btn-quiet:hover:not(:disabled),
-  .btn-outline:hover:not(:disabled),
   .btn-secondary:hover:not(:disabled) {
+    background: var(--fill-hover);
+  }
+  .btn-outline:hover:not(:disabled) {
+    background: var(--fill);
     border-color: var(--text);
-    background: var(--quiet);
   }
   .btn-quiet:active:not(:disabled),
   .btn-outline:active:not(:disabled),
   .btn-secondary:active:not(:disabled) {
-    background: var(--border);
+    background: var(--fill-hover);
   }
 
   .btn-outline:disabled,
   .btn-quiet:disabled,
   .btn-secondary:disabled,
+  .btn-accent:disabled,
   .btn-primary:disabled {
-    background: var(--border);
-    border-color: var(--border);
-    color: var(--text-muted);
+    background: var(--fill);
+    border-color: transparent;
+    color: var(--text-faint);
     cursor: not-allowed;
   }
 
+  /* Inputs and selects: a filled field, the way iOS draws them. */
   .select-pill {
     min-width: 0;
-    min-height: 52px;
-    padding: 0 14px;
-    border: 1px solid var(--soft-line);
+    min-height: 50px;
+    padding: 0 16px;
+    border: 1px solid transparent;
     border-radius: 14px;
-    background: var(--surface);
+    background: var(--fill);
     color: var(--text);
     font: inherit;
-    font-size: 16px;
+    font-size: 17px;
+    letter-spacing: -0.022em;
+    transition:
+      background-color var(--dur-fast) ease,
+      border-color var(--dur-fast) ease;
+  }
+  .select-pill:focus {
+    border-color: var(--text);
+    outline: 0;
+  }
+  input.select-pill::placeholder {
+    color: var(--text-faint);
   }
 
+  /* A round icon button: back, close, theme. */
   .back-btn {
     display: grid;
     flex: none;
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     place-items: center;
-    border: 1px solid var(--soft-line);
+    border: 0;
     border-radius: 50%;
-    background: var(--surface);
+    background: var(--fill);
     color: var(--text);
     transition:
-      border-color 0.2s,
-      background-color 0.2s;
+      background-color var(--dur-fast) ease,
+      transform var(--dur-fast) ease;
   }
   .back-btn:hover {
-    border-color: var(--text);
-    background: var(--quiet);
+    background: var(--fill-hover);
   }
 
   /* The row that opens an accordion section. */
   .acc-btn {
     display: flex;
     width: 100%;
-    min-height: 60px;
+    min-height: 58px;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 0 16px;
+    padding: 0 18px;
     border: 0;
     background: transparent;
     color: var(--text);
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 500;
+    letter-spacing: -0.022em;
     text-align: left;
+    transition: background-color var(--dur-fast) ease;
   }
   .acc-btn:hover {
-    background: var(--quiet);
+    background: var(--surface-2);
   }
 
-  /* Filter chips: outlined pills; the chosen one is filled with Ink. */
+  /* Filter chips: a segmented row; the chosen one is filled. */
   .chip {
     display: inline-flex;
     flex: none;
     align-items: center;
-    gap: 8px;
-    min-height: 38px;
+    gap: 6px;
+    min-height: 36px;
     padding: 0 14px;
-    border: 1px solid var(--soft-line);
+    border: 0;
     border-radius: 999px;
-    background: var(--surface);
+    background: var(--fill);
     color: var(--text);
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
+    letter-spacing: -0.02em;
     white-space: nowrap;
     transition:
-      background-color 0.2s,
-      border-color 0.2s,
-      color 0.2s;
+      background-color var(--dur-fast) ease,
+      color var(--dur-fast) ease;
   }
   .chip:hover {
-    border-color: var(--text);
+    background: var(--fill-hover);
   }
   .chip[aria-pressed="true"] {
-    border-color: var(--text);
     background: var(--text);
     color: var(--bg);
   }
 
-  /* --- Brand kit components (components/bundle.css) --- */
+  /* --- The brand kit's components. --- */
   .sv-ring {
     display: inline-block;
     flex: none;
@@ -504,13 +785,23 @@
   .sv-ring__glyph {
     stroke: var(--ring-arc);
   }
+  .sv-ring--inverse .sv-ring__track {
+    stroke: var(--ring-track-on-inverse);
+  }
+  .sv-ring--inverse .sv-ring__arc,
+  .sv-ring--inverse .sv-ring__glyph {
+    stroke: var(--ring-arc-on-inverse);
+  }
   .sv-ring__dot {
     fill: var(--ring-arc);
+  }
+  .sv-ring--inverse .sv-ring__dot {
+    fill: var(--ring-arc-on-inverse);
   }
   /* On a verdict's colour: everything in that verdict's text colour. */
   .sv-ring--signal .sv-ring__track {
     stroke: currentColor;
-    stroke-opacity: 0.3;
+    stroke-opacity: 0.28;
   }
   .sv-ring--signal .sv-ring__arc,
   .sv-ring--signal .sv-ring__glyph {
@@ -523,16 +814,15 @@
   .sv-verdict {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 16px;
-    border-radius: 24px;
+    gap: 18px;
+    padding: 20px;
+    border-radius: var(--r-lg);
     background: var(--surface-inverse);
     color: var(--text-on-inverse);
   }
   .sv-verdict > div {
     min-width: 0;
   }
-  /* Each verdict on its signal, with the text colour the kit pairs it with. */
   .sv-verdict--use {
     background: var(--signal-use);
     color: var(--on-signal-use);
@@ -557,15 +847,14 @@
   .sv-verdict--discard .sv-verdict__eyebrow,
   .sv-verdict--discard .sv-verdict__note {
     color: inherit;
-    opacity: 0.88;
+    opacity: 0.86;
   }
   .sv-verdict__eyebrow {
     margin: 0;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted-on-inverse);
   }
@@ -589,8 +878,9 @@
   }
   .sv-verdict__note {
     margin: 4px 0 0;
-    font-size: 14px;
+    font-size: 15px;
     line-height: 20px;
+    letter-spacing: -0.02em;
     color: var(--text-muted-on-inverse);
   }
 
@@ -599,11 +889,10 @@
     flex: none;
     padding: 4px 10px;
     border-radius: 999px;
-    font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 12px;
     line-height: 16px;
-    font-weight: 500;
-    letter-spacing: 0.1em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     white-space: nowrap;
   }
@@ -641,133 +930,627 @@
   }
   .sv-data dd {
     margin: 0;
-    font-weight: 700;
+    font-weight: 600;
     text-align: right;
     color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* --- The landing page's own pieces: outlined and solid capsules like Apple's CTAs. */
+  .pill-btn {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 22px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color var(--dur-fast) ease,
+      border-color var(--dur-fast) ease,
+      opacity var(--dur-fast) ease;
+  }
+  .pill-btn:hover {
+    border-color: var(--text);
+    background: var(--surface-2);
+  }
+  .pill-btn--solid {
+    border-color: var(--text);
+    background: var(--text);
+    color: var(--bg);
+  }
+  .pill-btn--solid:hover {
+    background: var(--text);
+    opacity: 0.86;
+  }
+  .lp-screen {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    box-shadow: var(--shadow-lift);
+    backdrop-filter: blur(10px);
+  }
+  .lp-screen--lift {
+    transition:
+      transform 0.45s var(--ease-out),
+      box-shadow 0.45s var(--ease-out),
+      border-color 0.3s;
+  }
+  .group:hover .lp-screen--lift {
+    transform: translateY(-3.25rem);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-float);
+  }
+  .lp-screen__body .section-title:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+  .lp-stack {
+    -webkit-mask-image:
+      linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
+    mask-composite: intersect;
   }
 }
 
-/* Motion: content rises in as it arrives (lists one after another), dialogs
-   scale in. Short, eased, and off for anyone who asks for less motion. */
-@keyframes sv-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+/* ---- The verdict field: the answer, edge to edge, in its own colour. The page
+   below it is a sheet with rounded corners that scrolls up over it. */
+.verdict-field {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--vf-bg);
+  color: var(--vf-fg);
+}
+.verdict-field--use {
+  --vf-bg: var(--signal-use);
+  --vf-fg: var(--on-signal-use);
+}
+.verdict-field--quarantine {
+  --vf-bg: var(--signal-quarantine);
+  --vf-fg: var(--on-signal-quarantine);
+}
+.verdict-field--discard {
+  --vf-bg: var(--signal-discard);
+  --vf-fg: var(--on-signal-discard);
+}
+.verdict-field__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.verdict-field__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 20px 52px;
+}
+@media (min-width: 1024px) {
+  .verdict-field__inner {
+    max-width: 1180px;
+    padding: calc(var(--nav-h) + 24px) 40px 68px;
   }
 }
-@keyframes sv-modal-in {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
+.verdict-field__word {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: inherit;
+}
+.verdict-field__dim {
+  opacity: 0.78;
+}
+.verdict-field__note {
+  opacity: 0.92;
+}
+.verdict-field__rows > div + div {
+  border-top: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+}
+/* A round glass button in the field's own text colour. */
+.on-field-btn {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, currentColor 16%, transparent);
+  color: inherit;
+  transition: background-color var(--dur-fast) ease;
+}
+.on-field-btn:hover {
+  background: color-mix(in srgb, currentColor 26%, transparent);
+}
+.sheet-over {
+  position: relative;
+  z-index: 2;
+  margin-top: -28px;
+  border-radius: 28px 28px 0 0;
+  background: var(--bg);
+}
+.shell--after-hero {
+  padding-top: 20px;
+}
+@media (min-width: 1024px) {
+  .shell--after-hero {
+    padding-top: 36px;
   }
 }
-.rise-in {
-  animation: sv-rise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
-  animation-delay: calc(var(--i, 0) * 45ms);
+
+/* ---- The landing page: chapters that stick while the reader scrolls through them. */
+.landing {
+  --nav-h: 48px;
 }
-.modal-in {
-  animation: sv-modal-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+/* The nav: transparent over the hero, then a floating glass capsule that takes
+   the colours of whichever chapter is under it. */
+.landing-nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 1100;
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px 0;
+  pointer-events: none;
+  color: var(--text);
+}
+.landing-nav__bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 1180px;
+  height: 52px;
+  padding: 0 8px 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    max-width 0.6s var(--ease-out),
+    background-color 0.4s ease,
+    border-color 0.4s ease,
+    box-shadow 0.4s ease;
+}
+.landing-nav--scrolled .landing-nav__bar {
+  max-width: 880px;
+  border-color: var(--border);
+  background: var(--glass);
+  box-shadow: var(--shadow-float);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
+}
+/* Display comes from the utilities on the element (hidden below md), so it isn't set here. */
+.landing-nav__links {
+  align-items: center;
+  gap: 4px;
+}
+.landing-nav__link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--text-muted);
+  transition:
+    color var(--dur-fast) ease,
+    background-color var(--dur-fast) ease;
+}
+.landing-nav__link:hover {
+  color: var(--text);
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.landing-nav__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition:
+    opacity var(--dur-fast) ease,
+    transform var(--dur-fast) ease;
+}
+.landing-nav__cta:hover {
+  opacity: 0.86;
+}
+
+/* The hero: a lit scene on black. A soft glow under the object, and the
+   headline's lines rising out of a mask on load. */
+.hero-glow {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: min(90vw, 1100px);
+  aspect-ratio: 1.6;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(closest-side, rgb(53 208 195 / 0.22), transparent 70%),
+    radial-gradient(closest-side, rgb(255 255 255 / 0.06), transparent 60%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+.hero-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+.hero-line > span {
+  display: inline-block;
+  will-change: transform;
+}
+/* Live chips floating beside the object: glass capsules that drift a little.
+   Three layers: the slot is placed and scrolled out, the riser enters, the chip drifts. */
+.hero-chip-slot {
+  position: absolute;
+}
+.hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 10px 12px;
+  border: 1px solid rgb(255 255 255 / 0.12);
+  border-radius: 999px;
+  background: rgb(28 28 30 / 0.62);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.45);
+  color: #f5f5f7;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  animation: hero-drift 7s ease-in-out infinite;
+}
+.hero-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  animation: vt-pulse 1.8s infinite;
+}
+.hero-chip__num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.hero-chip__muted {
+  color: rgb(245 245 247 / 0.6);
+}
+@keyframes hero-drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.hero-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 28px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  transform: translateX(-50%);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 50%;
+  color: rgb(245 245 247 / 0.7);
+  animation: hero-drift 2.4s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .rise-in,
-  .modal-in {
+  .hero-chip,
+  .hero-hint {
     animation: none;
   }
 }
-
-/* The landing page ("/"): small mono labels, hairline rules, pill buttons. */
-.mono-label {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+.chapter {
+  position: relative;
 }
-.pill-btn {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 8px;
-  padding: 0 22px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  font-family: var(--font-sans);
-  font-size: 15px;
-  font-weight: 500;
-  text-decoration: none;
-  white-space: nowrap;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    opacity 0.2s;
-}
-.pill-btn:hover {
-  border-color: var(--text);
-  background: var(--quiet);
-}
-.pill-btn--solid {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--bg);
-}
-.pill-btn--solid:hover {
-  background: var(--text);
-  opacity: 0.86;
-}
-.lp-screen {
+.chapter__view {
+  position: sticky;
+  top: 0;
+  height: 100svh;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
-  box-shadow: 0 30px 60px -36px rgb(11 37 69 / 0.45);
-  backdrop-filter: blur(10px);
+  background: var(--bg);
+  color: var(--text);
 }
-/* On the landing stack: under the pointer a screen slides straight up out of
-   the stack, like a file pulled up from a drawer. It keeps its place: the
-   screens in front stay in front. */
-.lp-screen--lift {
+/* A chapter that doesn't pin: one screen tall, scrolling with the page. */
+.chapter__view--free {
+  position: relative;
+}
+.chapter__view--signal {
   transition:
-    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.45s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.3s;
+    background-color 0.6s var(--ease-out),
+    color 0.6s var(--ease-out);
 }
-.group:hover .lp-screen--lift {
-  transform: translateY(-3.25rem);
-  border-color: var(--border-strong);
-  box-shadow: 0 40px 70px -40px rgb(11 37 69 / 0.5);
+.chapter__copy {
+  position: absolute;
+  inset: calc(var(--nav-h) + 6vh) 24px auto;
+  z-index: 1;
+  max-width: 34rem;
 }
-@media (prefers-reduced-motion: reduce) {
-  .lp-screen--lift {
-    transition: none;
+@media (min-width: 1024px) {
+  .chapter__copy {
+    inset: 0 auto 0 max(40px, calc((100vw - 1180px) / 2 + 40px));
+    display: flex;
+    align-items: center;
+    width: 38vw;
+    max-width: 30rem;
   }
 }
-.lp-screen__body .section-title:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
+/* Words at the top, when the chapter's figure takes the lower half. */
+@media (min-width: 1024px) {
+  .chapter__copy--top {
+    inset: calc(var(--nav-h) + 7vh) auto auto max(40px, calc((100vw - 1180px) / 2 + 40px));
+    display: block;
+    width: 44vw;
+    max-width: 36rem;
+  }
 }
-/* The fanned screens fade out under the words and toward the top edge. */
-.lp-stack {
-  -webkit-mask-image:
-    linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
-  -webkit-mask-composite: source-in;
-  mask-image:
-    linear-gradient(to right, transparent 30%, #000 50%), linear-gradient(to bottom, transparent 4%, #000 20%, #000 90%, transparent 100%);
-  mask-composite: intersect;
+.chapter__copy--centre {
+  inset: auto 24px max(10vh, calc(env(safe-area-inset-bottom, 0px) + 40px));
+  max-width: none;
+  text-align: center;
 }
-/* Shipments map: verdict pins and trip lines (ShipmentsMap). */
+.chapter__copy--centre > div > * {
+  margin-left: auto;
+  margin-right: auto;
+}
+.chapter__copy--centre .flex {
+  justify-content: center;
+}
+@media (min-width: 1024px) {
+  .chapter__copy--centre {
+    inset: auto 0 12vh;
+    display: block;
+    width: auto;
+  }
+}
+.chapter__copy--on-signal .eyebrow,
+.chapter__copy--on-signal .text-neutral-500 {
+  color: inherit;
+}
+.chapter__aside {
+  position: absolute;
+  right: 24px;
+  bottom: max(6vh, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  left: 24px;
+  z-index: 1;
+}
+@media (min-width: 1024px) {
+  .chapter__aside {
+    left: auto;
+    right: max(40px, calc((100vw - 1180px) / 2 + 40px));
+    bottom: 8vh;
+    width: 380px;
+  }
+}
+
+/* ---- Motion classes. Short, eased, and off for anyone who asks for less motion. */
+.rise-in {
+  animation: sv-rise 0.6s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.modal-in {
+  animation: sv-modal-in 0.4s var(--ease-out) both;
+}
+.sheet-in {
+  animation: sv-sheet-in 0.5s var(--ease-out) both;
+}
+.fade-in {
+  animation: sv-fade-in var(--dur) ease both;
+}
+
+/* ---- View transitions between pages: a quick cross-fade, and the verdict carried across. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 240ms;
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(root) {
+  animation-name: sv-vt-out;
+}
+::view-transition-new(root) {
+  animation-name: sv-vt-in;
+}
+@keyframes sv-vt-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes sv-vt-in {
+  from {
+    opacity: 0;
+  }
+}
+::view-transition-group(verdict) {
+  animation-duration: 420ms;
+  animation-timing-function: var(--ease-out);
+}
+::view-transition-old(verdict),
+::view-transition-new(verdict) {
+  height: 100%;
+  object-fit: cover;
+  overflow: clip;
+}
+
+/* ---- Segmented control (Segmented). */
+.segmented {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--fill);
+}
+.segmented__pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  border-radius: 999px;
+  background: var(--segment-pill);
+  box-shadow: var(--shadow-card);
+  transition:
+    left 0.4s var(--ease-out),
+    width 0.4s var(--ease-out);
+}
+.segmented__btn {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  transition: color var(--dur-fast) ease;
+}
+.segmented__btn[aria-pressed="true"] {
+  color: var(--text);
+  font-weight: 600;
+}
+.segmented__btn:active:not(:disabled) {
+  transform: none;
+}
+.segmented__count {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+:root,
+[data-theme="light"] {
+  --segment-pill: #ffffff;
+}
+[data-theme="dark"] {
+  --segment-pill: #636366;
+}
+
+/* ---- Maps: the frame, our own chrome, pins and trip lines. */
+.map-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+/* The tiles lose their colour so the pins keep it; dark inverts them to a night map. */
+.map-frame .leaflet-tile-pane {
+  filter: saturate(0.08) contrast(0.92) brightness(1.04);
+}
+[data-theme="dark"] .map-frame:not([data-map-theme="light"]) .leaflet-tile-pane,
+.map-frame[data-map-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) saturate(0.1) brightness(0.72) contrast(0.95);
+}
+.map-frame[data-map-theme="light"] .leaflet-tile-pane {
+  filter: saturate(0.08) contrast(0.92) brightness(1.04);
+}
+.map-btn {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  backdrop-filter: saturate(180%) blur(12px);
+  color: var(--text);
+  box-shadow: var(--shadow-card);
+}
+.map-btn:hover {
+  background: var(--surface);
+}
+.map-credit {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--glass);
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 0;
+  color: var(--text-faint);
+}
+.map-credit a {
+  color: inherit;
+}
+.leaflet-popup-content-wrapper {
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-float);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+.leaflet-popup-tip {
+  background: var(--surface);
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--text-muted);
+  top: 6px;
+  right: 6px;
+}
+.leaflet-tooltip {
+  border: 0;
+  border-radius: 10px;
+  background: var(--toast);
+  color: #f5f5f7;
+  box-shadow: var(--shadow-float);
+  font-size: 13px;
+  padding: 6px 10px;
+}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+  display: none;
+}
 .sv-pin {
   background: none;
   border: 0;
@@ -788,9 +1571,14 @@
 .sv-trip-start {
   fill: #fff;
 }
-
+/* The container's ground matches the drained tiles, so no seam shows between them. */
 .leaflet-container {
   font: inherit;
+  background: #ececee;
+}
+[data-theme="dark"] .map-frame:not([data-map-theme="light"]) .leaflet-container,
+.map-frame[data-map-theme="dark"] .leaflet-container {
+  background: #151516;
 }
 
 /* The brand's logo files: the light one on light grounds, the dark one on dark. */
@@ -805,9 +1593,28 @@
   display: block;
 }
 
+/* Scrollbars stay out of the way on the chrome that scrolls. */
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  * {
-    transition: none !important;
+  .rise-in,
+  .modal-in,
+  .sheet-in,
+  .fade-in,
+  .lp-screen--lift {
+    animation: none;
+    transition: none;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
     animation: none !important;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }

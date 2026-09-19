@@ -1,24 +1,29 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
+import { DataList } from "../components/Brand";
 import { Counterfactual } from "../components/Counterfactual";
 import { Custody } from "../components/Custody";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { forecastLine } from "../components/Forecast";
-import { ChevronRightIcon, ScanIcon, XIcon } from "../components/Icons";
-import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
-import { LoggerCompare } from "../components/LoggerCompare";
-import { StageReset } from "../components/StageReset";
 import { FieldAction } from "../components/FieldAction";
+import { forecastLine } from "../components/Forecast";
 import { History } from "../components/History";
+import { ChevronRightIcon, ScanIcon } from "../components/Icons";
+import { BackHeader, BackOnField, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
+import { LoggerCompare } from "../components/LoggerCompare";
+import { Reveal } from "../components/Reveal";
+import { Sheet } from "../components/Sheet";
+import { StageReset } from "../components/StageReset";
 import { TripChart } from "../components/TripChart";
 import { TripConditions } from "../components/TripConditions";
-import { Numbers, Reasons, VerdictHero } from "../components/Verdict";
+import { Numbers, Reasons } from "../components/Verdict";
+import { VerdictField, verdictRows } from "../components/VerdictField";
 import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
 import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
-import { time } from "../lib/format";
+import { demoRate, time } from "../lib/format";
+import { refreshScroll } from "../lib/motion";
 import { clearArm, getArm, setArm, takeFlag, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
@@ -35,6 +40,10 @@ function cached(id: string): { report: Report; at: number } | null {
   }
 }
 
+/**
+ * Tap a sticker, get the answer: the verdict fills the top of the screen in
+ * its own colour, and everything behind it scrolls up over it as a sheet.
+ */
 export default function BoxPage() {
   const { id = "" } = useParams();
   const [live, setLive] = useState(false);
@@ -132,12 +141,10 @@ export default function BoxPage() {
         <PageTitle eyebrow="Product" title={id} />
         {error && /^no box/i.test(error) ? (
           // A retry won't help a box that doesn't exist: say so, and where to go.
-          <div role="alert" className="panel p-4">
+          <div role="alert" className="panel p-5">
             <p className="ui-heading m-0">Box not found</p>
-            <p className="m-0 mt-2 text-neutral-300">
-              No box has the ID {id}. Check the sticker, or pick the box from the list.
-            </p>
-            <Link to="/boxes" className="btn-secondary mt-4">
+            <p className="m-0 mt-2 text-neutral-300">No box has the ID {id}. Check the sticker, or pick the box from the list.</p>
+            <Link to="/boxes" viewTransition className="btn-secondary mt-4">
               See all boxes
             </Link>
           </div>
@@ -152,44 +159,63 @@ export default function BoxPage() {
 
   const vaccine = report.product.kind === "vaccine";
   const hasVvm = vaccine && report.product.has_vvm !== false;
-  const unit = vaccine ? "doses" : "tests";
   const inside = report.segments.find((s) => !s.end_ts);
   const fc = forecast.data?.available ? forecast.data : null;
   const label = report.label_check;
   const history = report.history ?? [];
   const pickedUp = !report.current_node_id ? [...history].reverse().find((e) => e.action === "receive") : undefined;
+  const status = report.current_node_id
+    ? "In transit"
+    : pickedUp
+      ? `Picked up${pickedUp.facility ? ` at ${pickedUp.facility}` : ""}`
+      : report.segments.length
+        ? "Delivered"
+        : "Not dispatched";
+  const notes = [
+    report.confidence.borderline && vaccine
+      ? report.product.has_vvm
+        ? "Borderline. Check the label."
+        : "Borderline. A supervisor should decide."
+      : null,
+    !stale && report.provisional ? `Carrier quiet since ${time(report.data_through, inside?.tz)}, so this may change.` : null,
+    report.demo_time ? `Demo time: ${demoRate(report.time_scale)}.` : null,
+  ].filter((n): n is string => Boolean(n));
 
   return (
-    <Layout>
-      <BackHeader />
-      <PageTitle
-        eyebrow="Product"
-        title={report.product.name}
-        sub={
-          <>
-            {report.box.id} · {report.box.quantity.toLocaleString()} {unit}
-            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : pickedUp ? `picked up${pickedUp.facility ? ` at ${pickedUp.facility}` : ""}` : report.segments.length ? "delivered" : "not dispatched"}
-          </>
-        }
-      />
-
+    <Layout hero={<VerdictField report={report} top={<BackOnField />} />}>
+      {stale && (
+        <p role="status" className="panel m-0 mb-4 px-5 py-3 text-[15px]" style={{ borderColor: "var(--border-strong)" }}>
+          {stale}
+        </p>
+      )}
+      {field && (
+        <FieldAction
+          kind={field}
+          report={report}
+          onClose={() => setField(null)}
+          onDone={(message) => {
+            setField(null);
+            changed(message);
+          }}
+        />
+      )}
       <Split
         left={
-          <>
-            {field && (
-              <FieldAction
-                kind={field}
-                report={report}
-                onClose={() => setField(null)}
-                onDone={(message) => {
-                  setField(null);
-                  changed(message);
-                }}
-              />
+          <Reveal each stagger={0.08}>
+            {/* On a phone the numbers sit here, first in the sheet; a laptop has them in the field. */}
+            <div className="panel px-5 lg:hidden">
+              <DataList rows={verdictRows(report)} />
+            </div>
+            {notes.length > 0 && (
+              <div className="mt-3 flex flex-col gap-1">
+                {notes.map((n) => (
+                  <p key={n} className="ui-caption m-0">
+                    {n}
+                  </p>
+                ))}
+              </div>
             )}
-            <VerdictHero report={report} stale={stale} />
-
-            <div className="mt-6 flex flex-col gap-3">
+            <div className="mt-5 flex flex-col gap-3 lg:mt-0">
               {hasVvm && (
                 <button onClick={() => signInFirst() || setScanning(true)} className="btn-primary">
                   <ScanIcon size={22} />
@@ -202,11 +228,33 @@ export default function BoxPage() {
                   {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
                 </p>
               )}
-              <button onClick={() => signInFirst() || setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
+              <button
+                onClick={() => {
+                  if (signInFirst()) return;
+                  setMoving(!moving);
+                  refreshScroll();
+                }}
+                aria-expanded={moving}
+                className="btn-secondary w-full"
+              >
                 Move this box
               </button>
               {moving && <MoveBox report={report} onMoved={changed} />}
             </div>
+            <dl className="sv-data mt-6">
+              <div className="sv-data__row">
+                <dt>Status</dt>
+                <dd>{status}</dd>
+              </div>
+              {report.box.origin && (
+                <div className="sv-data__row">
+                  <dt>Route</dt>
+                  <dd>
+                    {report.box.origin} → {report.box.destination}
+                  </dd>
+                </div>
+              )}
+            </dl>
 
             {/* Laptops: where the box went, beside the reasons (phones have it under More detail). */}
             {report.segments.some((s) => s.route.length > 0) && (
@@ -214,66 +262,77 @@ export default function BoxPage() {
                 <SectionTitle>Where it has been</SectionTitle>
                 <ErrorBoundary label="The map">
                   <Suspense fallback={<Spinner label="Loading the map" />}>
-                    <RouteMap segments={report.segments} places={report.places} height="h-[max(220px,calc(100dvh-600px))]" />
+                    <RouteMap segments={report.segments} places={report.places} height="h-[max(220px,calc(100dvh-640px))]" />
                   </Suspense>
                 </ErrorBoundary>
               </div>
             )}
-          </>
+          </Reveal>
         }
         right={
           <>
-            <SectionTitle>Why</SectionTitle>
-            <Reasons reasons={report.reasons} />
+            <Reveal>
+              <SectionTitle>Why</SectionTitle>
+              <Reasons reasons={report.reasons} />
+            </Reveal>
 
             {fc && inside && (
-              <Link
-                to={`/node/${inside.node_id}`}
-                className="lift mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline"
-              >
-                <span className="flex flex-col gap-1">
-                  <span className="eyebrow">Carrier · {inside.node_label}</span>
-                  <span>{forecastLine(fc)}</span>
-                </span>
-                <ChevronRightIcon size={22} />
-              </Link>
+              <Reveal>
+                <Link
+                  to={`/node/${inside.node_id}`}
+                  viewTransition
+                  className="lift mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[18px] border border-line bg-surface p-5 text-left text-text no-underline"
+                >
+                  <span className="flex flex-col gap-1.5">
+                    <span className="eyebrow">Carrier · {inside.node_label}</span>
+                    <span className="text-[17px] leading-6">{forecastLine(fc)}</span>
+                  </span>
+                  <ChevronRightIcon size={22} className="text-neutral-500" />
+                </Link>
+              </Reveal>
             )}
 
-            <SectionTitle aside={history.length ? `${history.length} ${history.length === 1 ? "event" : "events"}` : undefined}>History</SectionTitle>
-            <History events={history} />
+            <Reveal>
+              <SectionTitle aside={history.length ? `${history.length} ${history.length === 1 ? "event" : "events"}` : undefined}>History</SectionTitle>
+              <History events={history} />
+            </Reveal>
 
-            <ErrorBoundary label="The trip conditions">
-              <TripConditions report={report} />
-            </ErrorBoundary>
+            <Reveal>
+              <ErrorBoundary label="The trip conditions">
+                <TripConditions report={report} />
+              </ErrorBoundary>
+            </Reveal>
 
-            <SectionTitle>More detail</SectionTitle>
-            <Details>
-              <Detail first title="Temperature over the trip">
-                <ErrorBoundary label="The chart">
-                  <TripChart segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
-                </ErrorBoundary>
-              </Detail>
-              <Detail title="Where it has been">
-                <Custody segments={report.segments} places={report.places} />
-              </Detail>
-              <Detail title="What a threshold logger would say">
-                <LoggerCompare report={report} />
-              </Detail>
-              <Detail title="The numbers">
-                <Numbers report={report} />
-              </Detail>
-              <Detail title="Same trip, other products">
-                <ErrorBoundary label="The comparison">
-                  <Counterfactual boxId={report.box.id} />
-                </ErrorBoundary>
-              </Detail>
-              {report.box.id.startsWith("BOX-9") && (
-                <Detail title="Stage demo">
-                  <StageReset onDone={changed} />
+            <Reveal>
+              <SectionTitle>More detail</SectionTitle>
+              <Details>
+                <Detail first title="Temperature over the trip" onOpen={refreshScroll}>
+                  <ErrorBoundary label="The chart">
+                    <TripChart segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
+                  </ErrorBoundary>
                 </Detail>
-              )}
-            </Details>
-            <p className="ui-caption m-0 mt-6 text-center">Decision support with a human in the loop. Not a clinical determination.</p>
+                <Detail title="Where it has been" onOpen={refreshScroll}>
+                  <Custody segments={report.segments} places={report.places} />
+                </Detail>
+                <Detail title="What a threshold logger would say" onOpen={refreshScroll}>
+                  <LoggerCompare report={report} />
+                </Detail>
+                <Detail title="The numbers" onOpen={refreshScroll}>
+                  <Numbers report={report} />
+                </Detail>
+                <Detail title="Same trip, other products" onOpen={refreshScroll}>
+                  <ErrorBoundary label="The comparison">
+                    <Counterfactual boxId={report.box.id} />
+                  </ErrorBoundary>
+                </Detail>
+                {report.box.id.startsWith("BOX-9") && (
+                  <Detail title="Stage demo" onOpen={refreshScroll}>
+                    <StageReset onDone={changed} />
+                  </Detail>
+                )}
+              </Details>
+              <p className="ui-caption m-0 mt-6 text-center">Decision support with a human in the loop. Not a clinical determination.</p>
+            </Reveal>
           </>
         }
       />
@@ -293,40 +352,6 @@ export default function BoxPage() {
       )}
       <Toast message={toast} onDone={hideToast} />
     </Layout>
-  );
-}
-
-/** A panel that slides up over the page (the camera, a confirmation). */
-function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = overflow;
-    };
-  }, [onClose]);
-  return (
-    <div className="fixed inset-0 z-[1300] flex items-end justify-center lg:items-center lg:p-8" style={{ background: "color-mix(in srgb, var(--ink-900) 55%, transparent)" }} onClick={onClose}>
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(e) => e.stopPropagation()}
-        className="modal-in max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4 lg:max-w-lg lg:rounded-3xl lg:px-6 lg:pt-6"
-        style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
-      >
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="ui-heading m-0">{title}</h2>
-          <button onClick={onClose} aria-label="Close" className="back-btn">
-            <XIcon size={20} />
-          </button>
-        </div>
-        {children}
-      </section>
-    </div>
   );
 }
 
@@ -353,7 +378,7 @@ function MoveBox({ report, onMoved }: { report: Report; onMoved: (message: strin
 
   const others = nodes.filter((n) => n.id !== report.current_node_id && !n.backup_for);
   return (
-    <div className="flex flex-col gap-2 py-1.5">
+    <div className="fade-in flex flex-col gap-2 py-1.5">
       <div className="flex gap-2">
         <select value={target} onChange={(e) => setTarget(e.target.value)} className="select-pill flex-1" aria-label="Carrier or cold room">
           <option value="">Choose a carrier or cold room…</option>

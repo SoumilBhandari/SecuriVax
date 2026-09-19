@@ -2,10 +2,11 @@ import "leaflet/dist/leaflet.css";
 
 import { latLngBounds, type LatLngBounds } from "leaflet";
 import { useEffect } from "react";
-import { CircleMarker, MapContainer, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, Tooltip, useMap } from "react-leaflet";
 
 import { RISK_COLOR, time } from "../lib/format";
 import type { StoreRisk } from "../types";
+import { MapChrome, MapFrame, Tiles } from "./MapBase";
 
 /**
  * The stores and clinics on OpenStreetMap, coloured by heat risk (the original
@@ -27,12 +28,10 @@ function RiskMap({
   const bounds = latLngBounds(sites.map((s) => [s.lat, s.lon] as [number, number])).pad(0.2);
   return (
     <div>
-      <div className="h-56 overflow-hidden rounded-2xl border border-line lg:h-[min(600px,calc(100dvh-250px))]">
-        <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full">
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+      <MapFrame className="h-56 lg:h-[min(600px,calc(100dvh-250px))]">
+        <MapContainer bounds={bounds} scrollWheelZoom={false} zoomControl={false} attributionControl={false} className="h-full w-full">
+          <Tiles />
+          <MapChrome />
           {sites.map((s) => (
             <CircleMarker
               key={s.id}
@@ -48,7 +47,7 @@ function RiskMap({
           ))}
           {onSelect && <FlyTo site={sites.find((s) => s.id === selected) ?? null} all={bounds} />}
         </MapContainer>
-      </div>
+      </MapFrame>
       {legend && (
         <div className="ui-caption mt-2 flex flex-wrap gap-x-3 gap-y-1" aria-label="Heat risk key">
           {(["extreme", "high", "moderate", "low"] as const).map((r) => (

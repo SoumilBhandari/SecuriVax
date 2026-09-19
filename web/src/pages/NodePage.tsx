@@ -8,10 +8,12 @@ import { ForecastCard } from "../components/Forecast";
 import { WatchLive } from "../components/WatchLive";
 import { NfcIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
+import { Reveal } from "../components/Reveal";
 import { api } from "../lib/api";
 import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
 import { ago, demoRate } from "../lib/format";
+import { refreshScroll } from "../lib/motion";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import type { BoxSummary, NodeDetail } from "../types";
@@ -81,10 +83,10 @@ export default function NodePage() {
         <BackHeader />
         <PageTitle eyebrow="Carrier" title={id} />
         {error && /^no node/i.test(error) ? (
-          <div role="alert" className="panel p-4">
+          <div role="alert" className="panel p-5">
             <p className="ui-heading m-0">Carrier not found</p>
             <p className="m-0 mt-2 text-neutral-300">No carrier or cold room has the ID {id}. Check the sticker.</p>
-            <Link to="/boxes" className="btn-secondary mt-4">
+            <Link to="/boxes" viewTransition className="btn-secondary mt-4">
               See all boxes
             </Link>
           </div>
@@ -102,36 +104,47 @@ export default function NodePage() {
   return (
     <Layout>
       <BackHeader />
-      <PageTitle
-        eyebrow={node.kind === "cold_box" ? "Cold box" : node.kind === "rdt_box" ? "Test box" : "Carrier"}
-        title={node.label}
-        sub={
-          <>
-            {node.facility} · {node.online ? "Online" : "Offline"}, seen {ago(node.last_seen_at)}
-            {node.battery_v != null && (
-              <>
-                {" · "}
-                <span className={node.low_battery ? "font-bold text-text" : undefined}>
-                  {node.battery_v.toFixed(2)} V{node.low_battery && ", swap soon"}
+      <Reveal>
+        <PageTitle
+          eyebrow={node.kind === "cold_box" ? "Cold box" : node.kind === "rdt_box" ? "Test box" : "Carrier"}
+          title={node.label}
+          sub={
+            <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: node.online ? "var(--accent)" : "var(--line-2)", animation: node.online ? "vt-pulse 1.6s infinite" : undefined }}
+                />
+                {node.online ? "Online" : "Offline"}
+              </span>
+              <span>· {node.facility}</span>
+              <span>· seen {ago(node.last_seen_at)}</span>
+              {node.battery_v != null && (
+                <span className={node.low_battery ? "font-semibold text-text" : undefined}>
+                  · {node.battery_v.toFixed(2)} V{node.low_battery && ", swap soon"}
                 </span>
-              </>
-            )}
-          </>
-        }
-      />
-      {node.backup_for && (
-        <p className="ui-caption m-0 mb-3 -mt-3">
-          Backup for <Link to={`/node/${node.backup_for}`}>{node.backup_for}</Link>: its readings fill in whenever {node.backup_for} goes quiet.
-        </p>
-      )}
-      {node.time_scale !== 1 && <p className="ui-caption m-0 mb-4 -mt-3">Demo node: {demoRate(node.time_scale)}.</p>}
+              )}
+            </span>
+          }
+        />
+        {node.backup_for && (
+          <p className="ui-caption m-0 -mt-3 mb-4">
+            Backup for{" "}
+            <Link to={`/node/${node.backup_for}`} viewTransition>
+              {node.backup_for}
+            </Link>
+            : its readings fill in whenever {node.backup_for} goes quiet.
+          </p>
+        )}
+        {node.time_scale !== 1 && <p className="ui-caption m-0 -mt-3 mb-4">Demo node: {demoRate(node.time_scale)}.</p>}
+      </Reveal>
 
       <Split
         left={
-          <>
+          <Reveal each stagger={0.08}>
             <div className="grid grid-cols-2 gap-3">
-              <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit=" °C" />
-              <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}%` : "–"} />
+              <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit="°C" />
+              <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}` : "–"} unit="%" />
             </div>
 
             {node.checkin_s && node.checkin_s > 60 ? (
@@ -147,21 +160,23 @@ export default function NodePage() {
                 </ErrorBoundary>
               </div>
             )}
-          </>
+          </Reveal>
         }
         right={
           <>
             {forecastable && node.box_ids.length > 0 && (
-              <>
+              <Reveal>
                 <SectionTitle>What should I do?</SectionTitle>
                 <ErrorBoundary label="The dispatch agent">
                   <Dispatch nodeId={node.id} />
                 </ErrorBoundary>
-              </>
+              </Reveal>
             )}
 
-            <SectionTitle>Boxes · {boxes.length}</SectionTitle>
-            <div className="flex flex-col gap-3">
+            <Reveal>
+              <SectionTitle>Boxes · {boxes.length}</SectionTitle>
+            </Reveal>
+            <Reveal each stagger={0.06} className="flex flex-col gap-3">
               {boxes.map((b) => (
                 <BoxCard key={b.id} box={b} compact />
               ))}
@@ -181,18 +196,18 @@ export default function NodePage() {
                   }}
                 />
               )}
-            </div>
+            </Reveal>
 
-            <div className="mt-6">
+            <Reveal className="mt-6">
               <Details>
-                <Detail first title="Recent readings">
+                <Detail first title="Recent readings" onOpen={refreshScroll}>
                   <Sparkline values={node.recent.map((r) => r.temp_c)} />
                 </Detail>
-                <Detail title={`Uploads · ${node.uploads.length}`}>
+                <Detail title={`Uploads · ${node.uploads.length}`} onOpen={refreshScroll}>
                   <Uploads node={node} />
                 </Detail>
               </Details>
-            </div>
+            </Reveal>
           </>
         }
       />
@@ -237,13 +252,14 @@ function LoadBox({ nodeId, boxes, onDone }: { nodeId: string; boxes: BoxSummary[
   );
 }
 
+/** One reading, large: the number in SF Pro Display with its unit set small beside it. */
 function BigNumber({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
-    <div className="card-soft p-4">
+    <div className="panel p-5">
       <p className="eyebrow m-0">{label}</p>
-      <p className="m-0 mt-2 font-display text-[34px] font-semibold leading-10 tracking-[-0.02em] tabular-nums">
+      <p className="m-0 mt-3 font-display text-[44px] font-semibold leading-none tracking-[-0.03em] tabular-nums">
         {value}
-        {unit && value !== "–" && <span className="font-sans text-base font-normal tracking-normal text-neutral-500">{unit}</span>}
+        {unit && value !== "–" && <span className="ml-1 font-sans text-[17px] font-normal tracking-normal text-neutral-500">{unit}</span>}
       </p>
     </div>
   );
@@ -257,8 +273,12 @@ function Sparkline({ values }: { values: number[] }) {
   return (
     <svg viewBox="0 0 300 60" className="block h-16 w-full" role="img" aria-label={`Recent temperatures, ${values[values.length - 1].toFixed(1)} °C now`}>
       <path d={pts} fill="none" stroke="var(--line)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
-      <text x="0" y="9" fontSize="9" fill="var(--text-muted)">{hi.toFixed(0)}°</text>
-      <text x="0" y="58" fontSize="9" fill="var(--text-muted)">{lo.toFixed(0)}°</text>
+      <text x="0" y="9" fontSize="9" fill="var(--text-muted)">
+        {hi.toFixed(0)}°
+      </text>
+      <text x="0" y="58" fontSize="9" fill="var(--text-muted)">
+        {lo.toFixed(0)}°
+      </text>
     </svg>
   );
 }
@@ -268,13 +288,13 @@ function Uploads({ node }: { node: NodeDetail }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-[13px] tabular-nums">
-        <thead className="text-xs uppercase tracking-[0.06em] text-neutral-500">
+        <thead className="text-[11px] font-semibold uppercase tracking-[0.04em] text-neutral-500">
           <tr>
-            <th className="py-1.5 font-medium">When</th>
-            <th className="py-1.5 text-right font-medium">Sent</th>
-            <th className="py-1.5 text-right font-medium">New</th>
-            <th className="py-1.5 text-right font-medium">Dup</th>
-            <th className="py-1.5 text-right font-medium">Bad</th>
+            <th className="py-1.5 font-semibold">When</th>
+            <th className="py-1.5 text-right font-semibold">Sent</th>
+            <th className="py-1.5 text-right font-semibold">New</th>
+            <th className="py-1.5 text-right font-semibold">Dup</th>
+            <th className="py-1.5 text-right font-semibold">Bad</th>
           </tr>
         </thead>
         <tbody>

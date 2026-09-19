@@ -17,7 +17,7 @@ export function applyTheme(pref: ThemePref = getThemePref()): "light" | "dark" {
   const dark = pref === "dark" || (pref === "system" && window.matchMedia?.(DARK_QUERY).matches);
   const theme = dark ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", theme);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0b2545" : "#f5f8fa");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#000000" : "#f5f5f7");
   return theme;
 }
 

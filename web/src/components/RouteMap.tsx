@@ -1,12 +1,15 @@
 import "leaflet/dist/leaflet.css";
 
 import { latLngBounds, type LatLngExpression } from "leaflet";
-import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
+import { CircleMarker, MapContainer, Polyline, Tooltip } from "react-leaflet";
 
 import { placeName, time } from "../lib/format";
 import type { PointStatus, Segment } from "../types";
+import { coarsePointer, MapChrome, MapFrame, Tiles } from "./MapBase";
 
-const COLORS: Record<PointStatus, string> = { ok: "#2563eb", heat: "#dc2626", freeze: "#7c3aed" };
+// In range is the ink line; an excursion gets its own colour, neither of them a verdict signal.
+const COLORS: Record<PointStatus, string> = { ok: "var(--line)", heat: "#e8590c", freeze: "#4f7bd9" };
+const HANDOFF = "var(--accent-deep)";
 const LEGEND: Record<PointStatus, string> = { ok: "In range", heat: "Too warm", freeze: "Frozen" };
 
 /** Split a leg into runs of the same status so each run gets its colour. */
@@ -31,12 +34,10 @@ function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; 
 
   return (
     <div>
-      <div className={`${height} overflow-hidden rounded-2xl border border-line`}>
-        <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+      <MapFrame className={height}>
+        <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} zoomControl={false} attributionControl={false} className="h-full w-full">
+          <Tiles />
+          <MapChrome />
           {segments.map((s) =>
             runs(s).map((r, i) => (
               <Polyline
@@ -62,7 +63,7 @@ function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; 
             </CircleMarker>
           ))}
         </MapContainer>
-      </div>
+      </MapFrame>
       <div className="ui-caption mt-2 flex flex-wrap gap-x-3 gap-y-1">
         {(["ok", "heat", "freeze"] as const).map((k) => (
           <span key={k} className="inline-flex items-center gap-1.5">
@@ -71,7 +72,7 @@ function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; 
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#059669] bg-white" />
+          <span className="inline-block h-2.5 w-2.5 rounded-full border-2 bg-white" style={{ borderColor: HANDOFF }} />
           Handoff
         </span>
       </div>
@@ -93,7 +94,7 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
             key={e.label}
             center={[e.lat!, e.lon!]}
             radius={6}
-            pathOptions={{ color: "#059669", weight: 3, fillColor: "#fff", fillOpacity: 1 }}
+            pathOptions={{ color: HANDOFF, weight: 3, fillColor: "#fff", fillOpacity: 1 }}
           >
             <Tooltip>
               {e.label}, {placeName(places, e.lat, e.lon)}, {time(e.ts)}
@@ -106,7 +107,3 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
 
 export default RouteMap;
 
-/** On phones a one-finger drag should scroll the page, not pan the map. */
-function coarsePointer(): boolean {
-  return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
-}

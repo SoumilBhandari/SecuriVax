@@ -1,13 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 
 import { BoxCard } from "../components/BoxCard";
 import { Logo, ThemeToggle } from "../components/Brand";
-import { NfcIcon, SearchIcon, XIcon } from "../components/Icons";
+import { ListIcon, MapIcon, NfcIcon, SearchIcon, XIcon } from "../components/Icons";
 import { Account, ErrorNote, Layout, Spinner } from "../components/Layout";
+import { Reveal } from "../components/Reveal";
+import { Segmented } from "../components/Segmented";
 import { api } from "../lib/api";
 import { useCanTapTags } from "../lib/device";
 import { ago, SEVERITY_ORDER } from "../lib/format";
+import { refreshScroll } from "../lib/motion";
 import { usePoll } from "../lib/usePoll";
 import type { BoxSummary } from "../types";
 
@@ -35,6 +38,7 @@ function savedView(): View {
   }
 }
 
+/** Every box, worst first: the list a health worker scans, or the same boxes on a map. */
 export default function HomePage() {
   const boxes = usePoll(() => api.boxes(), 30000);
   const [filter, setFilter] = useState<Filter>("ALL");
@@ -42,6 +46,7 @@ export default function HomePage() {
   const [view, setView] = useState<View>(savedView);
   const pickView = (v: View) => {
     setView(v);
+    refreshScroll();
     try {
       localStorage.setItem(VIEW_KEY, v);
     } catch {
@@ -54,9 +59,7 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   const all = boxes.data ?? [];
-  const sorted = [...all].sort(
-    (a, b) => SEVERITY_ORDER[a.verdict] - SEVERITY_ORDER[b.verdict] || b.budget_used - a.budget_used,
-  );
+  const sorted = [...all].sort((a, b) => SEVERITY_ORDER[a.verdict] - SEVERITY_ORDER[b.verdict] || b.budget_used - a.budget_used);
   const active = FILTERS.find((f) => f.id === filter)!;
   const q = query.trim().toLowerCase();
   const found = (b: BoxSummary) => !q || [b.id, b.product_name, b.origin, b.destination].some((s) => s?.toLowerCase().includes(q));
@@ -64,46 +67,45 @@ export default function HomePage() {
   // Enter opens the box: an exact ID, or the only one left.
   const open = () => {
     const pick = all.find((b) => b.id.toLowerCase() === q) ?? (visible.length === 1 ? visible[0] : null);
-    if (pick) navigate(`/box/${pick.id}`);
+    if (pick) navigate(`/box/${pick.id}`, { viewTransition: true });
   };
   const toCheck = all.filter((b) => b.verdict === "QUARANTINE" || b.verdict === "DISCARD").length;
 
   return (
     <Layout>
-      {/* On a laptop the sidebar carries the logo and the theme switch. */}
-      <div className="flex items-center justify-between gap-3 pb-8 pt-6 lg:justify-end lg:pt-8">
-        <span className="flex lg:hidden">
-          <Logo height={30} />
-        </span>
-        <span className="flex items-center gap-3">
-          <span className="ui-caption hidden text-right sm:inline">{boxes.updatedAt ? `Updated ${ago(boxes.updatedAt / 1000)}` : ""}</span>
-          <span className="flex gap-2 lg:hidden">
-            <ThemeToggle />
-            <Account compact />
-          </span>
+      {/* On a laptop the top bar carries the logo and the theme switch. */}
+      <div className="flex items-center justify-between gap-3 pb-6 pt-4 lg:hidden">
+        <Logo height={26} />
+        <span className="flex gap-2">
+          <ThemeToggle />
+          <Account compact />
         </span>
       </div>
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-end lg:gap-10">
+
+      <Reveal each stagger={0.06} className="lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:items-end lg:gap-12">
         <div>
           <p className="eyebrow m-0 mb-2">Boxes</p>
-          <h1 className="ui-title m-0 mb-1">Is it still good?</h1>
-          <p className="m-0 mb-6 text-neutral-500">{boxes.data ? `${all.length} boxes tracked · ${toCheck} to check` : " "}</p>
+          <h1 className="ui-title m-0 mb-2">Is it still good?</h1>
+          <p className="ui-caption m-0 mb-6 text-[17px] leading-6 lg:mb-7">
+            {boxes.data ? `${all.length} boxes tracked · ${toCheck} to check` : " "}
+            {boxes.updatedAt && <span className="hidden sm:inline"> · updated {ago(boxes.updatedAt / 1000)}</span>}
+          </p>
         </div>
-        <div className="lg:mb-6">
+        <div className="lg:mb-7">
           {!canTap ? (
             <FindBox query={query} onChange={setQuery} onOpen={open} />
           ) : (
-            <button onClick={() => setWaiting(true)} className="btn-primary min-h-16 !justify-start gap-3 py-2 text-left">
-              <NfcIcon size={28} className="shrink-0" />
+            <button onClick={() => setWaiting(true)} className="btn-primary min-h-[68px] !justify-start gap-4 py-2 text-left">
+              <NfcIcon size={30} className="shrink-0" />
               <span className="flex min-w-0 flex-col gap-0.5">
                 <span>Tap a box's sticker</span>
-                <span className="font-sans text-sm font-normal leading-5 tracking-normal">Hold your phone to the tag to see its verdict</span>
+                <span className="text-[14px] font-normal leading-5 tracking-[-0.016em] opacity-80">Hold your phone to the tag to see its verdict</span>
               </span>
             </button>
           )}
           {waiting && (
-            <div role="status" className="mt-3 flex items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: "var(--glacier-500)", animation: "vt-pulse 1.2s infinite" }} />
+            <div role="status" className="panel modal-in mt-3 flex items-center gap-3 px-4 py-3">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: "var(--accent)", animation: "vt-pulse 1.2s infinite" }} />
               <span className="flex-1">Waiting for a tag, or pick a box below.</span>
               <button onClick={() => setWaiting(false)} aria-label="Cancel" className="grid h-11 w-11 place-items-center text-neutral-500 hover:text-text">
                 <XIcon size={18} />
@@ -111,47 +113,49 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </div>
+      </Reveal>
 
-      <div className="mb-4 mt-8 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by verdict">
-          {FILTERS.map((f) => (
-            <button key={f.id} className="chip" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>
-              {f.label}
-              <span className="font-normal tabular-nums opacity-60">{all.filter(f.match).filter(found).length}</span>
-            </button>
-          ))}
+      <Reveal className="mb-4 mt-6 flex flex-col gap-3 sm:flex-row sm:items-center lg:mt-8">
+        <div className="-mx-5 flex-1 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0 lg:overflow-visible">
+          <Segmented
+            label="Filter by verdict"
+            value={filter}
+            onChange={setFilter}
+            options={FILTERS.map((f) => ({ id: f.id, label: f.label, count: all.filter(f.match).filter(found).length }))}
+          />
         </div>
-        <div className="ml-auto flex gap-2" role="group" aria-label="Show as">
-          <button className="chip" aria-pressed={view === "list"} onClick={() => pickView("list")}>
-            List
-          </button>
-          <button className="chip" aria-pressed={view === "map"} onClick={() => pickView("map")}>
-            Map
-          </button>
-        </div>
-      </div>
+        <Segmented
+          className="self-end sm:self-auto"
+          label="Show as"
+          value={view}
+          onChange={pickView}
+          options={[
+            { id: "list", label: <ListIcon size={18} />, title: "List" },
+            { id: "map", label: <MapIcon size={18} />, title: "Map" },
+          ]}
+        />
+      </Reveal>
 
       {boxes.error && !boxes.data && <ErrorNote error={boxes.error} onRetry={boxes.refresh} />}
       {!boxes.data && !boxes.error && <Spinner />}
 
       {view === "map" && boxes.data ? (
         <Suspense fallback={<Spinner label="Opening the map" />}>
-          <ShipmentsView boxes={visible} />
+          <div className="fade-in">
+            <ShipmentsView boxes={visible} />
+          </div>
         </Suspense>
       ) : (
-        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
-          {visible.map((b, i) => (
-            <div key={b.id} className="rise-in" style={{ "--i": Math.min(i, 12) } as CSSProperties}>
-              <BoxCard box={b} />
-            </div>
+        <Reveal each stagger={0.05} key={`${filter}-${q}`} className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
+          {visible.map((b) => (
+            <BoxCard key={b.id} box={b} />
           ))}
-        </div>
+        </Reveal>
       )}
-      {boxes.data && visible.length === 0 && <p className="py-8 text-center text-neutral-500">{q ? `No box matches "${query.trim()}".` : "Nothing here."}</p>}
+      {boxes.data && visible.length === 0 && <p className="py-10 text-center text-neutral-500">{q ? `No box matches "${query.trim()}".` : "Nothing here."}</p>}
 
-      <p className="mt-8 text-center text-sm">
-        <Link to="/tags" className="text-neutral-500 underline underline-offset-4 hover:text-text">
+      <p className="mt-10 text-center text-[14px]">
+        <Link to="/tags" viewTransition className="text-neutral-500 underline underline-offset-4 hover:text-text">
           NFC tags, the VVM test card and the stage demo
         </Link>
       </p>

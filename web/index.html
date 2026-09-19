@@ -3,12 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#f5f8fa" />
+    <meta name="theme-color" content="#f5f5f7" />
     <meta name="description" content="Potency in every drop. Tap a box's tag to see if the vaccine inside is still good." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="apple-touch-icon" href="/icon-180.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="preload" href="/fonts/sf-pro-text-regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/sf-pro-display-semibold.woff2" as="font" type="font/woff2" crossorigin />
     <!-- Link previews (messages, Slack, social). Crawlers need absolute URLs: update them with the domain. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SecuriVax" />
@@ -30,7 +32,7 @@
         } catch (e) {}
         var dark = pref === "dark" || (pref === "system" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
         document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-        document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0b2545" : "#f5f8fa");
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#000000" : "#f5f5f7");
       })();
     </script>
   </head>

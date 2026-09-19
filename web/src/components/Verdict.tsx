@@ -110,11 +110,11 @@ export function Reasons({ reasons }: { reasons: Reason[] }) {
         return (
           <li key={i} className="grid grid-cols-[16px_minmax(0,1fr)] items-start gap-3">
             <span className="grid h-6 w-4 place-items-center">
-              <span className="h-2 w-2 rounded-full" style={{ background: decides ? "var(--text)" : "var(--glacier-500)" }} />
+              <span className="h-2 w-2 rounded-full" style={{ background: decides ? "var(--text)" : "var(--accent)" }} />
             </span>
-            <span className="flex flex-col gap-0.5">
+            <span className="flex flex-col gap-1">
               <span className="[text-wrap:pretty]">{r.text}</span>
-              {tag && <span className="ui-caption">{tag}</span>}
+              {tag && <span className="ui-footnote font-semibold uppercase tracking-[0.04em]">{tag}</span>}
             </span>
           </li>
         );
