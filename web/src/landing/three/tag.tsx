@@ -3,7 +3,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, CanvasTexture, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
 
-import { between, type Drive } from "./objects";
+import { between, type Drive } from "./drive";
 
 /**
  * Tag it: the bOPV carton from the team's cutting sheet

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, Box3, CanvasTexture, Color, DoubleSide, Group, Mesh, MeshPhysicalMaterial, MeshStandardMaterial, Object3D, SRGBColorSpace, Vector3 } from "three";
 
 import lockupUrl from "../../assets/brand/securivax-lockup-horizontal-light.svg";
-import type { Drive } from "./objects";
+import type { Drive } from "./drive";
 
 /**
  * The node itself: the team's CAD, straight from Onshape (the board with its

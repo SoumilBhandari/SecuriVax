@@ -6,7 +6,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 
 import type { Anchor, Ground } from "../placeholders";
 import { Device } from "./device";
-import { between, type Drive } from "./objects";
+import { between, type Drive } from "./drive";
 import { TagScene } from "./tag";
 
 export interface ObjectViewHandle {

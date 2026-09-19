@@ -1,5 +1,5 @@
 import { DomEvent } from "leaflet";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { TileLayer, useMap } from "react-leaflet";
 
 import { MinusIcon, PlusIcon } from "./Icons";
@@ -9,21 +9,6 @@ import { MinusIcon, PlusIcon } from "./Icons";
  * theme, our own zoom buttons, and a one-line credit. Leaflet's own controls
  * are switched off on the containers that use this.
  */
-
-function currentTheme(): "light" | "dark" {
-  return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
-}
-
-/** The app's theme, live: follows the toggle and the system. */
-export function useTheme(): "light" | "dark" {
-  const [theme, setTheme] = useState(currentTheme);
-  useEffect(() => {
-    const mo = new MutationObserver(() => setTheme(currentTheme()));
-    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => mo.disconnect();
-  }, []);
-  return theme;
-}
 
 /**
  * OpenStreetMap's tiles, drained of colour by a filter on the tile pane (see

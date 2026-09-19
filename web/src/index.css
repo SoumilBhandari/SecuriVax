@@ -1389,21 +1389,6 @@
 .chapter__copy--on-signal .text-neutral-500 {
   color: inherit;
 }
-.chapter__aside {
-  position: absolute;
-  right: 24px;
-  bottom: max(6vh, calc(env(safe-area-inset-bottom, 0px) + 24px));
-  left: 24px;
-  z-index: 1;
-}
-@media (min-width: 1024px) {
-  .chapter__aside {
-    left: auto;
-    right: max(40px, calc((100vw - 1180px) / 2 + 40px));
-    bottom: 8vh;
-    width: 380px;
-  }
-}
 
 /* ---- Motion classes. Short, eased, and off for anyone who asks for less motion. */
 .rise-in {

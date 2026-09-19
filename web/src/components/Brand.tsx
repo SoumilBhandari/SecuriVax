@@ -21,7 +21,6 @@ export const VERDICT_KEY: Record<Verdict, VerdictKey> = {
 };
 
 const WORD: Record<VerdictKey, string> = { use: "Use", quarantine: "Quarantine", discard: "Discard" };
-const word = (v: Verdict) => (v === "USE_FIRST" ? "Use first" : WORD[VERDICT_KEY[v]]);
 
 /** The horizontal lockup; the light file on light grounds and the dark one on Ink. */
 export function Logo({ height = 30 }: { height?: number }) {
@@ -107,28 +106,6 @@ export function BudgetRing({
 export function VerdictBadge({ verdict, children }: { verdict: Verdict; children?: ReactNode }) {
   const key = VERDICT_KEY[verdict];
   return <span className={`sv-badge sv-badge--${key}`}>{children ?? (verdict === "USE_FIRST" ? "Use first" : WORD[key])}</span>;
-}
-
-/**
- * The answer, first on the screen: the ring with the verdict's mark, VERDICT,
- * the word and one instruction, on the verdict's own colour (green, amber or
- * red) so a flip is seen before it's read. The team's call over the kit's
- * single Ink card: the verdict changing is the moment the demo is about.
- */
-export function VerdictCard({ verdict, budgetUsed, note, ringSize = 64 }: { verdict: Verdict; budgetUsed: number; note: ReactNode; ringSize?: number }) {
-  const key = VERDICT_KEY[verdict];
-  return (
-    <section className={`sv-verdict sv-verdict--${key}`} aria-label={`Verdict: ${word(verdict)}`}>
-      <BudgetRing value={budgetUsed} tone="signal" size={ringSize} mark={VERDICT_MARK[key]} />
-      <div>
-        <p className="sv-verdict__eyebrow">Verdict</p>
-        <p className={`sv-verdict__word${verdict === "USE_FIRST" ? " sv-verdict__word--discard" : key === "use" ? "" : ` sv-verdict__word--${key}`}`}>
-          {word(verdict)}
-        </p>
-        <p className="sv-verdict__note">{note}</p>
-      </div>
-    </section>
-  );
 }
 
 /** Label and value rows with hairline dividers. */

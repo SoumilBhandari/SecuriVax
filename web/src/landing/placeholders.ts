@@ -88,14 +88,14 @@ function device(ctx: CanvasRenderingContext2D, cx: number, cy: number, size: num
 }
 
 /** A: the node, which comes apart as the reader scrolls. */
-export const heroReveal: Placeholder = (ctx, w, h, p, g, at) => {
+const heroReveal: Placeholder = (ctx, w, h, p, g, at) => {
   ground(ctx, w, h, g);
   const size = Math.min(w * 0.5, h * 0.55) * at.scale;
   device(ctx, w * at.ax, h * at.ay, size, between(p, 0.14, 0.86), g);
 };
 
 /** B: the box alone, turning so the sticker catches the light. */
-export const tagIt: Placeholder = (ctx, w, h, p, g, at) => {
+const tagIt: Placeholder = (ctx, w, h, p, g, at) => {
   ground(ctx, w, h, g);
   const c = palette(g);
   const size = Math.min(w * 0.42, h * 0.5) * at.scale;
@@ -158,14 +158,14 @@ export const tagIt: Placeholder = (ctx, w, h, p, g, at) => {
 };
 
 /** C: the node, fully apart. */
-export const senseIt: Placeholder = (ctx, w, h, p, g, at) => {
+const senseIt: Placeholder = (ctx, w, h, p, g, at) => {
   ground(ctx, w, h, g);
   const size = Math.min(w * 0.42, h * 0.5) * at.scale;
   device(ctx, w * at.ax, h * at.ay, size, between(p, 0.06, 0.94), g);
 };
 
 /** F: the carrier closed again, pulling back into frame. */
-export const closing: Placeholder = (ctx, w, h, p, g, at) => {
+const closing: Placeholder = (ctx, w, h, p, g, at) => {
   ground(ctx, w, h, g);
   const size = Math.min(w * 0.46, h * 0.52) * at.scale * (1 + p * 0.06);
   device(ctx, w * at.ax, h * at.ay, size, 0, g);

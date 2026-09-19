@@ -22,7 +22,7 @@ export type Crop = "landscape" | "portrait";
 let manifest: Promise<Manifest | null> | null = null;
 
 /** The manifest, fetched once; null when there's no render yet. */
-export function loadManifest(): Promise<Manifest | null> {
+function loadManifest(): Promise<Manifest | null> {
   if (!manifest) {
     manifest = fetch("/hero/manifest.json", { cache: "force-cache" })
       .then((r) => (r.ok ? (r.json() as Promise<Manifest>) : null))
@@ -113,12 +113,4 @@ export async function framesFor(id: string, crop: Crop): Promise<Frames | null> 
     cache.set(key, f);
   }
   return f;
-}
-
-/** Draw an image to cover a box, like `object-fit: cover`. */
-export function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, w: number, h: number): void {
-  const s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const dw = img.naturalWidth * s;
-  const dh = img.naturalHeight * s;
-  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
 }
