@@ -8,6 +8,7 @@ import { ForecastCard } from "../components/Forecast";
 import { NfcIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { api } from "../lib/api";
+import { canTapTags, useCanTapTags } from "../lib/device";
 import { ago, demoRate } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
@@ -17,7 +18,9 @@ import type { BoxSummary, NodeDetail } from "../types";
 export default function NodePage() {
   const { id = "" } = useParams();
   const [node, setNode] = useState<NodeDetail | null>(null);
-  const [boxes, setBoxes] = useState<BoxSummary[]>([]);
+  const [allBoxes, setAllBoxes] = useState<BoxSummary[]>([]);
+  const boxes = allBoxes.filter((b) => b.current_node_id === id);
+  const canTap = useCanTapTags();
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const tapHandled = useRef(false);
@@ -30,12 +33,13 @@ export default function NodePage() {
         setError(null);
       })
       .catch((e: Error) => setError(e.message));
-    api.boxes().then((all) => setBoxes(all.filter((b) => b.current_node_id === id))).catch(() => {});
+    api.boxes().then(setAllBoxes).catch(() => {});
   }, [id]);
 
   useEffect(() => {
     if (tapHandled.current || !takeTap()) return;
     tapHandled.current = true;
+    if (!canTapTags()) return; // a tag's URL opened on a computer: there's no second tap to pair it with
     const arm = getArm();
     if (arm?.kind === "box") {
       clearArm();
@@ -146,10 +150,21 @@ export default function NodePage() {
                 <BoxCard key={b.id} box={b} compact />
               ))}
               {boxes.length === 0 && <p className="m-0 text-neutral-500">Empty.</p>}
-              <button onClick={() => setArm("node", id)} className="btn-secondary w-full">
-                <NfcIcon size={20} />
-                Load a box: tap its tag
-              </button>
+              {canTap ? (
+                <button onClick={() => setArm("node", id)} className="btn-secondary w-full">
+                  <NfcIcon size={20} />
+                  Load a box: tap its tag
+                </button>
+              ) : (
+                <LoadBox
+                  nodeId={id}
+                  boxes={allBoxes}
+                  onDone={(message) => {
+                    setToast(message);
+                    refresh();
+                  }}
+                />
+              )}
             </div>
 
             <div className="mt-6">
@@ -167,6 +182,40 @@ export default function NodePage() {
       />
       <Toast message={toast} onDone={hideToast} />
     </Layout>
+  );
+}
+
+/** A computer can't tap a box's sticker, so it picks the box from a list. */
+function LoadBox({ nodeId, boxes, onDone }: { nodeId: string; boxes: BoxSummary[]; onDone: (message: string) => void }) {
+  const [target, setTarget] = useState("");
+  const [busy, setBusy] = useState(false);
+  const choices = boxes.filter((b) => b.current_node_id !== nodeId);
+  const load = () => {
+    setBusy(true);
+    api
+      .load(target, nodeId)
+      .then((res) => {
+        setTarget("");
+        onDone(res.status === "already_loaded" ? `${target} is already here` : `Loaded ${target} into ${nodeId}`);
+      })
+      .catch((e: Error) => onDone(`Couldn't load: ${e.message}`))
+      .finally(() => setBusy(false));
+  };
+  return (
+    <div className="flex gap-2">
+      <select value={target} onChange={(e) => setTarget(e.target.value)} className="select-pill min-w-0 flex-1" aria-label="Box to load">
+        <option value="">Load a box…</option>
+        {choices.map((b) => (
+          <option key={b.id} value={b.id}>
+            {b.id} · {b.product_name}
+            {b.current_node_id ? ` (now in ${b.current_node_id})` : ""}
+          </option>
+        ))}
+      </select>
+      <button disabled={!target || busy} onClick={load} className="btn-outline">
+        {busy ? "Loading…" : "Load"}
+      </button>
+    </div>
   );
 }
 

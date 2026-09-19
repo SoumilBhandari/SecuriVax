@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
 import { api } from "../lib/api";
+import { useCanTapTags } from "../lib/device";
 import { pct } from "../lib/format";
 import { asset } from "../lib/snapshot";
+import { PhoneIcon, UploadIcon } from "./Icons";
+import { QrCode } from "./QrCode";
 import type { LabelCheck, VvmResult, Witnesses } from "../types";
 
 const STAGES: Record<number, string> = {
@@ -33,6 +36,7 @@ export function VvmCheck({
   const [result, setResult] = useState<VvmResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [noLiveCamera, setNoLiveCamera] = useState(false);
+  const canTap = useCanTapTags(); // false on a computer: no phone camera in hand
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraApp = useRef<HTMLInputElement>(null);
 
@@ -50,7 +54,14 @@ export function VvmCheck({
   const fromFile = (input: HTMLInputElement) => {
     const file = input.files?.[0];
     input.value = ""; // so picking the same photo again still fires
-    if (!file) return;
+    if (file) readPhoto(file);
+  };
+
+  const readPhoto = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("That isn't a photo. Try a JPEG or PNG.");
+      return;
+    }
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
@@ -101,6 +112,8 @@ export function VvmCheck({
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-700 border-t-accent-400" />
           Measuring the square against the ring…
         </p>
+      ) : !result && !canTap ? (
+        <FromComputer boxId={boxId} onChoose={() => fileRef.current?.click()} onDrop={readPhoto} onWebcam={() => setCamera(true)} webcamFailed={noLiveCamera} />
       ) : !result ? (
         <div>
           {noLiveCamera ? (
@@ -270,6 +283,84 @@ function RatioScale({ witnesses: w }: { witnesses: Witnesses }) {
   );
 }
 
+/**
+ * The label check on a computer: a photo from the disk (or dropped on the
+ * panel), the webcam, or a QR code that opens the same check on a phone,
+ * whose camera is the better tool for a vial.
+ */
+function FromComputer({
+  boxId,
+  onChoose,
+  onDrop,
+  onWebcam,
+  webcamFailed,
+}: {
+  boxId: string;
+  onChoose: () => void;
+  onDrop: (file: File) => void;
+  onWebcam: () => void;
+  webcamFailed: boolean;
+}) {
+  const [over, setOver] = useState(false);
+  const handoff = `${window.location.origin}/box/${encodeURIComponent(boxId)}?vvm=1`;
+  return (
+    <div>
+      <div
+        onDragOver={(e) => {
+          if (![...e.dataTransfer.items].some((i) => i.kind === "file")) return;
+          e.preventDefault();
+          setOver(true);
+        }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file) onDrop(file);
+        }}
+        className="rounded-2xl border-[1.5px] border-dashed p-4 text-center transition-colors"
+        style={{ borderColor: over ? "var(--glacier-500)" : "var(--border-strong)", background: over ? "var(--quiet)" : undefined }}
+      >
+        <button onClick={onChoose} className="btn-primary">
+          <UploadIcon size={20} />
+          Choose a photo of the label
+        </button>
+        <p className="ui-caption m-0 mt-2">or drop one here</p>
+      </div>
+      {webcamFailed ? (
+        <p className="ui-caption m-0 mt-3 text-center">This computer's camera didn't start. Use a photo, or a phone below.</p>
+      ) : (
+        <button onClick={onWebcam} className="btn-secondary mt-3 w-full">
+          Use this computer's camera
+        </button>
+      )}
+      <div className="mt-4 flex items-center gap-4 rounded-2xl border border-line p-3">
+        <QrCode text={handoff} size={112} label="QR code that opens this label check on a phone" />
+        <div className="min-w-0">
+          <p className="m-0 flex items-center gap-2 font-display font-semibold tracking-[-0.01em]">
+            <PhoneIcon size={18} />
+            Or use a phone's camera
+          </p>
+          <p className="ui-caption m-0 mt-1">
+            Scan this with a phone to open the same check there. A confirmed result shows on this page within a minute.
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 text-xs leading-snug text-neutral-400">
+        The check compares the inner square's brightness with the ring around it. Lighter than the ring: usable. As dark
+        or darker: discard point. It then checks the result against what the temperature record predicts.
+      </p>
+      <p className="mt-2 text-xs text-neutral-400">
+        No VVM to hand? Open the{" "}
+        <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+          test target
+        </a>{" "}
+        on a phone and hold it up to the camera, or print the test card from the Tags page.
+      </p>
+    </div>
+  );
+}
+
 type Light = "starting" | "glare" | "dark" | "ok";
 const LIGHT_TEXT: Record<Light, string> = {
   starting: "Starting the camera…",
@@ -284,6 +375,7 @@ function Camera({ onCapture, onCancel, onError }: { onCapture: (img: string) => 
   const failed = useRef(onError);
   failed.current = onError;
   const [light, setLight] = useState<Light>("starting");
+  const canTap = useCanTapTags(); // a webcam: the label moves, not the camera
 
   useEffect(() => {
     let stream: MediaStream | null = null;
@@ -357,7 +449,7 @@ function Camera({ onCapture, onCancel, onError }: { onCapture: (img: string) => 
           </div>
         </div>
         <p className="absolute inset-x-0 bottom-0 px-3 py-2 text-center text-sm text-white" style={{ background: "color-mix(in srgb, var(--ink-900) 70%, transparent)" }} aria-live="polite">
-          {LIGHT_TEXT[light]}
+          {light === "glare" && !canTap ? "Glare on the label: tilt it a little" : LIGHT_TEXT[light]}
         </p>
       </div>
       <p className="ui-caption mt-2 text-center">Line the VVM up inside the circle, square in the middle.</p>

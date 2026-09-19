@@ -1,4 +1,4 @@
-/** Light, dark, or whatever the phone is set to. index.html applies it before the first paint. */
+/** Light, dark, or whatever the device is set to. index.html applies it before the first paint. */
 export type ThemePref = "light" | "dark" | "system";
 
 const KEY = "securivax.theme";

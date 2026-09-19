@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
+import { useCanTapTags } from "../lib/device";
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
 import { Logo, ThemeToggle } from "./Brand";
@@ -213,10 +214,11 @@ export function Detail({
   );
 }
 
-/** Shows the half-finished two-tap link, with a countdown. */
+/** Shows the half-finished two-tap link, with a countdown (never on a computer: it can't tap). */
 function ArmBanner() {
   const [arm, setArmState] = useState<Arm | null>(getArm);
   const [, tick] = useState(0);
+  const canTap = useCanTapTags();
 
   useEffect(() => {
     const refresh = () => setArmState(getArm());
@@ -231,7 +233,7 @@ function ArmBanner() {
     };
   }, []);
 
-  if (!arm) return null;
+  if (!arm || !canTap) return null;
   const left = Math.max(0, Math.ceil((ARM_TTL_MS - (Date.now() - arm.at)) / 1000));
   const next = arm.kind === "node" ? `a box to load it into ${arm.id}` : `a carrier to load ${arm.id} into it`;
   return (

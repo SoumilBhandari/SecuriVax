@@ -31,6 +31,12 @@ in our backtest than heat, and it's the thing a VVM can't show.
   then a box tap, *Move this box*, asking the dispatch agent) asks for it once, in a browser pop-up,
   and the phone remembers it. Do one load on each demo phone before judging so the pop-up never
   appears on stage. Judges on their own phones can look at everything; hand them a demo phone to tap.
+- **On a laptop there's no NFC**, so the app swaps each tap for a click. Home has a box search
+  (press `/`) instead of the tap button. A carrier page loads boxes from a list. *Check the VVM
+  label* takes a photo file (or a drop), the webcam, or shows a QR code that opens the same check on
+  a phone. The Tags page shows every sticker's QR code. The operator code pop-up appears on the laptop
+  too, so enter it there before judging. The switch goes by the pointer (a mouse or trackpad), not
+  the window size.
 - **The stage node reports to the live site.** `firmware/include/config.h` has
   `API_BASE "https://securivax.onrender.com"`; set `NODE_KEY` to the value in Render and the hotspot's
   WiFi, flash it, and check that `DEMO-01` says **Online** and the stage screen shows its temperature.

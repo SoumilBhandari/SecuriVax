@@ -184,6 +184,28 @@ export const NfcIcon = (p: IconProps) => (
   </Icon>
 );
 
+// What a computer offers instead of a sticker tap: search, a photo file, a phone.
+export const SearchIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4 4" />
+  </Icon>
+);
+
+export const UploadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 15V4M7.5 8.5 12 4l4.5 4.5" />
+    <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
+  </Icon>
+);
+
+export const PhoneIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="7" y="3" width="10" height="18" rx="2.5" />
+    <path d="M11 17.5h2" />
+  </Icon>
+);
+
 export const StageIcon = (p: IconProps) => (
   <Icon {...p}>
     <rect x="3" y="4" width="18" height="12" rx="2" />

@@ -13,6 +13,7 @@ import { TripChart } from "../components/TripChart";
 import { Numbers, Reasons, VerdictHero } from "../components/Verdict";
 import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
+import { canTapTags, useCanTapTags } from "../lib/device";
 import { time } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
@@ -37,6 +38,8 @@ export default function BoxPage() {
   const [scanning, setScanning] = useState(false);
   const [moving, setMoving] = useState(false);
   const tapHandled = useRef(false);
+  const vvmHandoff = useRef(false);
+  const canTap = useCanTapTags();
 
   useEffect(() => {
     setLive(Boolean(data?.current_node_id));
@@ -53,6 +56,7 @@ export default function BoxPage() {
   useEffect(() => {
     if (tapHandled.current || !takeTap()) return;
     tapHandled.current = true;
+    if (!canTapTags()) return; // a tag's URL opened on a computer: there's no second tap to pair it with
     const arm = getArm();
     if (arm?.kind === "node") {
       clearArm();
@@ -65,6 +69,16 @@ export default function BoxPage() {
       setArm("box", id);
     }
   }, [id, refresh]);
+
+  // A computer's QR code opens the box here with ?vvm=1: go straight to the label check.
+  useEffect(() => {
+    if (takeVvmHandoff()) vvmHandoff.current = true;
+  }, []);
+  useEffect(() => {
+    if (!vvmHandoff.current || !data) return;
+    vvmHandoff.current = false;
+    if (data.product.kind === "vaccine" && data.product.has_vvm !== false) setScanning(true);
+  }, [data]);
 
   const nodeId = data?.current_node_id ?? null;
   const forecast = usePoll<CarrierForecast | null>(
@@ -141,7 +155,7 @@ export default function BoxPage() {
               {hasVvm && (
                 <button onClick={() => setScanning(true)} className="btn-primary">
                   <ScanIcon size={22} />
-                  Scan the VVM label
+                  {canTap ? "Scan the VVM label" : "Check the VVM label"}
                 </button>
               )}
               {hasVvm && label && (
@@ -228,6 +242,15 @@ export default function BoxPage() {
       <Toast message={toast} onDone={hideToast} />
     </Layout>
   );
+}
+
+/** True once if a computer's QR code sent this phone to the label check; strips ?vvm=1. */
+function takeVvmHandoff(): boolean {
+  const url = new URL(window.location.href);
+  if (url.searchParams.get("vvm") !== "1") return false;
+  url.searchParams.delete("vvm");
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+  return true;
 }
 
 /** A panel that slides up over the page (the camera, a confirmation). */

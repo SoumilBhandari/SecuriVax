@@ -3,8 +3,10 @@ import { Link } from "react-router";
 
 import { StageIcon } from "../components/Icons";
 import { BackHeader, Layout, PageTitle, SectionTitle, Split } from "../components/Layout";
+import { QrCode } from "../components/QrCode";
 import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
+import { useCanTapTags } from "../lib/device";
 import { asset } from "../lib/snapshot";
 import type { BoxSummary, NodeSummary } from "../types";
 
@@ -13,6 +15,7 @@ export default function TagsPage() {
   const [boxes, setBoxes] = useState<BoxSummary[]>([]);
   const [nodes, setNodes] = useState<NodeSummary[]>([]);
   const origin = window.location.origin;
+  const canTap = useCanTapTags();
 
   useEffect(() => {
     api.boxes().then(setBoxes).catch(() => {});
@@ -23,11 +26,20 @@ export default function TagsPage() {
     <Layout>
       <BackHeader />
       <PageTitle eyebrow="Setup" title="NFC tags" />
-      <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
-        Write each URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Tapping a sticker
-        opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it. Print the same URL as a
-        QR code for phones without NFC.
-      </p>
+      {canTap ? (
+        <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
+          Write each URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Tapping a sticker
+          opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it. Print the same URL as a
+          QR code for phones without NFC.
+        </p>
+      ) : (
+        <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
+          A computer can't read or write NFC, so the stickers are written from a phone: open this page there and write each
+          URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Here, each tag's QR code opens
+          its page on a phone, and prints as a sticker for phones without NFC. To load a box from a computer, use the
+          carrier's page or <i>Move this box</i>.
+        </p>
+      )}
 
       <Split
         left={
@@ -79,6 +91,8 @@ export default function TagsPage() {
 
 function TagList({ items }: { items: { id: string; label: string; url: string }[] }) {
   const [copied, setCopied] = useState<string | null>(null);
+  const [shown, setShown] = useState<string | null>(null);
+  const canTap = useCanTapTags(); // a computer shows each tag's QR code: its way to hand a page to a phone
   const copy = (url: string) =>
     navigator.clipboard
       ?.writeText(url)
@@ -91,16 +105,31 @@ function TagList({ items }: { items: { id: string; label: string; url: string }[
   return (
     <ul className="panel m-0 list-none p-0">
       {items.map((item, i) => (
-        <li key={item.id} className={`flex items-center gap-3 px-4 py-3 ${i ? "border-t border-line" : ""}`}>
+        <li key={item.id} className={`flex flex-wrap items-center gap-3 px-4 py-3 ${i ? "border-t border-line" : ""}`}>
           <div className="min-w-0 flex-1">
             <p className="m-0 text-sm font-bold">
               {item.id} <span className="font-normal text-neutral-500">{item.label}</span>
             </p>
             <p className="m-0 truncate font-mono text-xs text-neutral-500">{item.url}</p>
           </div>
+          {!canTap && (
+            <button
+              onClick={() => setShown(shown === item.id ? null : item.id)}
+              aria-expanded={shown === item.id}
+              className="btn-quiet !min-h-10 shrink-0 !px-3 !text-sm"
+            >
+              QR
+            </button>
+          )}
           <button onClick={() => copy(item.url)} className="btn-secondary !min-h-10 shrink-0 !px-3 !text-sm">
             {copied === item.url ? "Copied" : "Copy"}
           </button>
+          {shown === item.id && (
+            <div className="flex basis-full items-center gap-4 pt-1">
+              <QrCode text={item.url} size={136} label={`QR code for ${item.id}`} />
+              <p className="ui-caption m-0">Scan with a phone to open {item.id}, as a tap on its sticker would. Print it for phones without NFC.</p>
+            </div>
+          )}
         </li>
       ))}
     </ul>

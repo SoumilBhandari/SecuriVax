@@ -146,16 +146,16 @@ export function DataList({ rows }: { rows: { label: ReactNode; value: ReactNode 
 }
 
 const NEXT: Record<ThemePref, ThemePref> = { system: "light", light: "dark", dark: "system" };
-const THEME_LABEL: Record<ThemePref, string> = { system: "Theme: same as the phone", light: "Theme: light", dark: "Theme: dark" };
+const THEME_LABEL: Record<ThemePref, string> = { system: "Theme: same as this device", light: "Theme: light", dark: "Theme: dark" };
 
-/** Light, dark, or the phone's setting, in turn. */
+/** Light, dark, or the device's setting, in turn. */
 export function ThemeToggle() {
   const [pref, setPref] = useState<ThemePref>(getThemePref);
   const Icon = pref === "light" ? SunIcon : pref === "dark" ? MoonIcon : SystemIcon;
   return (
     <button
       className="back-btn"
-      aria-label={`${THEME_LABEL[pref]}. Switch to ${NEXT[pref] === "system" ? "the phone's setting" : NEXT[pref]}`}
+      aria-label={`${THEME_LABEL[pref]}. Switch to ${NEXT[pref] === "system" ? "this device's setting" : NEXT[pref]}`}
       title={THEME_LABEL[pref]}
       onClick={() => {
         const next = NEXT[pref];
