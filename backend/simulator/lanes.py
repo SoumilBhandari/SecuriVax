@@ -39,6 +39,7 @@ class Stop:
     dwell_h: float = 10.0
     # Cold-room incident while the box is here: (hours in, duration h, towards C)
     incident: tuple[float, float, float] | None = None
+    fridge: bool = True  # False for an outreach session site
 
 
 @dataclass
@@ -120,7 +121,7 @@ LANES: list[Lane] = [
     # from the freezer. Pentavalent is freeze-sensitive, and its VVM can't show it.
     Lane("KO", "BOX-KO-0915", "penta", "PT-24K915", 60, 0.08, [
         Stop("KMB-HC", "Health centre", "Kombewa", -0.1036, 34.5146, "hub", 20),
-        Stop("KW-OUT", "Outreach session at a primary school", "Kisumu West", -0.0400, 34.6200, "clinic"),
+        Stop("KW-OUT", "Outreach session at a primary school", "Kisumu West", -0.0400, 34.6200, "clinic", fridge=False),
     ], delivered=False, truck_cold_life_h=18, vehicle="carrier", leg_h=9, frozen_packs=True),
 ]
 
@@ -148,7 +149,8 @@ def facilities() -> list[Facility]:
         for s in lane.stops:
             if s.id not in seen:
                 seen.add(s.id)
-                out.append(Facility(id=s.id, name=f"{s.city} · {s.name}", kind="store" if s.kind != "clinic" else "clinic", lat=s.lat, lon=s.lon))
+                out.append(Facility(id=s.id, name=f"{s.city} · {s.name}", kind="store" if s.kind != "clinic" else "clinic",
+                                    lat=s.lat, lon=s.lon, has_fridge=s.fridge))
     return out
 
 

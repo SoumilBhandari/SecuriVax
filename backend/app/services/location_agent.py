@@ -135,11 +135,15 @@ class Tools:
         risk = {f["id"]: f for f in stores_at_risk(self.session)["facilities"]}
         rows = []
         for f in self.session.exec(select(Facility)).all():
+            # Only somewhere with a fridge can take the boxes; the destination is
+            # listed either way, with the truth about its fridge.
+            if not f.has_fridge and f.id != self.destination_id:
+                continue
             km = haversine_km(pos, (f.lat, f.lon)) * ROAD_FACTOR if pos else None
             if km is not None and km > max_km:
                 continue
             rows.append({
-                "facility_id": f.id, "name": f.name, "kind": f.kind, "has_fridge": True,
+                "facility_id": f.id, "name": f.name, "kind": f.kind, "has_fridge": f.has_fridge,
                 "road_km": round(km, 1) if km is not None else None,
                 "drive_minutes": round(km / SPEED_KMH * 60) if km is not None else None,
                 "heat_risk_today": risk.get(f.id, {}).get("risk"),
@@ -186,7 +190,7 @@ def rule_based(tools: Tools) -> dict:
 
     def nearest_safe(exclude: str | None = None) -> tuple[dict, dict] | None:
         for f in near:
-            if f["facility_id"] == exclude:
+            if f["facility_id"] == exclude or not f["has_fridge"]:
                 continue
             check = tools.breach_chance_before_arrival(f["facility_id"])
             if _chance(check) < SAFE_BREACH_P:

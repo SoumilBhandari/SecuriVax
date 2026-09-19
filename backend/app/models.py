@@ -36,6 +36,9 @@ class Facility(SQLModel, table=True):
     kind: str  # store | clinic
     lat: float
     lon: float
+    # An outreach session (a school, a market) is a destination with no fridge:
+    # the dispatch agent must never send a carrier there to cool its boxes.
+    has_fridge: bool = True
 
 
 class Box(SQLModel, table=True):

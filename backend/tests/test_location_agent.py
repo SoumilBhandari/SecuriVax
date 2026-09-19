@@ -110,3 +110,25 @@ def test_rules_say_so_when_there_is_no_forecast(client, on_the_road, session):
     session.commit()
     rec = client.post("/api/nodes/DEMO-01/agent", json={"destination_id": "KOMBEWA"}).json()["recommendation"]
     assert rec["action"] == "UNKNOWN" and "Can't forecast" in rec["summary"]
+
+
+def test_rules_never_divert_to_a_place_without_a_fridge(client, on_the_road, session, monkeypatch):
+    # An outreach site is a destination, not somewhere to cool the boxes.
+    from app.models import Facility
+
+    store = session.get(Facility, "KSM-STORE")
+    store.has_fridge = False
+    session.add(store)
+    session.commit()
+    real = location_agent.Tools.breach_chance_before_arrival
+
+    def fake(self, facility_id):
+        out = real(self, facility_id)
+        out["chance_leaves_2_8C_first"] = 0.9 if facility_id == "BONDO" else 0.0
+        return out
+
+    monkeypatch.setattr(location_agent.Tools, "breach_chance_before_arrival", fake)
+    body = client.post("/api/nodes/CAR-02/agent", json={"destination_id": "BONDO"}).json()
+    offered = next(s for s in body["steps"] if s["tool"] == "find_facilities")
+    assert body["recommendation"]["facility_id"] != "KSM-STORE"
+    assert "KSM-STORE" not in str(offered)
