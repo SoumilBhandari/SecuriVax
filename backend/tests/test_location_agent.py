@@ -13,7 +13,24 @@ def on_the_road(session):
     backfill(session, int(time.time()))
 
 
-def test_rules_keep_a_carrier_going_while_it_has_cold_and_name_a_fallback(client, on_the_road):
+def test_rules_keep_a_carrier_going_while_it_has_cold_and_name_a_fallback(client, on_the_road, monkeypatch):
+    # Pin the forecast: with the offline weather model, how much cold is left
+    # depends on the hour the test runs. The rule is what's under test.
+    real_status = location_agent.Tools.get_carrier_status
+    real_chance = location_agent.Tools.breach_chance_before_arrival
+
+    def plenty_of_cold(self):
+        out = real_status(self)
+        out["forecast"]["minutes_until_it_leaves_2_8C_p10_p50_p90"] = [240, 400, 600]
+        return out
+
+    def safe_everywhere(self, facility_id):
+        out = real_chance(self, facility_id)
+        out["chance_leaves_2_8C_first"] = 0.0
+        return out
+
+    monkeypatch.setattr(location_agent.Tools, "get_carrier_status", plenty_of_cold)
+    monkeypatch.setattr(location_agent.Tools, "breach_chance_before_arrival", safe_everywhere)
     body = client.post("/api/nodes/CAR-02/agent", json={}).json()
     rec = body["recommendation"]
     assert body["source"] == "rules"

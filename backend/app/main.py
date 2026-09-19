@@ -1,8 +1,11 @@
+import asyncio
+import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -36,7 +39,28 @@ async def lifespan(_: FastAPI):
             from app.services.weather import warm
 
             warm([(f.lat, f.lon) for f in session.exec(_select(Facility)).all()])
+    live = None
+    if settings.demo_live and settings.demo_history and settings.demo_dataset == "lanes":
+        live = asyncio.create_task(_keep_lanes_live())
     yield
+    if live:
+        live.cancel()
+
+
+async def _keep_lanes_live() -> None:
+    """The simulated lane carriers report every few minutes, like real nodes."""
+    from simulator.lanes import keep_alive
+
+    def tick() -> None:
+        with Session(engine) as session:
+            keep_alive(session, int(time.time()))
+
+    while True:
+        try:
+            await run_in_threadpool(tick)
+        except Exception:  # noqa: BLE001  (a bad tick must not stop the next)
+            logging.getLogger(__name__).exception("keeping the demo lanes live failed")
+        await asyncio.sleep(120)
 
 
 app = FastAPI(title="Vialtality API", version="0.1.0", lifespan=lifespan)

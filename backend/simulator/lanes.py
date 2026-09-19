@@ -16,7 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 import numpy as np
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.engine import twin
 from app.models import Box, Custody, Facility, Node, Reading, Scan
@@ -245,3 +245,40 @@ def _lower_first(name: str) -> str:
     """'Regional cold room' -> 'regional cold room'; 'PNA central store' stays."""
     first = name.split()[0]
     return name if first.isupper() else first.lower() + name[len(first):]
+
+
+def lane_node_ids() -> set[str]:
+    return {f"{lane.code}-TRK" for lane in LANES} | {f"{s.id}-CR" for lane in LANES for s in lane.stops}
+
+
+def keep_alive(session: Session, now: int, rng: random.Random | None = None) -> int:
+    """While the demo runs, every lane carrier or cold room still holding a box
+    keeps reporting, every 10 minutes, drifting gently around its recent level.
+    Without this the lanes stop at the moment they were seeded, and an hour
+    later every truck reads 'offline' and its boxes go to QUARANTINE. The stage
+    carrier (a real node) is never touched. Returns readings written."""
+    rng = rng or random.Random()
+    lanes = lane_node_ids()
+    holding = set(session.exec(select(Custody.node_id).where(Custody.end_ts.is_(None))).all()) & lanes
+    written = 0
+    for node_id in sorted(holding):
+        recent = session.exec(select(Reading).where(Reading.node_id == node_id).order_by(Reading.ts.desc()).limit(12)).all()
+        if not recent or now - recent[0].ts < STEP:
+            continue
+        last = recent[0]
+        level = sum(r.temp_c for r in recent) / len(recent)
+        temp, seq, t = last.temp_c, last.seq, last.ts + STEP
+        while t <= now:
+            temp += 0.3 * (level - temp) + rng.gauss(0, 0.12)
+            seq += 1
+            session.add(Reading(
+                node_id=node_id, boot_id=last.boot_id, seq=seq, ts=t, temp_c=round(temp, 2), rh=last.rh,
+                lat=last.lat, lon=last.lon, battery_v=last.battery_v, time_scale=1.0, received_at=t,
+            ))
+            written += 1
+            t += STEP
+        node = session.get(Node, node_id)
+        node.last_seen_at = t - STEP
+        session.add(node)
+    session.commit()
+    return written

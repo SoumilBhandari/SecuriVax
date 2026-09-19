@@ -38,8 +38,9 @@ HEAT_REPORT_MIN_MINUTES = 10
 DISAGREE_C = 2.0
 # Below 0 C this soon after packing means unconditioned ice packs: warn before the box freezes.
 PACK_CHECK_S = 45 * 60
-# An open segment whose newest reading is older than this is marked provisional.
-FRESH_S = 2 * 60
+# An open segment whose newest reading is older than this is marked provisional:
+# 1.5x the battery build's upload interval (it sends a batch every 10 minutes).
+FRESH_S = 15 * 60
 
 USE, USE_FIRST, QUARANTINE, DISCARD = "USE", "USE_FIRST", "QUARANTINE", "DISCARD"
 VERDICT_ORDER = {DISCARD: 0, QUARANTINE: 1, USE_FIRST: 2, USE: 3}

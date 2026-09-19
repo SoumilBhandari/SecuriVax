@@ -118,7 +118,8 @@ def test_gap_is_filled_when_offline_data_syncs():
 
 def test_silent_node_goes_from_provisional_to_offline():
     rs = readings([5.0] * 10)
-    fresh = evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + 5 * 60)
+    assert not evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + 5 * 60).provisional  # a battery node between uploads
+    fresh = evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + 20 * 60)
     assert fresh.verdict == USE and fresh.provisional
     stale = evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + MAX_GAP_S + 60)
     assert stale.verdict == QUARANTINE

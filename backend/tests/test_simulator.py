@@ -30,3 +30,31 @@ def test_backfill_tells_each_boxs_story(session):
 
     seg = verdicts["BOX-0004"].segments[0]
     assert seg.located_by == "smarttag" and len(seg.route) > 30
+
+
+def test_demo_lanes_stay_live():
+    """An hour after seeding, keep_alive brings every lane carrier holding a box
+    up to date, and leaves the stage carrier (a real node) alone."""
+    import random
+
+    from sqlmodel import Session, select
+
+    from app.db import init_db, make_engine
+    from app.models import Node, Reading
+    from app.seed import seed
+    from simulator.backfill import backfill
+    from simulator.lanes import keep_alive
+
+    eng = make_engine("sqlite://")
+    init_db(eng)
+    with Session(eng) as session:
+        seed(session, "lanes")
+        now = int(time.time())
+        backfill(session, now, "lanes")
+        later = now + 3600
+        written = keep_alive(session, later, random.Random(1))
+        assert written > 0
+        truck = session.get(Node, "TZ-TRK")
+        assert later - truck.last_seen_at < 600  # online again
+        assert not session.exec(select(Reading).where(Reading.node_id == "DEMO-01")).all()
+        assert keep_alive(session, later, random.Random(1)) == 0  # nothing new to add

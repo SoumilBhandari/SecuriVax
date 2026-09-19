@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     demo_history: bool = True
     # "lanes": eight shipments across Africa; "kisumu": one district (tests, backtest).
     demo_dataset: str = "lanes"
+    # Keep the simulated lane carriers reporting while the server runs, so the
+    # demo doesn't go stale an hour after it was seeded.
+    demo_live: bool = True
     # Wipe and re-seed on every start, so a deployed demo is always current.
     demo_reset: bool = False
     # Directory holding the built web app. When set, FastAPI serves it.
