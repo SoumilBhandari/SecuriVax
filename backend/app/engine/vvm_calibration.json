@@ -1,19 +1,19 @@
 {
-  "stage12": 2.62,
+  "stage12": 2.61,
   "stage12_progress": 0.29,
-  "discard": 1.01,
+  "discard": 1.0,
   "stage34": 0.62,
   "rho_fresh": 3.024,
-  "rho_sigma": 0.067,
+  "rho_sigma": 0.063,
   "progress_sigma": 0.042,
   "progress_bias": 0.0487,
-  "source": "synthetic phone photos (500 fit, 254 held out)",
-  "photos": 500,
+  "source": "synthetic phone photos (488 fit, 250 held out)",
+  "photos": 488,
   "held_out": {
-    "photos": 254,
-    "stage_accuracy": 0.866,
-    "spent_read_as_usable": 0.014,
-    "usable_read_as_spent": 0.018,
+    "photos": 250,
+    "stage_accuracy": 0.88,
+    "spent_read_as_usable": 0.0,
+    "usable_read_as_spent": 0.009,
     "confusion_true_by_read": [
       [
         55,
@@ -23,20 +23,20 @@
       ],
       [
         3,
-        52,
-        2,
+        53,
+        1,
         0
       ],
       [
         0,
         0,
-        62,
+        61,
         7
       ],
       [
         0,
-        2,
-        20,
+        0,
+        19,
         51
       ]
     ]

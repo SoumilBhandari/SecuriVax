@@ -1,0 +1,729 @@
+{
+ "generated": 1789798138,
+ "suites": [
+  {
+   "name": "verdicts",
+   "description": "Verdict vs ground truth on synthetic boxes (sensor bias, noise, dropped readings)",
+   "seconds": 8.4,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "damaged boxes not marked USE",
+     "value": 1.0,
+     "target": 0.97,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "VVM end point reached: must never be used",
+     "passed": true
+    },
+    {
+     "name": "damaged boxes marked DISCARD",
+     "value": 1.0,
+     "target": 0.9,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "frozen boxes held (QUARANTINE+)",
+     "value": 0.9908675799086758,
+     "target": 0.95,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "freeze-sensitive product, WHO alarm reached",
+     "passed": true
+    },
+    {
+     "name": "fine boxes usable (USE or USE FIRST)",
+     "value": 0.9713506139154161,
+     "target": 0.95,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "no needless waste",
+     "passed": true
+    },
+    {
+     "name": "fine boxes wrongly DISCARDed",
+     "value": 0.0,
+     "target": 0.005,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "edge cases: damaged/frozen box marked USE",
+     "value": 0.011695906432748537,
+     "target": 0.1,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "within sensor error of a threshold",
+     "passed": true
+    }
+   ],
+   "details": {
+    "confusion": {
+     "fine": {
+      "USE": 801,
+      "USE_FIRST": 623,
+      "QUARANTINE": 42,
+      "DISCARD": 0
+     },
+     "near": {
+      "USE": 0,
+      "USE_FIRST": 3,
+      "QUARANTINE": 136,
+      "DISCARD": 1
+     },
+     "frozen": {
+      "USE": 1,
+      "USE_FIRST": 1,
+      "QUARANTINE": 217,
+      "DISCARD": 0
+     },
+     "damaged": {
+      "USE": 0,
+      "USE_FIRST": 0,
+      "QUARANTINE": 0,
+      "DISCARD": 175
+     }
+    },
+    "edge": {
+     "damaged_used": 0,
+     "damaged": 116,
+     "frozen_used": 2,
+     "frozen": 55
+    },
+    "boxes": 2000
+   }
+  },
+  {
+   "name": "confidence",
+   "description": "Monte Carlo verdict confidence: consistency with the engine and calibration",
+   "seconds": 12.1,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "zero-noise Monte Carlo reproduces the verdict",
+     "value": 1.0,
+     "target": 1.0,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "shared logic, no drift",
+     "passed": true
+    },
+    {
+     "name": "confidence calibration error",
+     "value": 0.07547499999999988,
+     "target": 0.08,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "verdicts marked confident (>=80%) that are right",
+     "value": 0.9969418960244648,
+     "target": 0.95,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "verdicts marked borderline that are wrong",
+     "value": 0.03424657534246578,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "where the camera check earns its keep",
+     "passed": true
+    }
+   ],
+   "details": {
+    "boxes": 800
+   }
+  },
+  {
+   "name": "twin",
+   "description": "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration",
+   "seconds": 3.5,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "cold life within 25% (finished trips)",
+     "value": 1.0,
+     "target": 0.8,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "median cold-life error",
+     "value": 0.04254576651989281,
+     "target": 0.15,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "median one-step tracking error",
+     "value": 0.28577157168529393,
+     "target": 0.4,
+     "higher_is_better": false,
+     "unit": "\u00b0C",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "filter failures (tracking error > 1 \u00b0C)",
+     "value": 0.0,
+     "target": 0.05,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "80% interval coverage, new carrier (fleet prior)",
+     "value": 0.8636363636363636,
+     "target": 0.7,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "target about 80%",
+     "passed": true
+    },
+    {
+     "name": "80% interval coverage, known carrier",
+     "value": 0.8636363636363636,
+     "target": 0.7,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "calibration error, new carrier (fleet prior)",
+     "value": 0.03882954545454542,
+     "target": 0.1,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "says 70%, happens about 70% of the time",
+     "passed": true
+    },
+    {
+     "name": "calibration error, known carrier",
+     "value": 0.06917045454545459,
+     "target": 0.1,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "Brier skill vs base rate, new carrier",
+     "value": -0.007794566919929524,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "",
+     "note": "near 0: calibrated but not sharp until the ice starts to go",
+     "passed": true
+    },
+    {
+     "name": "Brier skill vs base rate, known carrier",
+     "value": 0.6936305458796026,
+     "target": 0.5,
+     "higher_is_better": true,
+     "unit": "",
+     "note": "learning a carrier's history pays",
+     "passed": true
+    },
+    {
+     "name": "Brier skill with no prior at all",
+     "value": -0.11915612390414898,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "",
+     "note": "why the priors matter",
+     "passed": true
+    },
+    {
+     "name": "median P50 breach-time error, known carrier",
+     "value": 0.9999792825513416,
+     "target": 1.5,
+     "higher_is_better": false,
+     "unit": "h",
+     "note": "",
+     "passed": true
+    }
+   ],
+   "details": {
+    "carriers": 90,
+    "forecast_cases": 88
+   }
+  },
+  {
+   "name": "vvm",
+   "description": "Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare, shadow, colour cast, JPEG)",
+   "seconds": 20.4,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "labels read, no glare on them",
+     "value": 0.9598214285714286,
+     "target": 0.95,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "glare on label: retake asked or read right",
+     "value": 0.9473684210526315,
+     "target": 0.9,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "labels read, all photos",
+     "value": 0.8166666666666667,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "retakes are asked for glare",
+     "passed": true
+    },
+    {
+     "name": "median progress error",
+     "value": 0.020128850253232633,
+     "target": 0.08,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "progress within 0.15",
+     "value": 0.9591836734693877,
+     "target": 0.85,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "stage correct",
+     "value": 0.9020408163265307,
+     "target": 0.8,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "spent labels read as usable",
+     "value": 0.0,
+     "target": 0.05,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "the dangerous error",
+     "passed": true
+    },
+    {
+     "name": "fresh labels read as spent",
+     "value": 0.0,
+     "target": 0.03,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "VVM 'found' on photos with no VVM",
+     "value": 0.0,
+     "target": 0.1,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "same discard call in bright and dim light",
+     "value": 1.0,
+     "target": 0.98,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "rho = L_square / L_ring, photo at 100% and 45% exposure",
+     "passed": true
+    },
+    {
+     "name": "median rho change, bright vs dim",
+     "value": 0.008837825894829881,
+     "target": 0.05,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "calibrated discard cutoff (rho at or below)",
+     "value": 1.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "",
+     "note": "synthetic phone photos (488 fit, 250 held out)",
+     "passed": true
+    },
+    {
+     "name": "held-out: spent read as usable",
+     "value": 0.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "held-out: usable read as spent",
+     "value": 0.009,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    }
+   ],
+   "details": {
+    "photos": 300
+   }
+  },
+  {
+   "name": "crosscheck",
+   "description": "Camera vs temperature record: planted disagreements (unrecorded heat, wrong witness) against honest boxes",
+   "seconds": 21.7,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "planted disagreements flagged",
+     "value": 0.9292929292929293,
+     "target": 0.9,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "  unrecorded heat (label ahead) flagged",
+     "value": 0.9803921568627451,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "  wrong witness (record ahead) flagged",
+     "value": 0.875,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "honest boxes flagged (false alarm)",
+     "value": 0.04149377593360996,
+     "target": 0.05,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "record predicts the camera's stage",
+     "value": 0.9336099585062241,
+     "target": 0.8,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "stages 3 and 4 both count as discard",
+     "passed": true
+    },
+    {
+     "name": "photos needing a retake",
+     "value": 0.22666666666666666,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    }
+   ],
+   "details": {
+    "trials": 450,
+    "planted": 99,
+    "honest": 241
+   }
+  },
+  {
+   "name": "learning",
+   "description": "Crowdsourced calibration: learning a product's real degradation speed from confirmed VVM photos",
+   "seconds": 21.3,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "learned speed within 10% of the truth",
+     "value": 1.0,
+     "target": 1.0,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "60 camera-read photos, true speed 0.8x to 1.5x",
+     "passed": true
+    },
+    {
+     "name": "median error of the learned speed",
+     "value": 0.02847499999999991,
+     "target": 0.06,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "80% range contains the truth (20 photos)",
+     "value": 0.85,
+     "target": 0.7,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "honest if about 80%",
+     "passed": true
+    },
+    {
+     "name": "1.5x-fast product: spent boxes called usable, label curve",
+     "value": 0.11330049261083744,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "1.5x-fast product: spent boxes called usable, after 30 photos",
+     "value": 0.0,
+     "target": 0.05,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "learned 1.51x",
+     "passed": true
+    },
+    {
+     "name": "0.8x-slow product: spent boxes called usable, after 30 photos",
+     "value": 0.0,
+     "target": 0.02,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "learned 0.83x; relaxing must not add risk",
+     "passed": true
+    },
+    {
+     "name": "0.8x-slow product: good boxes held, label curve",
+     "value": 0.07790697674418605,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "0.8x-slow product: good boxes held, after 30 photos",
+     "value": 0.023255813953488372,
+     "target": 0.07790697674418605,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    }
+   ],
+   "details": {
+    "true_speeds": [
+     0.8,
+     1.0,
+     1.25,
+     1.5
+    ],
+    "learned_fast": 1.514,
+    "learned_slow": 0.833
+   }
+  },
+  {
+   "name": "ingest",
+   "description": "Node-to-server ingest over a lossy, reordering link, with reboots, unset clocks and sensor glitches",
+   "seconds": 1.0,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "good readings stored",
+     "value": 1.0,
+     "target": 1.0,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "rows stored more than once",
+     "value": 0.0,
+     "target": 0.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "(node, boot, seq) is unique; resends are harmless",
+     "passed": true
+    },
+    {
+     "name": "sensor glitches (-127, 85 \u00b0C) stored",
+     "value": 0.0,
+     "target": 0.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "rebuilt timestamps, worst error (s)",
+     "value": 1.0,
+     "target": 5.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "264 readings taken before the clock synced",
+     "passed": true
+    },
+    {
+     "name": "writes without the node key blocked",
+     "value": 1.0,
+     "target": 1.0,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "rows written by the stranger",
+     "value": 0.0,
+     "target": 0.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "batches sent",
+     "value": 230.0,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "",
+     "note": "57 lost on the way, 37 acks lost, 13 delivered late",
+     "passed": true
+    }
+   ],
+   "details": {
+    "readings": 6000,
+    "boots": 14
+   }
+  },
+  {
+   "name": "api",
+   "description": "API latency and payload size on the eight-lane demo with full history (in-process, laptop)",
+   "seconds": 2.8,
+   "passed": true,
+   "metrics": [
+    {
+     "name": "box list, p95 (ms)",
+     "value": 60.23594140096975,
+     "target": 250.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "fleet summary, p95 (ms)",
+     "value": 60.536507901269935,
+     "target": 250.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "box report (verdict + Monte Carlo), p95 (ms)",
+     "value": 33.34487914817146,
+     "target": 400.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "what a sticker tap waits for",
+     "passed": true
+    },
+    {
+     "name": "carrier forecast, first call (ms)",
+     "value": 29.071790999296354,
+     "target": 3000.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "particle filter + 40-member ensemble",
+     "passed": true
+    },
+    {
+     "name": "carrier forecast, cached, p95 (ms)",
+     "value": 2.5318248000985473,
+     "target": 100.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "stores at risk, p95 (ms)",
+     "value": 44.613227752779494,
+     "target": 1500.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "",
+     "passed": true
+    },
+    {
+     "name": "VVM photo read + cross-check, p95 (ms)",
+     "value": 23.649800599378068,
+     "target": 1500.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "Gemini off",
+     "passed": true
+    },
+    {
+     "name": "largest box report, gzipped (KB)",
+     "value": 16.3623046875,
+     "target": 40.0,
+     "higher_is_better": false,
+     "unit": "",
+     "note": "113 KB raw",
+     "passed": true
+    }
+   ],
+   "details": {
+    "boxes": 10,
+    "carriers": [
+     "CD-TRK",
+     "ET-TRK",
+     "GH-TRK",
+     "NG-TRK",
+     "TZ-TRK"
+    ],
+    "reps": 15
+   }
+  }
+ ]
+}

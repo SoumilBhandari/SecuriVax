@@ -20,7 +20,13 @@ class Metric:
         return self.value >= self.target if self.higher_is_better else self.value <= self.target
 
     def to_dict(self) -> dict:
-        return asdict(self) | {"passed": self.passed}
+        # Plain Python types: a value computed with numpy would otherwise make
+        # json.dumps fail on a numpy float or bool.
+        d = asdict(self)
+        d["value"] = float(d["value"])
+        if d["target"] is not None:
+            d["target"] = float(d["target"])
+        return d | {"passed": bool(self.passed)}
 
 
 @dataclass

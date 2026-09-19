@@ -284,6 +284,15 @@ cd backend && .venv/bin/python -m pytest
 Add `TEST_DATABASE_URL=postgresql://...` to run the same suite on Postgres.
 Reset the demo data with `python -m simulator.backfill --reset`.
 
+Evals (8 suites: verdicts, confidence, carrier twin, VVM camera, camera vs
+record cross-check, learning, ingest under a hostile link, API latency) check
+each part against a target. Latest results: [docs/evals.md](docs/evals.md).
+
+```bash
+cd backend && .venv/bin/python -m evals.run            # full, writes docs/evals.md
+cd backend && .venv/bin/python -m evals.run --quick vvm learning
+```
+
 ## Deploy
 
 DigitalOcean App Platform, from [`.do/app.yaml`](.do/app.yaml): one Docker

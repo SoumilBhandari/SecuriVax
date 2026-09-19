@@ -230,7 +230,8 @@ def read_vvm(image: Image.Image, cal: Calibration | None = None) -> VvmReading:
         background = float(np.percentile(lum[paper], 75))
     circle_lum = float(np.median(lum[ring & on_axis])) if (ring & on_axis).any() else float(np.median(lum[ring]))
     contrast = background - circle_lum
-    if np.mean(lum[square] > background + 25) > 0.15 or _uneven(lum, yy, xx, cy, cx, radius, contrast):
+    if (np.mean(lum[square] > background + 25) > 0.15 or _uneven(lum, yy, xx, cy, cx, radius, contrast)
+            or _domed(lum, square, dist, radius, contrast)):
         return VvmReading(False, "Glare on the label: tilt the phone a little and try again.")
     if contrast < MIN_CONTRAST:
         return VvmReading(False, "Not enough contrast: move to better light or avoid glare.")
@@ -273,6 +274,20 @@ def read_vvm(image: Image.Image, cal: Calibration | None = None) -> VvmReading:
 
 
 UNEVEN_AT = 0.35  # brightness spread across the square, as a share of the contrast
+# A glare blob centred on the square lifts it evenly, so the quadrants agree,
+# but it is brightest in the middle. Flat ink never is: on clean photos the
+# centre is at most ~1.4% of the contrast brighter than the square's edge.
+DOME_AT = 0.04
+
+
+def _domed(lum, square, dist, radius, contrast) -> bool:
+    if contrast <= 0:
+        return True
+    core = dist <= 0.1 * radius
+    rim = square & (dist >= 0.2 * radius)
+    if core.sum() < 5 or rim.sum() < 5:
+        return False
+    return (float(np.median(lum[core])) - float(np.median(lum[rim]))) / contrast > DOME_AT
 
 
 def _uneven(lum, yy, xx, cy, cx, radius, contrast) -> bool:
