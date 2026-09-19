@@ -1,8 +1,8 @@
 import "./index.css";
 
-import { lazy, StrictMode, Suspense, type ReactNode } from "react";
+import { lazy, StrictMode, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, createHashRouter, Link, Outlet, RouterProvider, ScrollRestoration } from "react-router";
+import { createBrowserRouter, createHashRouter, Link, Outlet, RouterProvider, ScrollRestoration, useMatches, useParams } from "react-router";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout, Spinner } from "./components/Layout";
@@ -42,10 +42,26 @@ const page = (el: ReactNode) => (
   </ErrorBoundary>
 );
 
+/**
+ * The tab's name follows the route, so a demo with the stage screen, a box
+ * and the boxes list open can tell them apart. A box or carrier says which.
+ */
+function Title() {
+  const matches = useMatches();
+  const params = useParams();
+  useEffect(() => {
+    const handle = [...matches].reverse().find((m) => (m.handle as { title?: string } | undefined)?.title)?.handle as { title?: string } | undefined;
+    const name = handle?.title?.replace(":id", params.id ?? "");
+    document.title = name ? `${name} · SecuriVax` : "SecuriVax";
+  }, [matches, params.id]);
+  return null;
+}
+
 /** Everything inside the router: who's signed in, and the page. */
 function Root() {
   return (
     <AuthProvider>
+      <Title />
       <Outlet />
       <ScrollRestoration />
     </AuthProvider>
@@ -59,17 +75,17 @@ const router = (SNAPSHOT ? createHashRouter : createBrowserRouter)([
     element: <Root />,
     children: [
       { path: "/", element: page(<LandingPage />) },
-      { path: "/login", element: page(<LoginPage />) },
+      { path: "/login", element: page(<LoginPage />), handle: { title: "Sign in" } },
       // Open to look at; changes ask for an operator sign-in when they happen.
-      { path: "/boxes", element: page(<HomePage />) },
-      { path: "/box/:id", element: page(<BoxPage />) },
-      { path: "/node/:id", element: page(<NodePage />) },
-      { path: "/tags", element: page(<TagsPage />) },
-      { path: "/live", element: page(<LivePage />) },
-      { path: "/stage", element: page(<StagePage />) },
-      { path: "/climate", element: page(<ClimatePage />) },
-      { path: "/plan", element: page(<PlanPage />) },
-      { path: "/impact", element: page(<ImpactPage />) },
+      { path: "/boxes", element: page(<HomePage />), handle: { title: "Boxes" } },
+      { path: "/box/:id", element: page(<BoxPage />), handle: { title: ":id" } },
+      { path: "/node/:id", element: page(<NodePage />), handle: { title: ":id" } },
+      { path: "/tags", element: page(<TagsPage />), handle: { title: "Stickers and codes" } },
+      { path: "/live", element: page(<LivePage />), handle: { title: "Live" } },
+      { path: "/stage", element: page(<StagePage />), handle: { title: "Stage" } },
+      { path: "/climate", element: page(<ClimatePage />), handle: { title: "Climate" } },
+      { path: "/plan", element: page(<PlanPage />), handle: { title: "Trip planner" } },
+      { path: "/impact", element: page(<ImpactPage />), handle: { title: "Impact" } },
       { path: "*", element: <NotFound /> },
     ],
   },
