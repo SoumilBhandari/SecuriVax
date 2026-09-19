@@ -17,7 +17,8 @@ from app.engine.vvm import compare, open_photo, read_vvm
 from app.models import Box, Custody, Node, Scan, VvmCheck
 from app.services.narrative import build_facts, write_report
 from app.services.places import resolve_places
-from app.services.report import evaluate_box, key_points, report_json
+from app.engine.verdict import VERDICT_ORDER
+from app.services.report import counterfactual, evaluate_box, key_points, report_json
 from app.security import explain_limit, require_operator, vvm_limit
 from app.services.vvm_vision import gemini_vvm
 
@@ -60,8 +61,7 @@ def _open_custody(session: Session, box_id: str) -> Custody | None:
     ).first()
 
 
-@router.get("")
-def list_boxes(session: Session = Depends(get_session)) -> list[dict]:
+def _summaries(session: Session) -> list[dict]:
     out = []
     for box in session.exec(select(Box).order_by(Box.id)).all():
         report = evaluate_box(session, box)
@@ -73,8 +73,38 @@ def list_boxes(session: Session = Depends(get_session)) -> list[dict]:
             "current_node_id": custody.node_id if custody else None,
             "verdict": report.verdict,
             "budget_used": report.budget_used,
+            "mkt_c": report.mkt_c,
+            "logger_outcome": report.logger.get("outcome"),
         })
     return out
+
+
+@router.get("")
+def list_boxes(session: Session = Depends(get_session)) -> list[dict]:
+    return _summaries(session)
+
+
+@router.get("/fleet/summary")
+def fleet_summary(session: Session = Depends(get_session)) -> dict:
+    """Verdict counts and what product-aware verdicts change versus a threshold logger."""
+    boxes = _summaries(session)
+    counts = {v: 0 for v in VERDICT_ORDER}
+    for b in boxes:
+        counts[b["verdict"]] += 1
+    doses = lambda outcome: sum(b["quantity"] for b in boxes if b["logger_outcome"] == outcome)  # noqa: E731
+    return {
+        "boxes": len(boxes),
+        "counts": counts,
+        "doses_tracked": sum(b["quantity"] for b in boxes),
+        "saved_from_needless_discard": doses("SAVED"),
+        "silent_failures_caught": doses("CAUGHT"),
+    }
+
+
+@router.get("/{box_id}/counterfactual")
+def box_counterfactual(box_id: str, session: Session = Depends(get_session)) -> list[dict]:
+    """Same thermal history, different product."""
+    return counterfactual(session, _box(session, box_id))
 
 
 @router.get("/{box_id}/report")

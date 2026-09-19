@@ -93,6 +93,7 @@ class SeriesPoint:
     ts: int
     temp_c: float
     rh: float | None
+    budget: float = 0.0  # heat budget used on this leg up to this point (the scrubber reads it)
 
 
 @dataclass
@@ -245,4 +246,15 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
     for kind in list(open_runs):
         close(kind)
     res.runs.sort(key=lambda r: r.start_ts)
+    # Cumulative budget at every series point, for scrubbing through the trip.
+    cum, at = 0.0, {points[0].ts: 0.0}
+    for p, q in zip(points, points[1:]):
+        dt = q.ts - p.ts
+        if 0 < dt <= MAX_GAP_S:
+            cum += dt / 3600 * p.time_scale * 0.5 * (
+                rate_per_hour(profile.anchors, p.temp_c) + rate_per_hour(profile.anchors, q.temp_c)
+            )
+        at[q.ts] = cum
+    for sp in res.series:
+        sp.budget = round(at.get(sp.ts, 0.0), 5)
     return res

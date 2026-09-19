@@ -78,7 +78,7 @@ def run(quick: bool) -> SuiteResult:
     started = time.time()
     rng = np.random.default_rng(42)
     n = 400 if quick else 2000
-    tally = {k: {"USE": 0, "QUARANTINE": 0, "DISCARD": 0} for k in ("fine", "near", "frozen", "damaged")}
+    tally = {k: {"USE": 0, "USE_FIRST": 0, "QUARANTINE": 0, "DISCARD": 0} for k in ("fine", "near", "frozen", "damaged")}
     edge = {"damaged_used": 0, "damaged": 0, "frozen_used": 0, "frozen": 0}
     for _ in range(n):
         product, step, temps, initial, kind = scenario(rng)
@@ -89,7 +89,7 @@ def run(quick: bool) -> SuiteResult:
         tally[t][report.verdict] += 1
         if kind.startswith("edge") and t in ("damaged", "frozen"):
             edge[t] += 1
-            edge[f"{t}_used"] += report.verdict == "USE"
+            edge[f"{t}_used"] += report.verdict in ("USE", "USE_FIRST")
 
     def share(rows, verdicts):
         total = sum(sum(tally[r].values()) for r in rows)
@@ -101,7 +101,7 @@ def run(quick: bool) -> SuiteResult:
         Metric("damaged boxes marked DISCARD", share(["damaged"], ["DISCARD"]), 0.9, unit="%"),
         Metric("frozen boxes held (QUARANTINE+)", share(["frozen"], ["QUARANTINE", "DISCARD"]), 0.95, unit="%",
                note="freeze-sensitive product, WHO alarm reached"),
-        Metric("fine boxes marked USE", share(["fine"], ["USE"]), 0.95, unit="%", note="no needless waste"),
+        Metric("fine boxes usable (USE or USE FIRST)", share(["fine"], ["USE", "USE_FIRST"]), 0.95, unit="%", note="no needless waste"),
         Metric("fine boxes wrongly DISCARDed", share(["fine"], ["DISCARD"]), 0.005, higher_is_better=False, unit="%"),
         Metric("edge cases: damaged/frozen box marked USE", (edge["damaged_used"] + edge["frozen_used"]) / max(edge["damaged"] + edge["frozen"], 1),
                0.1, higher_is_better=False, unit="%", note="within sensor error of a threshold"),

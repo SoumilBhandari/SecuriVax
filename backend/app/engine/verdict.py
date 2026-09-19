@@ -7,8 +7,10 @@ Language models only ever explain the result; they never change it.
 import time
 from dataclasses import dataclass, field
 
+import math
+
 from app.engine.arrhenius import t_life_hours
-from app.engine.history import SegmentResult, Segment, analyze_segment
+from app.engine.history import MAX_GAP_S, SegmentResult, Segment, analyze_segment, integration_points
 from app.engine.profiles import (
     FREEZE_ALARM_MINUTES,
     FREEZE_GUARD_C,
@@ -20,7 +22,10 @@ from app.engine.profiles import (
 
 DISCARD_AT = 1.0
 QUARANTINE_AT = 0.75
-USE_FIRST_AT = 0.5
+USE_FIRST_AT = 0.4
+# Mean kinetic temperature: USP <1079> default activation energy.
+MKT_DELTA_H_KJ = 83.144
+GAS_R = 8.314462618e-3  # kJ / (mol K)
 # Heat excursions shorter than this (product time) are noise, not news.
 HEAT_REPORT_MIN_MINUTES = 10
 # Two sensors in one carrier further apart than this: one of them is wrong.
@@ -30,7 +35,9 @@ PACK_CHECK_S = 45 * 60
 # An open segment whose newest reading is older than this is marked provisional.
 FRESH_S = 2 * 60
 
-USE, QUARANTINE, DISCARD = "USE", "QUARANTINE", "DISCARD"
+USE, USE_FIRST, QUARANTINE, DISCARD = "USE", "USE_FIRST", "QUARANTINE", "DISCARD"
+VERDICT_ORDER = {DISCARD: 0, QUARANTINE: 1, USE_FIRST: 2, USE: 3}
+USABLE = (USE, USE_FIRST)
 
 
 @dataclass
@@ -66,6 +73,13 @@ class Report:
     demo_time: bool
     time_scale: float
     computed_at: int = field(default_factory=lambda: int(time.time()))
+    # Summary statistics over the monitored history.
+    mkt_c: float | None = None
+    peak_c: float | None = None
+    peak_rh: float | None = None
+    hours_out_of_range: float = 0.0
+    # What a threshold logger (WHO 30-day recorder settings) would have said.
+    logger: dict = field(default_factory=dict)
 
 
 def fmt_minutes(minutes: float) -> str:
@@ -207,9 +221,13 @@ def evaluate(
         verdict = QUARANTINE
         steps = list(dict.fromkeys(checks))
         action = "Hold this box and keep it cold. " + ". ".join(steps) + " before use."
+    elif budget >= USE_FIRST_AT:
+        verdict = USE_FIRST
+        action = ("Use this box first: bring it to the front and use it at the next session. "
+                  "Don't re-dispatch it or keep it in reserve.")
     else:
         verdict = USE
-        action = "Safe to use. Use this box first." if budget >= USE_FIRST_AT else "Safe to use."
+        action = "Safe to use."
         if not reasons:
             reasons.append(Reason("ALL_CLEAR", "ok", "Stayed within its safe range the whole time."))
 
@@ -228,6 +246,8 @@ def evaluate(
         open_seg and (open_seg.data_through is None or now - open_seg.data_through > FRESH_S)
     )
 
+    stats = _summary(profile, segments, now)
+    logger = _threshold_logger(results, verdict, stats["hours_out_of_range"])
     return Report(
         verdict=verdict,
         action=action,
@@ -244,4 +264,63 @@ def evaluate(
         demo_time=time_scale != 1.0,
         time_scale=time_scale,
         computed_at=now,
+        logger=logger,
+        **stats,
     )
+
+
+def _summary(profile: ProductProfile, segments: list[Segment], now: int) -> dict:
+    """Mean kinetic temperature, peaks and time outside the labelled range,
+    over the same points the budget integrates."""
+    weight = exp_sum = out_h = 0.0
+    peak_c = peak_rh = None
+    for seg in segments:
+        pts = integration_points(seg, now)
+        for p in pts:
+            peak_c = p.temp_c if peak_c is None else max(peak_c, p.temp_c)
+            if p.rh is not None:
+                peak_rh = p.rh if peak_rh is None else max(peak_rh, p.rh)
+        for p, q in zip(pts, pts[1:]):
+            dt = q.ts - p.ts
+            if not 0 < dt <= MAX_GAP_S:
+                continue
+            hours = dt / 3600 * p.time_scale
+            weight += hours
+            exp_sum += hours * math.exp(-MKT_DELTA_H_KJ / (GAS_R * (p.temp_c + 273.15)))
+            if not profile.storage_min_c <= p.temp_c <= profile.storage_max_c:
+                out_h += hours
+    mkt = MKT_DELTA_H_KJ / GAS_R / -math.log(exp_sum / weight) - 273.15 if weight > 0 else None
+    return {
+        "mkt_c": None if mkt is None else round(mkt, 2),
+        "peak_c": peak_c,
+        "peak_rh": peak_rh,
+        "hours_out_of_range": round(out_h, 2),
+    }
+
+
+def _threshold_logger(results: list[SegmentResult], verdict: str, hours_out: float) -> dict:
+    """What a threshold logger would have concluded from the same record: it
+    alarms on 10 h continuously above +8 C or 60 min at or below -0.5 C, for any
+    product, and alarm-only practice is to discard. Compare with our verdict."""
+    heat = max((r.minutes for s in results for r in s.runs if r.kind == "heat" and r.extreme > HEAT_ALARM_C), default=0.0)
+    freeze = max((r.minutes for s in results for r in s.runs if r.kind == "freeze"), default=0.0)
+    alarms = []
+    if heat >= HEAT_ALARM_MINUTES:
+        alarms.append(f"{heat / 60:.0f} h above 8 °C")
+    if freeze >= FREEZE_ALARM_MINUTES:
+        alarms.append(f"{freeze:.0f} min at or below -0.5 °C")
+    alarm = bool(alarms)
+    if alarm and verdict in USABLE:
+        outcome, note = "SAVED", "A threshold logger would condemn this box; its stability budget says it survived."
+    elif not alarm and verdict not in USABLE:
+        outcome, note = "CAUGHT", "No threshold alarm would have fired, but damage accrued anyway."
+    else:
+        outcome, note = "AGREE", "The threshold logger and the stability budget agree."
+    return {
+        "alarm": alarm,
+        "alarms": alarms,
+        "hours_out_of_range": hours_out,
+        "says": "Excursion: discard" if alarm else "No alarm",
+        "outcome": outcome,
+        "note": note,
+    }

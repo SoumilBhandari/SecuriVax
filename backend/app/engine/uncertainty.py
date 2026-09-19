@@ -19,7 +19,7 @@ import numpy as np
 from app.engine.arrhenius import KELVIN, _slope
 from app.engine.history import MAX_GAP_S, Segment, integration_points
 from app.engine.profiles import FREEZE_ALARM_MINUTES, FREEZE_GUARD_C, FREEZE_THRESHOLD_C, ProductProfile
-from app.engine.verdict import DISCARD_AT, QUARANTINE_AT
+from app.engine.verdict import DISCARD_AT, QUARANTINE_AT, USE_FIRST_AT
 
 SENSOR_BIAS_C = 0.2
 RATE_SPREAD = 0.15  # lognormal sigma on the degradation rate
@@ -31,7 +31,8 @@ BORDERLINE_BELOW = 0.8
 @dataclass
 class Confidence:
     confidence: float  # share of samples that agree with the verdict
-    p_use: float
+    p_use: float  # USE or USE_FIRST
+    p_use_first: float
     p_quarantine: float
     p_discard: float
     budget_p10: float
@@ -105,12 +106,14 @@ def verdict_confidence(
     discard = budget >= DISCARD_AT
     quarantine = ~discard & (froze | near | (budget >= QUARANTINE_AT) | forced_quarantine)
     use = ~discard & ~quarantine
-    agree = {"DISCARD": discard, "QUARANTINE": quarantine, "USE": use}[point_verdict]
+    use_first = use & (budget >= USE_FIRST_AT)
+    agree = {"DISCARD": discard, "QUARANTINE": quarantine, "USE_FIRST": use_first, "USE": use & ~use_first}[point_verdict]
     q10, q50, q90 = np.percentile(budget, [10, 50, 90])
     conf = float(agree.mean())
     return Confidence(
         confidence=round(conf, 3),
         p_use=round(float(use.mean()), 3),
+        p_use_first=round(float(use_first.mean()), 3),
         p_quarantine=round(float(quarantine.mean()), 3),
         p_discard=round(float(discard.mean()), 3),
         budget_p10=round(float(q10), 4),

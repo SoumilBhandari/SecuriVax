@@ -353,7 +353,7 @@ def _stock_advice(session: Session, profile: ProductProfile, rows: list[dict], n
     advice = []
     for box in session.exec(select(Box).where(Box.product_id == profile.id)).all():
         report = evaluate_box(session, box, now)
-        if report.verdict != "USE" or any(s.end_ts is None for s in report.segments):
+        if report.verdict not in ("USE", "USE_FIRST") or any(s.end_ts is None for s in report.segments):
             continue
         left = 1 - report.budget_used
         if left < 0.6:

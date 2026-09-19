@@ -142,9 +142,13 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["label_check"] = check.model_dump() if check else None
     from app.services.climate import leg_environment  # avoids an import cycle
 
+    carried = box.initial_budget_used  # budget already used when each leg starts
     for seg, result in zip(data["segments"], report.segments):
         seg["environment"] = asdict(leg_environment(result, PRODUCTS_BY_ID[box.product_id]))
         seg["route"] = _thin(seg["route"], lambda p: p["status"] != "ok")
+        for point in seg["series"]:
+            point["budget"] = round(carried + point["budget"], 5)  # box-level, for the scrubber
+        carried += result.budget_used
         seg["series"] = _thin(seg["series"])
     profile = PRODUCTS_BY_ID[box.product_id]
     open_seg = next((s for s in report.segments if s.end_ts is None), None)
@@ -154,3 +158,21 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["places"] = cached_places(session, key_points(report))
     return data
 
+
+
+def counterfactual(session: Session, box: Box, now: int | None = None) -> list[dict]:
+    """The same thermal history, run through every product profile: stability
+    is product-specific, so the verdict changes with what's in the box."""
+    from app.engine.profiles import PRODUCTS
+
+    now = int(time.time()) if now is None else now
+    segments = box_segments(session, box.id, now)
+    out = []
+    for profile in PRODUCTS:
+        r = evaluate(profile, segments, now, 0.0)
+        out.append({
+            "product_id": profile.id, "name": profile.name, "stability_ref": profile.stability_ref,
+            "budget_used": round(r.budget_used, 4), "verdict": r.verdict,
+            "this_box": profile.id == box.product_id,
+        })
+    return out
