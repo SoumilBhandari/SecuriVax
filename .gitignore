@@ -1,0 +1,27 @@
+# Secrets
+.env
+.env.*
+!.env.example
+firmware/include/config.h
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+*.egg-info/
+*.db
+*.sqlite3
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# PlatformIO
+.pio/
+.vscode/
+
+# OS / editors
+.DS_Store
+.idea/
