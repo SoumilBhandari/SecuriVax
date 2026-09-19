@@ -9,7 +9,10 @@ readings over WiFi, the server sees duplicates and keeps one copy.
     .venv/bin/python -m scripts.serial_bridge --port /dev/cu.usbserial-0001
 
 Needs pyserial (in requirements-dev.txt). Readings wait in memory while the API
-is unreachable and go up once it's back, like the node's own queue.
+is unreachable and go up once it's back, like the node's own queue; an
+unplugged board is waited for, not a crash. For the live site:
+
+    NODE_KEY=<the key set on Render> .venv/bin/python -m scripts.serial_bridge --api https://securivax.onrender.com
 """
 
 import argparse
@@ -81,20 +84,43 @@ def main() -> None:
     args = parser.parse_args()
     key = os.environ.get("NODE_KEY", "dev-node-key")
 
-    port = serial.Serial(args.port, args.baud, timeout=1)
-    if not args.no_reset:  # restart so the boot line (and its boot id) comes through
-        port.dtr = False
-        port.rts = True
-        time.sleep(0.2)
-        port.rts = False
-    port.reset_input_buffer()
+    def connect(reset: bool):
+        """Open the board's port, waiting for it if it's unplugged."""
+        waiting = False
+        while True:
+            try:
+                port = serial.Serial(args.port, args.baud, timeout=1)
+                break
+            except (serial.SerialException, OSError):
+                if not waiting:
+                    print(f"waiting for the board on {args.port} (plug it in)", file=sys.stderr)
+                    waiting = True
+                time.sleep(2)
+        if reset:  # restart so the boot line (and its boot id) comes through
+            port.dtr = False
+            port.rts = True
+            time.sleep(0.2)
+            port.rts = False
+        port.reset_input_buffer()
+        return port
+
+    port = connect(not args.no_reset)
     print(f"bridging {args.port} -> {args.api} as {args.node}")
 
     boot = args.boot
     sensor = None
     pending: list[dict] = []
     while True:
-        raw = port.readline()
+        try:
+            raw = port.readline()
+        except (serial.SerialException, OSError):
+            # A loose cable mid-demo: wait for the board instead of dying. It
+            # reboots when it's plugged back in, and its boot line follows.
+            port.close()
+            print("board unplugged", file=sys.stderr)
+            port = connect(reset=False)
+            print("board back: reading again")
+            continue
         if not raw:
             continue
         line = raw.decode("utf-8", "replace").strip()
