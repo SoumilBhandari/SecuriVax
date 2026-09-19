@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import { Logo } from "../components/Brand";
-import { Fan, forecastLine } from "../components/Forecast";
 import { ChevronRightIcon } from "../components/Icons";
 import { Reveal } from "../components/Reveal";
 import { DecideChapter, TraceChapter } from "../landing/DataChapters";
@@ -12,7 +11,7 @@ import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { countTo, gsap, prefersReducedMotion, ScrollTrigger, useGSAP } from "../lib/motion";
 import { useGround, useScrolled } from "../landing/useNavGround";
-import type { BoxSummary, CarrierForecast, FleetSummary, Impact, Report } from "../types";
+import type { BoxSummary, FleetSummary, Impact, Report } from "../types";
 
 /**
  * The front door ("/"): an Apple-style scroll story around the carrier. It
@@ -24,18 +23,15 @@ export default function LandingPage() {
   const [fleet, setFleet] = useState<FleetSummary | null>(null);
   const [impact, setImpact] = useState<Impact | null>(null);
   const [trip, setTrip] = useState<Report | null>(null);
-  const [forecast, setForecast] = useState<CarrierForecast | null>(null);
 
   useEffect(() => {
     api
       .boxes()
       .then((all) => {
         setBoxes(all);
-        // The trace chapter wants a trip that went wrong; the twin wants a carrier on the road.
+        // The trace chapter wants a trip that went wrong.
         const bad = all.find((b) => b.id === "BOX-NG-0442") ?? all.find((b) => b.verdict === "DISCARD") ?? all.find((b) => b.verdict === "QUARANTINE") ?? all[0];
         if (bad) api.report(bad.id).then(setTrip).catch(() => {});
-        const moving = all.find((b) => b.id === "BOX-KO-0915" && b.current_node_id) ?? all.find((b) => b.current_node_id);
-        if (moving?.current_node_id) api.forecast(moving.current_node_id).then((f) => f.available && setForecast(f)).catch(() => {});
       })
       .catch(() => {});
     api.fleet().then(setFleet).catch(() => {});
@@ -65,40 +61,25 @@ export default function LandingPage() {
       <Nav ground={ground} scrolled={scrolled} />
       <Hero line={line} spotlight={spotlight} />
       <TraceChapter report={trip} />
+      <HowItWorks />
       <ObjectChapter
         id="B"
         ground="light"
-        eyebrow="01 · Tag it"
+        eyebrow="01"
         title="Tag it"
         text="An NFC sticker on every box and every carrier. Tap the carrier, then the box, and the box is loaded. Phones read the stickers with no app to install."
       />
       <ObjectChapter
         id="C"
         ground="dark"
-        eyebrow="02 · Sense it"
+        eyebrow="02"
         title="Sense it"
         text="A small node in the cold box logs the temperature and uploads over WiFi, keeping every reading until the server confirms it. Readings show up live as they land."
       />
       <DecideChapter />
-      <ObjectChapter
-        id="D"
-        ground="light"
-        eyebrow="Two witnesses"
-        title="The label is the second witness."
-        text="The phone camera measures the vial's own VVM label and cross-checks it against the sensor record. A worker confirms before it counts. Every confirmed photo teaches the model how fast a product really degrades."
-      />
-      <ObjectChapter
-        id="E"
-        ground="dark"
-        eyebrow="The twin"
-        title="A digital twin of every carrier."
-        text="A particle filter estimates how much ice the carrier has left and how fast it leaks. It learns each carrier's real cold life from past trips, then forecasts through a 40-member weather ensemble when the carrier will leave 2–8 °C, with an 80% range. A location tag inside the lid says where it is."
-        viewports={2.8}
-        aside={forecast ? <TwinAside forecast={forecast} /> : undefined}
-      />
       <Numbers fleet={fleet} impact={impact} />
       <Views />
-      <ObjectChapter id="F" ground="dark" eyebrow="See it on a real box" title="See it on a real box." text={CLOSING} align="centre" pin={false}>
+      <ObjectChapter id="F" ground="dark" title="See it on a real box." text={CLOSING} align="centre" pin={false}>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link to="/box/BOX-KO-0915" viewTransition className="pill-btn pill-btn--solid">
             Open BOX-KO-0915
@@ -152,17 +133,18 @@ function Nav({ ground, scrolled }: { ground: "light" | "dark"; scrolled: boolean
   );
 }
 
-// ---- The twin's panel: the carrier's own forecast, live.
+// ---- How it works: the heading over the three steps, each its own chapter below.
 
-function TwinAside({ forecast }: { forecast: CarrierForecast }) {
+function HowItWorks() {
   return (
-    <div className="panel p-5">
-      <p className="eyebrow m-0">Forecast · live</p>
-      <p className="ui-heading m-0 mt-2">{forecastLine(forecast)}</p>
-      <div className="mt-3">
-        <Fan data={forecast} />
+    <section id="how" data-theme="light" className="scroll-mt-4 bg-bg text-text">
+      <div className="mx-auto max-w-[1180px] px-6 pb-4 pt-20 lg:px-10 lg:pt-28">
+        <Reveal>
+          <p className="eyebrow m-0">How it works</p>
+          <h2 className="ui-title-1 m-0 mt-4 max-w-lg">From a sticker to a decision</h2>
+        </Reveal>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -203,7 +185,7 @@ function Numbers({ fleet, impact }: { fleet: FleetSummary | null; impact: Impact
   );
 
   return (
-    <section ref={root} id="how" data-theme="light" className="scroll-mt-4 border-t border-line bg-bg text-text">
+    <section ref={root} data-theme="light" className="border-t border-line bg-bg text-text">
       <div className="mx-auto max-w-[1180px] px-6 py-20 lg:px-10 lg:py-28">
         <div className="grid grid-cols-2 gap-x-6 gap-y-12 text-center lg:grid-cols-4">
           {stats.map((st) => (

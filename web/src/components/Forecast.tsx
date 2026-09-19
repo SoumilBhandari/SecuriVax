@@ -88,7 +88,7 @@ function Note({ children }: { children: ReactNode }) {
   return <p className="m-0 rounded-2xl border border-line bg-surface p-4 text-neutral-500">{children}</p>;
 }
 
-export function Fan({ data }: { data: CarrierForecast }) {
+function Fan({ data }: { data: CarrierForecast }) {
   const f = data.forecast!;
   if (f.times.length < 2) return null;
   const max = data.storage_max_c ?? 8;

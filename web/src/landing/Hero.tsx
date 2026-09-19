@@ -104,7 +104,7 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
         </div>
 
         <div ref={head} className="absolute inset-x-0 top-[calc(var(--nav-h)+9vh)] px-6 text-center lg:top-[calc(var(--nav-h)+10vh)]">
-          <p className="eyebrow hero-eyebrow m-0">Vaccine cold chain</p>
+          <p className="eyebrow hero-eyebrow m-0">Vaccine cold chain · HopHacks 2026</p>
           <h1 className="ui-display m-0 mt-4">
             <span className="hero-line">
               <span>Is this vaccine</span>

@@ -81,16 +81,12 @@ export function TraceChapter({ report }: { report: Report | null }) {
   );
 
   return (
-    <section ref={section} data-theme="dark" className="chapter bg-bg text-text" style={chapterHeight(2.6)} aria-label="The last mile">
+    <section ref={section} data-theme="dark" className="chapter bg-bg text-text" style={chapterHeight(2.6)} aria-label="Temperature over the trip">
       <div className="chapter__view">
         <div className="chapter__copy chapter__copy--top">
           <div ref={copy}>
-            <p className="eyebrow m-0">The last mile</p>
-            <h2 className="ui-title-1 m-0 mt-4">On outreach, the label is often the only monitor.</h2>
-            <p className="m-0 mt-5 max-w-[40ch] text-[17px] leading-7 text-neutral-500 lg:text-[19px] lg:leading-8">
-              A freeze indicator gives one pass/fail for the whole trip, and a VVM shows heat exposure but not freezing. We say when and where it
-              happened, and give a verdict for the product in each box.
-            </p>
+            <p className="eyebrow m-0">{report?.box.id ?? " "}</p>
+            <h2 className="ui-title-1 m-0 mt-4">Temperature over the trip</h2>
           </div>
         </div>
         {trace && (
@@ -128,9 +124,6 @@ export function TraceChapter({ report }: { report: Report | null }) {
                   {report?.box.destination} · {time(trace.t1, trace.tz)}
                 </span>
               </div>
-              <p className="ui-caption m-0 mt-1 text-[13px]">
-                Every reading of {report?.box.id}. The band is the labelled {trace.min}–{trace.max} °C.
-              </p>
             </div>
           </div>
         )}
@@ -195,14 +188,13 @@ export function DecideChapter() {
         <div className="chapter__copy chapter__copy--on-signal">
           <div ref={copy}>
             <p className="eyebrow m-0" style={{ color: "inherit", opacity: 0.8 }}>
-              Decide
+              03
             </p>
-            <h2 className="ui-title-1 m-0 mt-4">One verdict, from everything the box has been through.</h2>
+            <h2 className="ui-title-1 m-0 mt-4">Decide</h2>
             <p className="m-0 mt-5 max-w-[40ch] text-[17px] leading-7 opacity-85 lg:text-[19px] lg:leading-8">
               Each product's stability budget is spent with the Arrhenius equation, freezing is checked on its own, and the box gets one verdict:
-              use, use first, quarantine or discard.
+              use, use first, quarantine or discard. A photo of the VVM label is the second witness.
             </p>
-            <p className="m-0 mt-5 font-mono text-[14px] tracking-tight opacity-75">B = B₀ + Σ Δtᵢ / t_life(Tᵢ)</p>
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-[max(8vh,calc(env(safe-area-inset-bottom,0px)+40px))] flex flex-col items-center gap-5 px-6 lg:inset-y-0 lg:left-auto lg:right-[8vw] lg:justify-center">

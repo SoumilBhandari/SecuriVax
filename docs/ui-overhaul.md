@@ -69,9 +69,12 @@ branch. Change the file when a decision changes.
 - **Data chapters** between the object chapters: the temperature trace drawing
   itself, the budget ring filling, the verdict word stepping through its four
   states, the forecast fan.
-- Chapters, in order: Hero, The last mile, Tag it, Sense it, Decide, Two
-  witnesses, The twin (with the location tag and route map inside it), Impact,
-  Closing.
+- Chapters, in order: Hero, Temperature over the trip, How it works (Tag it,
+  Sense it, Decide), the numbers, Inside the app, Closing.
+- **The words are the landing page's words from before the overhaul**, with
+  no new copy: the three steps keep their text, and the Two witnesses and
+  twin chapters were taken out (19 September) because they had only new,
+  technical wording.
 - **Live 3D until the render lands.** The objects are built from geometry in
   `web/src/landing/three/objects.tsx` (a filleted carrier with an open cavity,
   lid, latches, handle, gasket and badge; the carton; the sensor puck; the tag;

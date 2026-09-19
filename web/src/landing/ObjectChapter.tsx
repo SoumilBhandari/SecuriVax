@@ -26,12 +26,12 @@ export function ObjectChapter({
 }: {
   id: string;
   ground: Ground;
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   text: string;
   /** Anything after the text: buttons on the closing chapter. */
   children?: ReactNode;
-  /** A panel that draws in during the chapter: the forecast fan on the twin. */
+  /** A panel that draws in during the chapter, beside the words. */
   aside?: ReactNode;
   viewports?: number;
   align?: "left" | "centre";
@@ -78,8 +78,8 @@ export function ObjectChapter({
         <Sequence ref={seq} id={id} ground={ground} at={at} className="absolute inset-0" />
         <div className={`chapter__copy ${align === "centre" ? "chapter__copy--centre" : ""}`}>
           <div ref={copy}>
-            <p className="eyebrow m-0">{eyebrow}</p>
-            <h2 className="ui-title-1 m-0 mt-4">{title}</h2>
+            {eyebrow && <p className="eyebrow m-0 mb-4">{eyebrow}</p>}
+            <h2 className="ui-title-1 m-0">{title}</h2>
             <p className="m-0 mt-5 max-w-[38ch] text-[17px] leading-7 text-neutral-500 lg:text-[19px] lg:leading-8">{text}</p>
             {children}
           </div>
