@@ -9,8 +9,11 @@ in our backtest than heat, and it's the thing a VVM can't show.
 - Stickers are written with the URLs from `/tags` (stage: `DEMO-01`, `BOX-9001`, `BOX-9002`).
 - The node is sending and the `DEMO-01` page says **Online**. No board? Run
   `python -m simulator.sim_node --node DEMO-01 --api https://<domain> --key <NODE_KEY>`.
-- **Reset the stage** on `/tags` (or on BOX-9001's History tab) before every run. Kept on ice, the
-  stage boxes drift towards QUARANTINE within about 90 minutes of demo time.
+- **Reset the stage** on `/tags` (or on BOX-9001's History tab) right before every run. The stage
+  carrier runs at 2,880x (one real minute is two days), so 90 real minutes is about six months:
+  OPV, the most heat-sensitive vaccine, uses most of its budget in that time even at 5 °C.
+- Between steps keep the node **in the cooler at 2–8 °C, not on the ice**. At −0.2 °C the sensor's
+  error band already counts as a possible freeze, and pentavalent goes to QUARANTINE.
 - iPhone: Safari in a normal tab (not Private, not the home-screen app). Unlock before each tap.
 - Before judging, refresh the whole demo so its history ends now:
   `curl -X POST https://<domain>/api/admin/reset-demo -H "X-Operator-Token: <code>"`.
