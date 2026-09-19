@@ -28,7 +28,8 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
   const hint = useRef<HTMLDivElement>(null);
   const wide = useWide();
   const start: Anchor = wide ? { ax: 0.5, ay: 0.68, scale: 0.68 } : { ax: 0.5, ay: 0.66, scale: 0.6 };
-  const end: Anchor = wide ? { ax: 0.5, ay: 0.4, scale: 0.5 } : { ax: 0.5, ay: 0.36, scale: 0.42 };
+  // Where it ends up once the words are in: higher and smaller, above them.
+  const end: Anchor = wide ? { ax: 0.5, ay: 0.17, scale: 0.34 } : { ax: 0.5, ay: 0.15, scale: 0.28 };
   const state = useRef<{ p: number; at: Anchor; extra: Extra }>({ p: 0, at: start, extra: {} });
   const live = useLive();
   const last = live.readings[live.readings.length - 1];
