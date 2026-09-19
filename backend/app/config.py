@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     demo_reset: bool = False
     # Directory holding the built web app. When set, FastAPI serves it.
     static_dir: str = ""
+    # The interactive API docs (/docs, /openapi.json): handy on a laptop, off on a deploy.
+    api_docs: bool = True
 
     @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", mode="before")
     @classmethod

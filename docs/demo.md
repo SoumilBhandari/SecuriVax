@@ -27,6 +27,13 @@ in our backtest than heat, and it's the thing a VVM can't show.
   possible freeze; with today's DHT11 (±2 °C) anything at or below about 1.2 °C does, and the verdict
   says it's allowing for the DHT11's error.
 - iPhone: Safari in a normal tab (not Private, not the home-screen app). Unlock before each tap.
+- **Enter the operator code on every demo phone first.** Anything that changes data (a carrier tap
+  then a box tap, *Move this box*, asking the dispatch agent) asks for it once, in a browser pop-up,
+  and the phone remembers it. Do one load on each demo phone before judging so the pop-up never
+  appears on stage. Judges on their own phones can look at everything; hand them a demo phone to tap.
+- **The stage node reports to the live site.** `firmware/include/config.h` has
+  `API_BASE "https://securivax.onrender.com"`; set `NODE_KEY` to the value in Render and the hotspot's
+  WiFi, flash it, and check that `DEMO-01` says **Online** and the stage screen shows its temperature.
 - Before judging, refresh the whole demo so its history ends now:
   `curl -X POST https://<domain>/api/admin/reset-demo -H "X-Operator-Token: <code>"`.
 

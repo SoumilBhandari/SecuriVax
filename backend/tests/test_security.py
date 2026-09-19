@@ -122,3 +122,14 @@ def test_a_pasted_key_is_tidied_to_the_key_itself(pasted):
     from app.config import Settings
 
     assert Settings(_env_file=None, xai_api_key=pasted).xai_api_key == "xai-abc"
+
+
+def test_api_docs_can_be_turned_off():
+    import subprocess
+    import sys
+
+    # The app reads the setting when it's built, so check it in a fresh process.
+    code = "from fastapi.testclient import TestClient; from app.main import app; print(TestClient(app).get('/openapi.json').status_code)"
+    out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
+                         env={"API_DOCS": "false", "DATABASE_URL": "sqlite://", "DEMO_HISTORY": "false", "PATH": ""}, cwd=".")
+    assert out.stdout.strip().endswith("404"), out.stderr[-500:]

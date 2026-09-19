@@ -22,6 +22,8 @@ services:
           property: connectionString
       - key: DEMO_HISTORY
         value: "true"
+      - key: API_DOCS # no public /docs on the live site
+        value: "false"
       # Asked for when the Blueprint is created; never stored in this file.
       - key: OPERATOR_TOKEN # the code a phone enters once to change anything
         sync: false

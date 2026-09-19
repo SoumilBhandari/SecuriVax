@@ -15,7 +15,7 @@ from sqlmodel import Session
 from app.config import DEV_NODE_KEY, get_settings
 from app.db import engine, init_db
 from app.routers import admin, boxes, climate, ingest, live, nodes, products
-from app.seed import seed, sync_node_keys
+from app.seed import seed, sync_node_keys, sync_timezones
 
 settings = get_settings()
 
@@ -33,6 +33,7 @@ async def lifespan(_: FastAPI):
 
             backfill(session, int(time.time()), settings.demo_dataset)
         sync_node_keys(session)
+        sync_timezones(session)
         if not settings.weather_offline:
             from sqlmodel import select as _select
 
@@ -64,7 +65,14 @@ async def _keep_lanes_live() -> None:
         await asyncio.sleep(120)
 
 
-app = FastAPI(title="SecuriVax API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(
+    title="SecuriVax API",
+    version="0.1.0",
+    lifespan=lifespan,
+    docs_url="/docs" if settings.api_docs else None,
+    redoc_url="/redoc" if settings.api_docs else None,
+    openapi_url="/openapi.json" if settings.api_docs else None,
+)
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
