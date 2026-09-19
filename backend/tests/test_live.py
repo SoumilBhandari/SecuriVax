@@ -90,3 +90,10 @@ def test_bridge_reads_the_sensor_from_the_boot_line():
     assert parse_sensor("temperature: DS18B20 probe on GPIO 13, humidity: SHT31") == "ds18b20"
     assert parse_sensor("no temperature sensor found: SHT31 on SDA 21 / SCL 22") is None
 
+
+def test_a_quiet_stream_still_pings(client, monkeypatch):
+    monkeypatch.setattr(live, "STREAM_MAX_S", 0.35)
+    monkeypatch.setattr(live, "POLL_S", 0.05)
+    monkeypatch.setattr(live, "HEARTBEAT_S", 0.1)
+    kinds = [kind for kind, _ in sse(client.get("/api/live/stream").text)]
+    assert kinds[0] == "hello" and "ping" in kinds and "reading" not in kinds

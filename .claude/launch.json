@@ -6,7 +6,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd backend && VVM_SAVE_DIR=../vvm-photos .venv/bin/uvicorn app.main:app --reload --port 8000"
+        "cd backend && VVM_SAVE_DIR=../vvm-photos .venv/bin/uvicorn app.main:app --reload --timeout-graceful-shutdown 2 --port 8000"
       ],
       "port": 8000
     },
@@ -37,7 +37,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "npm --prefix web run build >/dev/null && cd backend && rm -f smoke.db && DATABASE_URL=sqlite:///./smoke.db STATIC_DIR=../web/dist OPERATOR_TOKEN=smoke-test VERSION=smoke .venv/bin/uvicorn app.main:app --port 8010"
+        "npm --prefix web run build >/dev/null && cd backend && rm -f smoke.db && DATABASE_URL=sqlite:///./smoke.db STATIC_DIR=../web/dist OPERATOR_TOKEN=smoke-test VERSION=smoke .venv/bin/uvicorn app.main:app --timeout-graceful-shutdown 2 --port 8010"
       ],
       "port": 8010
     },

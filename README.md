@@ -260,7 +260,7 @@ Needs Python 3.11+ and Node 22.
 cd backend
 uv venv && uv pip install -r requirements-dev.txt
 cp ../.env.example .env            # add GEMINI_API_KEY / XAI_API_KEY if you have them
-.venv/bin/uvicorn app.main:app --reload --port 8000
+.venv/bin/uvicorn app.main:app --reload --timeout-graceful-shutdown 2 --port 8000
 ```
 
 A fresh database seeds demo carriers, boxes and a few days of trips. Then:

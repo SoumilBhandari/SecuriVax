@@ -22,10 +22,13 @@ router = APIRouter(prefix="/api/live", tags=["live"])
 
 STORAGE_MIN_C, STORAGE_MAX_C = 2.0, 8.0  # the label range nearly every vaccine shares
 POLL_S = 1.0
-HEARTBEAT_S = 15.0
+# A real event, not an SSE comment: the page can't see comments, and it needs
+# to hear something to notice a connection a proxy has left hanging.
+HEARTBEAT_S = 10.0
 # The browser reconnects on its own (resuming from Last-Event-ID), so a stream
 # can end now and then; that keeps proxies with idle limits and forgotten tabs
-# from holding connections forever.
+# from holding connections forever. A shutdown doesn't wait for this: the server
+# runs with --timeout-graceful-shutdown, or an open feed would hold a deploy.
 STREAM_MAX_S = 10 * 60
 MAX_PER_TICK = 200
 MAX_STREAMS = 50
@@ -109,7 +112,8 @@ async def stream(
     node: str | None = Query(None, max_length=40),
     session: Session = Depends(get_session),
 ) -> StreamingResponse:
-    """Server-sent events: one `reading` event per new reading."""
+    """Server-sent events: one `reading` event per new reading, and a `ping`
+    after HEARTBEAT_S without one."""
     global _open_streams
     if _open_streams >= MAX_STREAMS:
         raise HTTPException(503, "too many live viewers, try again shortly")
@@ -133,7 +137,7 @@ async def stream(
                     yield f"id: {e['id']}\nevent: reading\ndata: {json.dumps(e)}\n\n"
                 if time.monotonic() - last_sent >= HEARTBEAT_S:
                     last_sent = time.monotonic()
-                    yield ": still here\n\n"
+                    yield "event: ping\ndata: {}\n\n"
                 await asyncio.sleep(POLL_S)
         finally:
             _open_streams -= 1

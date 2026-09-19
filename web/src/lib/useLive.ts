@@ -8,11 +8,15 @@ export type LiveStatus = "connecting" | "live" | "reconnecting" | "offline" | "s
 
 const KEEP = 400; // readings held in memory, across every node
 const RETRY_MS = 5000; // after the server refuses or the stream closes for good
+// The server pings every 10 s. Silence for longer means the connection is dead
+// even if the browser thinks it's open (a proxy can hold one open after the
+// server restarts, and phones switch networks), so start a new one.
+const SILENCE_MS = 25000;
 
 /**
  * The live signal: the latest readings, then every new one as the server gets
  * it. Server-sent events resume from the last id on their own after a drop;
- * a refused or closed stream is reopened from the newest reading held.
+ * a refused, closed or silent stream is reopened from the newest reading held.
  */
 export function useLive() {
   const [readings, setReadings] = useState<LiveReading[]>([]); // oldest first
@@ -26,6 +30,10 @@ export function useLive() {
     let alive = true;
     let source: EventSource | null = null;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let heard = Date.now();
+    const hear = () => {
+      heard = Date.now();
+    };
 
     const add = (r: LiveReading) => {
       if (r.id <= newest.current) return;
@@ -35,9 +43,17 @@ export function useLive() {
 
     const connect = () => {
       if (!alive) return;
+      heard = Date.now();
       source = new EventSource(api.liveStreamUrl(newest.current));
-      source.addEventListener("hello", () => setStatus("live"));
-      source.addEventListener("reading", (ev) => add(JSON.parse((ev as MessageEvent<string>).data)));
+      source.addEventListener("hello", () => {
+        hear();
+        setStatus("live");
+      });
+      source.addEventListener("ping", hear);
+      source.addEventListener("reading", (ev) => {
+        hear();
+        add(JSON.parse((ev as MessageEvent<string>).data));
+      });
       source.onerror = () => {
         if (source?.readyState === EventSource.CLOSED) {
           setStatus("offline");
@@ -63,9 +79,17 @@ export function useLive() {
         setStatus("offline");
       });
 
+    const watchdog = setInterval(() => {
+      if (!source || source.readyState === EventSource.CLOSED || Date.now() - heard < SILENCE_MS) return;
+      source.close();
+      setStatus("reconnecting");
+      connect();
+    }, 5000);
+
     return () => {
       alive = false;
       clearTimeout(retry);
+      clearInterval(watchdog);
       source?.close();
     };
   }, []);
