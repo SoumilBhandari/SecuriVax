@@ -15,6 +15,7 @@ import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
 import { time } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
+import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast, Explanation, NodeSummary, Report } from "../types";
 
@@ -30,6 +31,8 @@ export default function BoxPage() {
   const { id = "" } = useParams();
   const [live, setLive] = useState(false);
   const { data, error, updatedAt, refresh } = usePoll(() => api.report(id), live ? 15000 : 60000, [id]);
+  // Its carrier's every reading can move the verdict: re-fetch within a second, not at the next poll.
+  useReadingNudge(data?.current_node_id, refresh);
   const [toast, setToast] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [moving, setMoving] = useState(false);

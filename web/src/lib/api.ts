@@ -146,7 +146,8 @@ export const api = {
   carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
   liveRecent: (limit = 120) => request<LiveRecent>(`/api/live/recent?limit=${limit}`),
   /** Server-sent events of new readings; the browser reconnects and resumes on its own. */
-  liveStreamUrl: (after: number) => `${BASE}/api/live/stream?after=${after}`,
+  liveStreamUrl: ({ after, node }: { after?: number; node?: string }) =>
+    `${BASE}/api/live/stream?${new URLSearchParams({ ...(after != null && { after: String(after) }), ...(node && { node }) })}`,
   plan: (body: { product_id: string; origin_id: string; carrier_id?: string | null; session_h?: number }) =>
     request<TripPlan>("/api/climate/plan", { method: "POST", body: JSON.stringify(body) }),
 };
