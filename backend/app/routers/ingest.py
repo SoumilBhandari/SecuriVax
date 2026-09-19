@@ -64,6 +64,14 @@ def _authorised_node(session: Session, node_id: str, key: str) -> Node:
     return node
 
 
+# Live on request. A low-power node sleeps and connects every checkin_s; when
+# someone has asked to watch it, the reply to its next check-in tells it to
+# sample every LIVE_SAMPLE_S and upload each reading for LIVE_WINDOW_S.
+LIVE_SAMPLE_S = 10
+LIVE_WINDOW_S = 10 * 60
+LIVE_ASK_EXPIRES_S = 3 * 3600  # an ask the node never heard (switched off) lapses
+
+
 @router.post("/readings", response_model=IngestResult)
 def ingest_readings(
     batch: IngestBatch,
@@ -124,6 +132,7 @@ def ingest_readings(
         node.battery_v = batch.battery_v or latest_battery or node.battery_v
         node.fw_version = batch.fw_version or node.fw_version
         node.sensor = batch.sensor.lower() if batch.sensor else node.sensor
+        node.checkin_s = batch.checkin_s or node.checkin_s
         ack_seq = max(seen) if seen else None
         session.add(node)
         session.add(IngestLog(
@@ -135,9 +144,16 @@ def ingest_readings(
         session.rollback()
         raise HTTPException(503, "storage unavailable, retry later") from exc
 
+    asked = node.live_asked_at
+    if asked and now - asked < LIVE_ASK_EXPIRES_S and (node.live_until is None or node.live_until < asked):
+        node.live_until = now + LIVE_WINDOW_S  # it hears the ask now: the window starts now
+        session.add(node)
+        session.commit()
+    live = node.live_until if node.live_until and node.live_until > now else None
     return IngestResult(
         accepted=len(rows), duplicates=duplicates, rejected=rejected,
         ack_seq=ack_seq, server_time=now, worst_verdict=_worst_verdict(session, node, now),
+        live_until=live, live_sample_s=LIVE_SAMPLE_S if live else None,
     )
 
 

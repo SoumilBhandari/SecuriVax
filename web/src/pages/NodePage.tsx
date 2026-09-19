@@ -5,6 +5,7 @@ import { BoxCard } from "../components/BoxCard";
 import { Dispatch } from "../components/Dispatch";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ForecastCard } from "../components/Forecast";
+import { WatchLive } from "../components/WatchLive";
 import { NfcIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { api } from "../lib/api";
@@ -132,6 +133,12 @@ export default function NodePage() {
               <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit=" °C" />
               <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}%` : "–"} />
             </div>
+
+            {node.checkin_s && node.checkin_s > 60 ? (
+              <div className="mt-3">
+                <WatchLive node={node} onAsked={refresh} />
+              </div>
+            ) : null}
 
             {forecastable && (
               <div className="mt-3">

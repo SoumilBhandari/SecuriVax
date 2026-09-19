@@ -28,6 +28,11 @@ class Node(SQLModel, table=True):
     sensor: str | None = None
     # Where the node works (IANA). None: show times in the viewer's own zone.
     timezone: str | None = None
+    # Low power: how often the node connects (it says so in each upload), and
+    # until when someone asked it to stream live (it hears at its next check-in).
+    checkin_s: int | None = None
+    live_asked_at: int | None = None
+    live_until: int | None = None
 
 
 class Facility(SQLModel, table=True):
@@ -117,14 +122,20 @@ class Custody(SQLModel, table=True):
 
 
 class Scan(SQLModel, table=True):
-    """Audit log of every tap and custody change."""
+    """Audit log of every tap and custody change: a box's history."""
 
     id: int | None = Field(default=None, primary_key=True)
     box_id: str | None = Field(default=None, index=True)
     node_id: str | None = None
-    action: str  # load | unload | transfer
+    # load | transfer | retap | unload | checkpoint (a driver's QR scan on the
+    # way) | receive (the NFC tap at the clinic that picks it up) | dispatch:*
+    action: str
     ts: int = Field(default_factory=now_ts)
     note: str = ""
+    lat: float | None = None  # where the phone was, for checkpoints and pickups
+    lon: float | None = None
+    facility_id: str | None = None  # the store or clinic it was at, when known
+    by: str = ""  # who: the signed-in account's name
 
 
 class IngestLog(SQLModel, table=True):

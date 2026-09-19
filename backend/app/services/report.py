@@ -179,7 +179,36 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     data["product"] = {**asdict(profile), "has_vvm": profile.has_vvm}
     data["current_node_id"] = open_seg.node_id if open_seg else None
     data["places"] = cached_places(session, key_points(report))
+    data["history"] = box_history(session, box.id)
     return data
+
+
+HISTORY_ACTIONS = {"load", "transfer", "unload", "checkpoint", "receive"}
+
+
+def box_history(session: Session, box_id: str) -> list[dict]:
+    """Every custody event, oldest first: loads and handovers, the drivers'
+    NFC checkpoints on the way, and the clinic's QR pickup."""
+    from app.models import Facility, Scan
+
+    labels = {n.id: n.label for n in session.exec(select(Node)).all()}
+    names = {f.id: f.name for f in session.exec(select(Facility)).all()}
+    scans = session.exec(select(Scan).where(Scan.box_id == box_id).order_by(Scan.ts, Scan.id)).all()
+    return [
+        {
+            "ts": s.ts,
+            "action": s.action,
+            "node_id": s.node_id,
+            "node_label": labels.get(s.node_id or ""),
+            "facility": names.get(s.facility_id or ""),
+            "lat": s.lat,
+            "lon": s.lon,
+            "by": s.by,
+            "note": s.note,
+        }
+        for s in scans
+        if s.action in HISTORY_ACTIONS
+    ]
 
 
 

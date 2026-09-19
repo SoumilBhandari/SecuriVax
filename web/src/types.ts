@@ -117,7 +117,21 @@ export interface Box {
   destination: string | null;
 }
 
+/** One custody event: a load or handover, a driver's NFC checkpoint, the clinic's QR pickup. */
+export interface HistoryEvent {
+  ts: number;
+  action: "load" | "transfer" | "unload" | "checkpoint" | "receive";
+  node_id: string | null;
+  node_label: string | null;
+  facility: string | null;
+  lat: number | null;
+  lon: number | null;
+  by: string;
+  note: string;
+}
+
 export interface Report {
+  history?: HistoryEvent[];
   verdict: Verdict;
   action: string;
   budget_used: number;
@@ -309,7 +323,7 @@ export interface BoxSummary extends Box {
   budget_used: number;
   mkt_c: number | null;
   logger_outcome: LoggerView["outcome"] | null;
-  status: "In transit" | "Delivered" | "Not dispatched";
+  status: "In transit" | "Received" | "Delivered" | "Not dispatched";
   // Last known position (its carrier now, or where it was delivered) and where the trip started.
   lat: number | null;
   lon: number | null;
@@ -339,6 +353,9 @@ export interface NodeSummary {
   backup_for: string | null;
   latest: LatestReading | null;
   box_ids: string[];
+  // Low power: how often it checks in; live-on-request state.
+  checkin_s?: number | null;
+  live?: { state: "off" | "asked" | "live"; until: number | null; next_checkin: number | null };
 }
 
 export interface Upload {

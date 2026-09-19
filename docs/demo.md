@@ -6,7 +6,14 @@ in our backtest than heat, and it's the thing a VVM can't show.
 ## Before you go on
 
 - The deployed URL loads and `/api/health` says `"status": "ok"`, with `grok` and `gemini` both `true`.
-- Stickers are written with the URLs from `/tags` (stage: `DEMO-01`, `BOX-9001`, `BOX-9002`).
+- Stickers and codes come from `/tags` (stage: `DEMO-01`, `BOX-9001`, `BOX-9002`). **NFC stickers are
+  for drivers on the way**: tapping a box logs a checkpoint (where it is, from the phone's location, and
+  who), and tapping a carrier then a box hands the box over. **The pickup QR on each box's label is for
+  the clinic**: scanning it confirms the pickup (the trip ends there) and shows the box's whole history.
+- **The node is low power.** Outside demo mode it reads every 5 min into flash, sleeps, and checks in
+  every 15 min; a reading outside 2-8 °C goes up at once. *Watch live* on its carrier page makes it send
+  a reading every 10 s for 10 min from its next check-in (at most 12 times a day per node). The stage
+  node runs the always-on demo firmware (`pio run -e demo`), so it streams anyway.
 - The node is sending and the `DEMO-01` page says **Online**. Two ways in:
   - **Deployed, over WiFi (best):** `API_BASE` in `firmware/include/config.h` is the app's HTTPS URL,
     and the board is on a 2.4 GHz phone hotspot.

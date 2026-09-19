@@ -86,11 +86,19 @@ async function fromSnapshot<T>(path: string, init?: RequestInit): Promise<T> {
   );
 }
 
+export interface Place {
+  lat?: number | null;
+  lon?: number | null;
+  accuracy_m?: number | null;
+  facility_id?: string | null;
+  note?: string;
+}
+
 const post = (body?: unknown): RequestInit => ({ method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 
 export const api = {
   auth: {
-    me: () => request<{ user: User }>("/api/auth/me"),
+    me: () => request<{ user: User | null }>("/api/auth/me"),
     login: (email: string, password: string) => request<{ user: User }>("/api/auth/login", post({ email, password })),
     register: (b: { email: string; password: string; name: string; operator_code: string }) => request<{ user: User }>("/api/auth/register", post(b)),
     logout: () => request<{ user: null }>("/api/auth/logout", post()),
@@ -138,6 +146,13 @@ export const api = {
   impact: () => request<Impact>("/api/impact"),
   products: () => request<Product[]>("/api/products"),
   facilities: () => request<Facility[]>("/api/facilities"),
+  // The field: a driver's NFC checkpoint, the clinic's QR pickup, watching a node live.
+  checkpoint: (boxId: string, place: Place) =>
+    request<{ status: string; facility: string | null; node_id: string | null }>(`/api/boxes/${encodeURIComponent(boxId)}/checkpoint`, post(place)),
+  receive: (boxId: string, place: Place) =>
+    request<{ status: string; facility: string | null; from_node: string | null }>(`/api/boxes/${encodeURIComponent(boxId)}/receive`, post(place)),
+  watchLive: (nodeId: string) =>
+    request<{ state: "off" | "asked" | "live"; until: number | null; next_checkin: number | null }>(`/api/nodes/${encodeURIComponent(nodeId)}/live`, post()),
   /** Where a carrier could be heading: within a day's drive, nearest first. */
   destinations: (nodeId: string) =>
     request<(Facility & { road_km: number | null })[]>(`/api/nodes/${encodeURIComponent(nodeId)}/destinations`),

@@ -37,7 +37,7 @@ def test_sign_up_sign_in_and_out(client, session):
     assert client.post("/api/auth/register", json={"email": "b@c.org", "password": "short"}).status_code == 422
 
     client.post("/api/auth/logout")
-    assert client.get("/api/auth/me").status_code == 401
+    assert client.get("/api/auth/me").json()["user"] is None
     assert client.post("/api/auth/login", json={"email": "amina@clinic.org", "password": "nope-nope"}).status_code == 401
     assert client.post("/api/auth/login", json={"email": "AMINA@clinic.org", "password": "cold-chain-8"}).status_code == 200
     assert client.get("/api/auth/me").json()["user"]["name"] == "Amina"
@@ -76,7 +76,7 @@ def test_a_deleted_account_is_signed_out(client, session, monkeypatch):
     assert client.get("/api/auth/me").status_code == 200
     session.delete(session.exec(select(Account)).one())
     session.commit()
-    assert client.get("/api/auth/me").status_code == 401
+    assert client.get("/api/auth/me").json()["user"] is None
     assert client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-01"}).status_code == 401
 
 

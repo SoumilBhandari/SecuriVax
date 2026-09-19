@@ -80,7 +80,5 @@ def logout(response: Response) -> dict:
 
 @router.get("/me")
 def me(request: Request, session: Session = Depends(get_session)) -> dict:
-    user = auth.signed_in(request, session)
-    if not user:
-        raise HTTPException(401, "not signed in")
-    return {"user": user}
+    """Who's signed in: {"user": null} when nobody is (a normal answer, not an error)."""
+    return {"user": auth.signed_in(request, session)}

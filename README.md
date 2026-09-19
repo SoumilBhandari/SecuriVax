@@ -306,7 +306,10 @@ and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
 
 | Method | Path | |
 | --- | --- | --- |
-| POST | `/api/ingest/readings` | Node uploads (header `X-Node-Key`); returns `ack_seq`, `server_time` |
+| POST | `/api/ingest/readings` | Node uploads (header `X-Node-Key`); returns `ack_seq`, `server_time`, and `live_until` / `live_sample_s` when someone asked to watch |
+| POST | `/api/nodes/{id}/live` | Ask a low-power node to stream for 10 min from its next check-in (12 a day per node) |
+| POST | `/api/boxes/{id}/checkpoint` | A driver's NFC tap on the way: where the box is, when, who (an operator) |
+| POST | `/api/boxes/{id}/receive` | The clinic's QR scan: picked up, the trip ends (an operator); the report's `history` lists every event |
 | GET | `/api/boxes` | Every box with its verdict |
 | GET | `/api/boxes/{id}/report` | Verdict, budget, reasons, legs, route, series |
 | POST | `/api/boxes/{id}/explain` | Gemini place names + Grok report |

@@ -23,6 +23,7 @@ class IngestBatch(BaseModel):
     sensor: str | None = Field(None, max_length=16, pattern=r"^[A-Za-z0-9_-]+$",
                                description="The temperature sensor, e.g. dht11, ds18b20, sht31")
     readings: list[ReadingIn] = Field(max_length=MAX_BATCH)
+    checkin_s: int | None = Field(None, ge=1, le=86_400, description="How often the node connects, in seconds")
 
 
 class Rejected(BaseModel):
@@ -40,6 +41,10 @@ class IngestResult(BaseModel):
     server_time: int
     # Worst verdict among the boxes in this carrier now, for the node's LED.
     worst_verdict: str | None = None
+    # Someone asked to watch live: sample every live_sample_s and upload each
+    # reading until live_until (unix time), then back to low power.
+    live_until: int | None = None
+    live_sample_s: int | None = None
 
 
 class LocationIn(BaseModel):

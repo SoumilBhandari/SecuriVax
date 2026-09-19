@@ -25,19 +25,12 @@ export default function TagsPage() {
   return (
     <Layout>
       <BackHeader />
-      <PageTitle eyebrow="Setup" title="NFC tags" />
-      {canTap ? (
-        <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
-          Write each URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Tapping a sticker
-          opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it. Print the same URL as a
-          QR code for phones without NFC.
-        </p>
-      ) : (
-        <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
-          Write each URL to an NTAG213/215 sticker as a URL record, from a phone (NFC Tools works on iPhone and Android). Each
-          tag's QR code opens the same page and prints as a fallback sticker.
-        </p>
-      )}
+      <PageTitle eyebrow="Setup" title="Stickers and codes" />
+      <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
+        NFC stickers are for drivers on the way: tapping a box logs a checkpoint, and tapping a carrier then a box hands the box
+        over. Write each NFC URL to an NTAG213/215 sticker as a URL record{canTap ? "" : ", from a phone"} (NFC Tools works on
+        iPhone and Android). Each box's pickup QR goes on its label: the clinic scans it to pick the box up.
+      </p>
 
       <Split
         left={
@@ -79,7 +72,7 @@ export default function TagsPage() {
             <SectionTitle>Carriers and storage</SectionTitle>
             <TagList items={nodes.map((n) => ({ id: n.id, label: n.label, url: `${origin}/node/${n.id}?tap=1` }))} />
             <SectionTitle>Boxes</SectionTitle>
-            <TagList items={boxes.map((b) => ({ id: b.id, label: b.product_name, url: `${origin}/box/${b.id}?tap=1` }))} />
+            <TagList items={boxes.map((b) => ({ id: b.id, label: b.product_name, url: `${origin}/box/${b.id}?tap=1`, pickup: `${origin}/box/${b.id}?pickup=1` }))} />
           </>
         }
       />
@@ -87,7 +80,7 @@ export default function TagsPage() {
   );
 }
 
-function TagList({ items }: { items: { id: string; label: string; url: string }[] }) {
+function TagList({ items }: { items: { id: string; label: string; url: string; pickup?: string }[] }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [shown, setShown] = useState<string | null>(null);
   const canTap = useCanTapTags(); // a computer shows each tag's QR code: its way to hand a page to a phone
@@ -108,15 +101,16 @@ function TagList({ items }: { items: { id: string; label: string; url: string }[
             <p className="m-0 text-sm font-bold">
               {item.id} <span className="font-normal text-neutral-500">{item.label}</span>
             </p>
-            <p className="m-0 truncate font-mono text-xs text-neutral-500">{item.url}</p>
+            <p className="m-0 truncate font-mono text-xs text-neutral-500">NFC {item.url}</p>
+            {item.pickup && <p className="m-0 truncate font-mono text-xs text-neutral-500">QR {item.pickup}</p>}
           </div>
-          {!canTap && (
+          {(!canTap || item.pickup) && (
             <button
               onClick={() => setShown(shown === item.id ? null : item.id)}
               aria-expanded={shown === item.id}
               className="btn-quiet !min-h-10 shrink-0 !px-3 !text-sm"
             >
-              QR
+              {item.pickup ? "Pickup QR" : "QR"}
             </button>
           )}
           <button onClick={() => copy(item.url)} className="btn-secondary !min-h-10 shrink-0 !px-3 !text-sm">
@@ -124,8 +118,10 @@ function TagList({ items }: { items: { id: string; label: string; url: string }[
           </button>
           {shown === item.id && (
             <div className="flex basis-full items-center gap-4 pt-1">
-              <QrCode text={item.url} size={136} label={`QR code for ${item.id}`} />
-              <p className="ui-caption m-0">Opens {item.id} on a phone, like tapping its sticker.</p>
+              <QrCode text={item.pickup ?? item.url} size={136} label={`QR code for ${item.id}`} />
+              <p className="ui-caption m-0">
+                {item.pickup ? `Print on ${item.id}'s label: the clinic scans it to pick the box up.` : `Opens ${item.id} on a phone, like tapping its sticker.`}
+              </p>
             </div>
           )}
         </li>

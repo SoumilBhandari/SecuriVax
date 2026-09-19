@@ -53,9 +53,13 @@
   #define GPS_EVERY 1
   #define GPS_FIX_TIMEOUT_MS 1500         // GPS stays powered; just catch the next sentence
 #else
-  #define SAMPLE_INTERVAL_S 60            // deep sleep in between
-  #define UPLOAD_EVERY 10                 // WiFi is the big power cost: batch it
-  #define GPS_EVERY 5                     // a warm GPS fix takes a few seconds
+  // Ultra low power: a reading every 5 min into flash, deep sleep in between,
+  // and a check-in every 15 min (upload the queue, hear whether anyone asked
+  // to watch live). A reading outside 2-8 C is sent at once. About 7 mAh a
+  // day, mostly the WiFi check-ins: months on a 2000 mAh cell.
+  #define SAMPLE_INTERVAL_S 300
+  #define UPLOAD_EVERY 3                  // check in every 3 samples: 15 min
+  #define GPS_EVERY 3                     // a warm GPS fix takes a few seconds
   #define GPS_FIX_TIMEOUT_MS 30000
 #endif
 #define BATCH_SIZE 100                    // readings per HTTP request

@@ -1,12 +1,13 @@
 import time
-
+from collections import defaultdict, deque
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from app.security import agent_hourly_limit, agent_limit, require_operator
+from app.routers.ingest import LIVE_WINDOW_S
+from app.security import agent_hourly_limit, agent_limit, live_limit, require_operator
 
 from app.db import get_session
 from app.models import Custody, Facility, IngestLog, Node, Reading, Scan
@@ -25,13 +26,61 @@ def _summary(session: Session, node: Node, now: int) -> dict:
         select(Custody.box_id).where(Custody.node_id == node.id, Custody.end_ts.is_(None))
     ).all()
     data = node.model_dump(exclude={"key"})
+    # A low-power node is quiet between check-ins: online means it checked in on time.
+    within = max(ONLINE_WITHIN_S, 2 * (node.checkin_s or 0) + 60)
     data.update(
-        online=node.last_seen_at is not None and now - node.last_seen_at <= ONLINE_WITHIN_S,
+        online=node.last_seen_at is not None and now - node.last_seen_at <= within,
+        live=_live_state(node, now),
         low_battery=node.battery_v is not None and node.battery_v < LOW_BATTERY_V,
         latest=latest.model_dump(include={"ts", "temp_c", "rh", "lat", "lon"}) if latest else None,
         box_ids=list(boxes),
     )
     return data
+
+
+def _live_state(node: Node, now: int) -> dict:
+    """Whether it's streaming, waiting to hear the ask at its next check-in, or neither."""
+    if node.live_until and node.live_until > now:
+        state = "live"
+    elif node.live_asked_at and (node.live_until is None or node.live_until < node.live_asked_at):
+        state = "asked"
+    else:
+        state = "off"
+    next_checkin = node.last_seen_at + node.checkin_s if node.last_seen_at and node.checkin_s else None
+    return {"state": state, "until": node.live_until if state == "live" else None, "next_checkin": next_checkin}
+
+
+# Anyone watching can ask a node to stream live; each node streams at most
+# this many windows a day, so its battery can't be run down from the web.
+LIVE_WINDOWS_PER_DAY = 12
+_live_asks: dict[str, deque] = defaultdict(deque)
+
+
+def clear_live_asks() -> None:
+    _live_asks.clear()
+
+
+@router.post("/{node_id}/live", dependencies=[Depends(live_limit)])
+def ask_live(node_id: str, session: Session = Depends(get_session)) -> dict:
+    """Ask a low-power node to stream readings for ten minutes. It hears the
+    ask at its next check-in, so the answer says when that should be."""
+    node = session.get(Node, node_id)
+    if node is None:
+        raise HTTPException(404, f"no node {node_id}")
+    now = int(time.time())
+    state = _live_state(node, now)
+    if state["state"] != "off":
+        return state  # already live, or already asked
+    asks = _live_asks[node_id]
+    while asks and now - asks[0] > 86_400:
+        asks.popleft()
+    if len(asks) >= LIVE_WINDOWS_PER_DAY:
+        raise HTTPException(429, f"{node_id} has streamed live {LIVE_WINDOWS_PER_DAY} times today; its battery comes first")
+    asks.append(now)
+    node.live_asked_at = now
+    session.add(node)
+    session.commit()
+    return {**_live_state(node, now), "window_s": LIVE_WINDOW_S}
 
 
 @router.get("")

@@ -9,6 +9,8 @@ import { ChevronRightIcon, ScanIcon, XIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
 import { StageReset } from "../components/StageReset";
+import { FieldAction } from "../components/FieldAction";
+import { History } from "../components/History";
 import { TripChart } from "../components/TripChart";
 import { TripConditions } from "../components/TripConditions";
 import { Numbers, Reasons, VerdictHero } from "../components/Verdict";
@@ -17,7 +19,7 @@ import { api } from "../lib/api";
 import { useAuth, useSignInFirst } from "../lib/auth";
 import { canTapTags, useCanTapTags } from "../lib/device";
 import { time } from "../lib/format";
-import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
+import { clearArm, getArm, setArm, takeFlag, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast, NodeSummary, Report } from "../types";
@@ -44,6 +46,8 @@ export default function BoxPage() {
   const [moving, setMoving] = useState(false);
   const tapHandled = useRef(false);
   const vvmHandoff = useRef(false);
+  // The field scan this visit came from: a driver's NFC tap (checkpoint) or the clinic's QR (pickup).
+  const [field, setField] = useState<"checkpoint" | "pickup" | null>(null);
   const canTap = useCanTapTags();
   const { user, ready } = useAuth();
   const signInFirst = useSignInFirst();
@@ -79,13 +83,20 @@ export default function BoxPage() {
         .catch((e: Error) => setToast(`Couldn't load: ${e.message}`))
         .finally(refresh);
     } else {
-      setArm("box", id);
+      setArm("box", id); // a carrier tapped next takes it (a handover)
+      setField("checkpoint"); // and a driver can log where it is now
     }
   }, [id, refresh, ready, user, signInFirst]);
 
+  // The clinic's QR code (?pickup=1), or a return from sign-in to finish either scan.
+  useEffect(() => {
+    if (takeFlag("pickup")) setField("pickup");
+    else if (takeFlag("checkpoint")) setField("checkpoint");
+  }, [id]);
+
   // A computer's QR code opens the box here with ?vvm=1: go straight to the label check.
   useEffect(() => {
-    if (takeVvmHandoff()) vvmHandoff.current = true;
+    if (takeFlag("vvm")) vvmHandoff.current = true;
   }, []);
   useEffect(() => {
     if (!vvmHandoff.current || !data || !ready) return;
@@ -145,6 +156,8 @@ export default function BoxPage() {
   const inside = report.segments.find((s) => !s.end_ts);
   const fc = forecast.data?.available ? forecast.data : null;
   const label = report.label_check;
+  const history = report.history ?? [];
+  const pickedUp = !report.current_node_id ? [...history].reverse().find((e) => e.action === "receive") : undefined;
 
   return (
     <Layout>
@@ -155,7 +168,7 @@ export default function BoxPage() {
         sub={
           <>
             {report.box.id} · {report.box.quantity.toLocaleString()} {unit}
-            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : report.segments.length ? "delivered" : "not dispatched"}
+            {report.box.origin && ` · ${report.box.origin} → ${report.box.destination}`} · {report.current_node_id ? "in transit" : pickedUp ? `picked up${pickedUp.facility ? ` at ${pickedUp.facility}` : ""}` : report.segments.length ? "delivered" : "not dispatched"}
           </>
         }
       />
@@ -163,6 +176,17 @@ export default function BoxPage() {
       <Split
         left={
           <>
+            {field && (
+              <FieldAction
+                kind={field}
+                report={report}
+                onClose={() => setField(null)}
+                onDone={(message) => {
+                  setField(null);
+                  changed(message);
+                }}
+              />
+            )}
             <VerdictHero report={report} stale={stale} />
 
             <div className="mt-6 flex flex-col gap-3">
@@ -214,6 +238,9 @@ export default function BoxPage() {
                 <ChevronRightIcon size={22} />
               </Link>
             )}
+
+            <SectionTitle aside={history.length ? `${history.length} ${history.length === 1 ? "event" : "events"}` : undefined}>History</SectionTitle>
+            <History events={history} />
 
             <ErrorBoundary label="The trip conditions">
               <TripConditions report={report} />
@@ -267,15 +294,6 @@ export default function BoxPage() {
       <Toast message={toast} onDone={hideToast} />
     </Layout>
   );
-}
-
-/** True once if a computer's QR code sent this phone to the label check; strips ?vvm=1. */
-function takeVvmHandoff(): boolean {
-  const url = new URL(window.location.href);
-  if (url.searchParams.get("vvm") !== "1") return false;
-  url.searchParams.delete("vvm");
-  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
-  return true;
 }
 
 /** A panel that slides up over the page (the camera, a confirmation). */

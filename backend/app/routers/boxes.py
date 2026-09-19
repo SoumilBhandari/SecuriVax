@@ -3,7 +3,7 @@ import binascii
 import time
 from dataclasses import asdict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
@@ -17,8 +17,10 @@ from app.engine.profiles import PRODUCTS_BY_ID
 from app.engine.uncertainty import verdict_confidence
 from app.engine.verdict import VERDICT_ORDER, evaluate
 from app.engine.vvm import cross_check, open_photo, read_vvm
-from app.models import Box, Custody, Node, Scan, TextCache, VvmCheck
+from app.models import Box, Custody, Facility, LocationPoint, Node, Scan, TextCache, VvmCheck
 from app.security import explain_limit, require_operator, vvm_limit
+from app.services.auth import signed_in
+from app.services.climate import haversine_km
 from app.services import learning
 from app.services.narrative import build_facts, write_report
 from app.services.places import MAX_POINTS, resolve_places
@@ -34,6 +36,19 @@ class LoadIn(BaseModel):
 
 class UnloadIn(BaseModel):
     note: str = Field("", max_length=200)
+
+
+class PlaceIn(BaseModel):
+    """Where the phone is, from its GPS, when a driver or a clinic scans a box."""
+
+    lat: float | None = Field(None, ge=-90, le=90)
+    lon: float | None = Field(None, ge=-180, le=180)
+    accuracy_m: float | None = Field(None, ge=0, le=100_000)
+    facility_id: str | None = Field(None, max_length=40)
+    note: str = Field("", max_length=200)
+
+
+NEAR_KM = 3.0  # a scan this close to a store or clinic is at it
 
 
 class VvmPhotoIn(BaseModel):
@@ -64,6 +79,29 @@ def _open_custody(session: Session, box_id: str) -> Custody | None:
     ).first()
 
 
+def _who(request: Request, session: Session) -> str:
+    user = signed_in(request, session)
+    return user["name"] if user else "operator code"
+
+
+def _facility_near(session: Session, body: "PlaceIn") -> Facility | None:
+    """The facility named, else the nearest within NEAR_KM of where the phone is."""
+    if body.facility_id:
+        facility = session.get(Facility, body.facility_id)
+        if facility is None:
+            raise HTTPException(404, f"no facility {body.facility_id}")
+        return facility
+    if body.lat is None or body.lon is None:
+        return None
+    here = (body.lat, body.lon)
+    best = min(session.exec(select(Facility)).all(), key=lambda f: haversine_km(here, (f.lat, f.lon)), default=None)
+    return best if best and haversine_km(here, (best.lat, best.lon)) <= NEAR_KM else None
+
+
+def _last_receipt(session: Session, box_id: str) -> Scan | None:
+    return session.exec(select(Scan).where(Scan.box_id == box_id, Scan.action == "receive").order_by(Scan.ts.desc())).first()
+
+
 def _summaries(session: Session) -> list[dict]:
     out = []
     for box in session.exec(select(Box).order_by(Box.id)).all():
@@ -73,6 +111,7 @@ def _summaries(session: Session) -> list[dict]:
         # last seen (its carrier now, or where it was delivered). None when no
         # reading carried a position.
         located = [s for s in report.segments if s.end_lat is not None]
+        received = _last_receipt(session, box.id) if not custody else None
         out.append({
             **box.model_dump(),
             "product_name": PRODUCTS_BY_ID[box.product_id].name,
@@ -82,7 +121,7 @@ def _summaries(session: Session) -> list[dict]:
             "budget_used": report.budget_used,
             "mkt_c": report.mkt_c,
             "logger_outcome": report.logger.get("outcome"),
-            "status": "In transit" if custody else ("Delivered" if report.segments else "Not dispatched"),
+            "status": "In transit" if custody else "Received" if received else "Delivered" if report.segments else "Not dispatched",
             "lat": located[-1].end_lat if located else None,
             "lon": located[-1].end_lon if located else None,
             "from_lat": located[0].start_lat if located else None,
@@ -207,6 +246,45 @@ def unload_box(box_id: str, body: UnloadIn, session: Session = Depends(get_sessi
     session.add(Scan(box_id=box_id, node_id=current.node_id, action="unload", ts=now, note=body.note))
     session.commit()
     return {"status": "unloaded", "node_id": current.node_id}
+
+
+@router.post("/{box_id}/checkpoint", dependencies=[Depends(require_operator)])
+def checkpoint(box_id: str, body: PlaceIn, request: Request, session: Session = Depends(get_session)) -> dict:
+    """A driver taps the box's NFC sticker on the way: where it is, when, and who
+    saw it. The position also counts as the carrier's, so the route and the map
+    follow the box even when its node has no GPS."""
+    _box(session, box_id)
+    now = int(time.time())
+    custody = _open_custody(session, box_id)
+    facility = _facility_near(session, body)
+    session.add(Scan(box_id=box_id, node_id=custody.node_id if custody else None, action="checkpoint", ts=now,
+                     note=body.note, lat=body.lat, lon=body.lon, facility_id=facility.id if facility else None,
+                     by=_who(request, session)))
+    if custody and body.lat is not None and body.lon is not None:
+        session.add(LocationPoint(node_id=custody.node_id, ts=now, lat=body.lat, lon=body.lon,
+                                  accuracy_m=body.accuracy_m, source="checkpoint"))
+    session.commit()
+    return {"status": "logged", "facility": facility.name if facility else None, "node_id": custody.node_id if custody else None}
+
+
+@router.post("/{box_id}/receive", dependencies=[Depends(require_operator)])
+def receive(box_id: str, body: PlaceIn, request: Request, session: Session = Depends(get_session)) -> dict:
+    """The clinic scans the box's QR code to pick it up: its trip ends here, and
+    the pickup (where, when, who) goes into its history."""
+    _box(session, box_id)
+    now = int(time.time())
+    facility = _facility_near(session, body)
+    where = facility.name if facility else "the clinic"
+    custody = _open_custody(session, box_id)
+    if custody:
+        custody.end_ts = now
+        custody.end_note = f"picked up at {where}"
+        session.add(custody)
+    session.add(Scan(box_id=box_id, node_id=custody.node_id if custody else None, action="receive", ts=now,
+                     note=body.note, lat=body.lat, lon=body.lon, facility_id=facility.id if facility else None,
+                     by=_who(request, session)))
+    session.commit()
+    return {"status": "received", "facility": facility.name if facility else None, "from_node": custody.node_id if custody else None}
 
 
 @router.post("/{box_id}/vvm", dependencies=[Depends(require_operator), Depends(vvm_limit)])

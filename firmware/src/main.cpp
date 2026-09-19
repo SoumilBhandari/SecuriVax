@@ -1,9 +1,16 @@
-// SecuriVax node firmware (skeleton).
+// SecuriVax node firmware.
 //
 // Every wake: read temperature, humidity and battery, sometimes a GPS fix,
-// append one record to a queue in flash, and every few wakes push the queue to
-// the server. A record leaves flash only after the server acks it, so power
-// cuts, dead zones and server outages lose nothing. Then deep sleep.
+// append one record to a queue in flash, then deep sleep. WiFi is the big
+// power cost, so the node only connects to check in every UPLOAD_EVERY wakes
+// (pushing the queue and hearing the server's reply), or at once when a
+// reading leaves the safe range. A record leaves flash only after the server
+// acks it, so power cuts, dead zones and server outages lose nothing.
+//
+// Live on request: when someone on the website asks to watch this node, the
+// reply to its next check-in says so, and it stays awake with WiFi up, a
+// reading every live_sample_s, each uploaded, until live_until. Then it goes
+// back to sleep.
 //
 // Protocol: POST {API_BASE}/api/ingest/readings (see backend/app/routers/ingest.py)
 //   (node_id, boot_id, seq) identifies a reading, so resending is always safe.
@@ -28,6 +35,13 @@
 #ifndef HAS_DS18B20
 #define HAS_DS18B20 0
 #endif
+// A reading outside this range goes up at once instead of at the next check-in.
+#ifndef ALARM_LOW_C
+#define ALARM_LOW_C 2.0f
+#endif
+#ifndef ALARM_HIGH_C
+#define ALARM_HIGH_C 8.0f
+#endif
 #ifndef VERDICT_LED_PIN
 #define VERDICT_LED_PIN -1
 #endif
@@ -42,7 +56,7 @@
 #include <DHT.h>
 #endif
 
-static const char *FW_VERSION = "0.1.0";
+static const char *FW_VERSION = "0.2.0";
 static const char *QUEUE_PATH = "/queue.bin";
 static const char *QUEUE_TMP = "/queue.tmp";
 static const time_t CLOCK_VALID_AFTER = 1704067200;  // 2024-01-01
@@ -113,6 +127,9 @@ bool findDht() {
 // Worst verdict in the carrier, from the last ack: 0 none, 1 USE, 2 USE FIRST,
 // 3 QUARANTINE, 4 DISCARD.
 RTC_DATA_ATTR uint8_t worst_verdict = 0;
+// Live on request, from the last ack: stream until this UTC second.
+RTC_DATA_ATTR uint32_t live_until = 0;
+RTC_DATA_ATTR uint16_t live_sample_s = 10;
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);
 
@@ -120,6 +137,7 @@ HardwareSerial gpsSerial(2);
 
 time_t nowClock() { return time(nullptr); }
 bool clockSynced() { return nowClock() > CLOCK_VALID_AFTER; }
+bool liveNow() { return clockSynced() && (uint32_t)nowClock() < live_until; }
 
 void setClock(time_t utc) {
   if (!clockSynced() && !clock_offset_known) {
@@ -271,6 +289,7 @@ bool sendBatch(const Record *records, size_t n) {
   const char *sensor = use_probe ? "ds18b20" : sht_ok ? "sht31" : use_dht ? (DHT_TYPE == DHT11 ? "dht11" : "dht22") : nullptr;
   if (sensor) doc["sensor"] = sensor;
   doc["battery_v"] = readBatteryMv() / 1000.0;
+  doc["checkin_s"] = SAMPLE_INTERVAL_S * UPLOAD_EVERY;  // so the website knows when it'll next hear from us
   // For records we can't date: the server rebuilds their time from this.
   doc["uptime_ms"] = (uint64_t)nowClock() * 1000;
   JsonArray arr = doc["readings"].to<JsonArray>();
@@ -327,6 +346,10 @@ bool sendBatch(const Record *records, size_t n) {
   const char *worst = res["worst_verdict"] | "";
   worst_verdict = !strcmp(worst, "DISCARD") ? 4 : !strcmp(worst, "QUARANTINE") ? 3
                 : !strcmp(worst, "USE_FIRST") ? 2 : !strcmp(worst, "USE") ? 1 : 0;
+  uint32_t was_live = live_until;
+  live_until = res["live_until"].isNull() ? 0 : res["live_until"].as<uint32_t>();
+  if (!res["live_sample_s"].isNull()) live_sample_s = max<uint16_t>(2, res["live_sample_s"].as<uint16_t>());
+  if (live_until && !was_live) Serial.printf("someone is watching: live every %u s until %u\n", live_sample_s, live_until);
   Serial.printf("uploaded %u: %d new, %d dup, %d rejected\n", (unsigned)n,
                 res["accepted"].as<int>(), res["duplicates"].as<int>(), (int)res["rejected"].size());
   return true;
@@ -340,8 +363,10 @@ void flushQueue() {
     if (n == 0 || !sendBatch(batch, n)) break;
   }
 #if !DEMO_MODE
-  WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
+  if (!liveNow()) {  // while someone watches, keep WiFi up for the next reading
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_OFF);
+  }
 #endif
 }
 
@@ -364,11 +389,15 @@ void cycle() {
   if (wake_count % GPS_EVERY == 1 || GPS_EVERY == 1) updateGps();
 #endif
   Record r;
+  bool alarm = false;
   if (sample(r)) {
     enqueue(r);
-    Serial.printf("#%u %.2f C %.1f%% %s\n", r.seq, r.temp_c, r.rh, isnan(r.lat) ? "no fix" : "fix");
+    alarm = r.temp_c < ALARM_LOW_C || r.temp_c > ALARM_HIGH_C;
+    Serial.printf("#%u %.2f C %.1f%% %s%s\n", r.seq, r.temp_c, r.rh, isnan(r.lat) ? "no fix" : "fix", alarm ? " OUT OF RANGE" : "");
   }
-  if (wake_count % UPLOAD_EVERY == 0 || UPLOAD_EVERY == 1) flushQueue();
+  // Check in on schedule; at once when a reading is out of range or someone is watching.
+  bool due = UPLOAD_EVERY == 1 || wake_count % UPLOAD_EVERY == 0;
+  if (due || alarm || liveNow()) flushQueue();
 }
 
 void setup() {
@@ -406,6 +435,13 @@ void setup() {
   Serial.printf("SecuriVax %s demo mode, boot %u\n", NODE_ID, boot_id);
 #else
   cycle();
+  // Someone asked to watch live: stay awake, WiFi up, until the window closes.
+  while (liveNow()) {
+    delay(live_sample_s * 1000UL);
+    cycle();
+  }
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_OFF);
   esp_sleep_enable_timer_wakeup((uint64_t)SAMPLE_INTERVAL_S * 1000000ULL);
   esp_deep_sleep_start();
 #endif
