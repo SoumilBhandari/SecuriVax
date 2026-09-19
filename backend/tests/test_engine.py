@@ -172,3 +172,10 @@ def test_just_loaded_box_waits_for_first_reading():
     assert waiting.verdict == USE and waiting.provisional
     silent = evaluate(PENTA, [Segment("CAR-01", "Carrier CAR-01", T0, None, [])], now=T0 + MAX_GAP_S + 1)
     assert "NODE_OFFLINE" in codes(silent)
+
+
+def test_frozen_packs_are_flagged_right_after_packing():
+    rs = readings([4.0, 1.0, -0.4, -1.2, -1.5])
+    r = evaluate(PENTA, [seg(rs, end=None)], now=rs[-1].ts + 60)
+    assert "PACKS_TOO_COLD" in codes(r)
+    assert r.verdict == USE  # a warning, not a verdict: nothing has frozen for an hour yet

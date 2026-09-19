@@ -50,7 +50,8 @@ def test_report_follows_the_nodes_readings(client, session):
     send(client, "CAR-01", [-3.0] * 80, start=now - 5400, first_seq=31)
     report = client.get("/api/boxes/BOX-0001/report").json()
     assert report["verdict"] == "QUARANTINE"
-    assert [r["code"] for r in report["reasons"]] == ["FREEZE"]
+    # It froze within 45 min of packing, so the pack warning fires too.
+    assert [r["code"] for r in report["reasons"]] == ["PACKS_TOO_COLD", "FREEZE"]
     assert "shake test" in report["action"]
 
 

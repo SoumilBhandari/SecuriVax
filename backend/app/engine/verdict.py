@@ -24,6 +24,8 @@ USE_FIRST_AT = 0.5
 HEAT_REPORT_MIN_MINUTES = 10
 # Two sensors in one carrier further apart than this: one of them is wrong.
 DISAGREE_C = 2.0
+# Below 0 C this soon after packing means unconditioned ice packs: warn before the box freezes.
+PACK_CHECK_S = 45 * 60
 # An open segment whose newest reading is older than this is marked provisional.
 FRESH_S = 2 * 60
 
@@ -111,7 +113,14 @@ def evaluate(
             "Check the VVM on each vial" if profile.kind == "vaccine" else "Run a positive control"
         )
 
-    for r in results:
+    for seg, r in zip(segments, results):
+        early = [rd.temp_c for rd in seg.readings if seg.start_ts <= rd.ts <= seg.start_ts + PACK_CHECK_S]
+        if seg.end_ts is None and early and min(early) <= 0.0:
+            reasons.append(Reason(
+                "PACKS_TOO_COLD", "advisory",
+                f"{r.node_label} dropped to {min(early):.1f} °C right after packing: the ice packs weren't "
+                "conditioned. Take them out until they sweat, before the vaccines freeze.",
+            ))
         freezes = [x for x in r.runs if x.kind == "freeze" and x.minutes >= FREEZE_ALARM_MINUTES]
         heats = [x for x in r.runs if x.kind == "heat" and x.minutes >= HEAT_REPORT_MIN_MINUTES]
         humids = [x for x in r.runs if x.kind == "humid" and x.minutes >= HUMIDITY_ADVISORY_MINUTES]
