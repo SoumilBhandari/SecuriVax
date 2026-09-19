@@ -27,6 +27,13 @@ def make_engine(url: str):
 engine = make_engine(get_settings().database_url)
 
 
+def drop_demo_tables(eng) -> None:
+    """Drop every table except the ones a demo reset keeps (accounts)."""
+    from app.models import KEEP_ON_RESET
+
+    SQLModel.metadata.drop_all(eng, tables=[t for t in SQLModel.metadata.sorted_tables if t.name not in KEEP_ON_RESET])
+
+
 def init_db(eng=None) -> None:
     import app.models  # noqa: F401  (registers the tables)
 

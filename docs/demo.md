@@ -27,18 +27,19 @@ in our backtest than heat, and it's the thing a VVM can't show.
   possible freeze; with today's DHT11 (±2 °C) anything at or below about 1.2 °C does, and the verdict
   says it's allowing for the DHT11's error.
 - iPhone: Safari in a normal tab (not Private, not the home-screen app). Unlock before each tap.
-- **Enter the operator code on every demo phone first.** Anything that changes data (a carrier tap
-  then a box tap, *Move this box*, asking the dispatch agent) asks for it once, in a browser pop-up,
-  and the phone remembers it. Do one load on each demo phone before judging so the pop-up never
-  appears on stage. Judges on their own phones can look at everything; hand them a demo phone to tap.
+- **Sign in on every demo phone with an operator account first.** The app is behind a sign-in (the
+  landing page isn't). Create the account once at `/login` → *Create an account*, with the site's
+  operator code in the *Operator code* field; that makes it an operator, and the phone stays signed in
+  for 30 days. Anything that changes data (a carrier tap then a box tap, *Move this box*, asking the
+  dispatch agent, a VVM check) needs an operator. Judges on their own phones press *Try the demo*: they
+  can look at everything but not change it. Hand them a demo phone to tap.
 - **The site opens on a landing page** (`/`); the app itself starts at `/boxes`, and an installed
   phone app opens straight there. Stickers still open `/box/…` and `/node/…` directly.
 - **On a laptop there's no NFC**, so the app swaps each tap for a click. Boxes has a box search
   (press `/`) instead of the tap button. A carrier page loads boxes from a list. *Check the VVM
   label* takes a photo file (or a drop), the webcam, or shows a QR code that opens the same check on
-  a phone. The Tags page shows every sticker's QR code. The operator code pop-up appears on the laptop
-  too, so enter it there before judging. The switch goes by the pointer (a mouse or trackpad), not
-  the window size.
+  a phone. The Tags page shows every sticker's QR code. Sign the laptop in with the operator account
+  too. The switch goes by the pointer (a mouse or trackpad), not the window size.
 - **The stage node reports to the live site.** `firmware/include/config.h` has
   `API_BASE "https://securivax.onrender.com"`; set `NODE_KEY` to the value in Render and the hotspot's
   WiFi, flash it, and check that `DEMO-01` says **Online** and the stage screen shows its temperature.

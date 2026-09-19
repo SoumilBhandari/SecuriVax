@@ -179,3 +179,22 @@ class VvmCheck(SQLModel, table=True):
     # Human in the loop: nothing counts until a person confirms (or corrects) it.
     confirmed: bool = False
     worker_stage: int | None = None
+
+
+class Account(SQLModel, table=True):
+    """Someone who signs in. Operators can change custody, VVM checks and
+    dispatch; viewers can look. Kept when the demo data is reset."""
+
+    __tablename__ = "account"
+
+    id: int | None = Field(default=None, primary_key=True)
+    email: str = Field(index=True, unique=True)  # stored lower-case
+    name: str = ""
+    role: str = "viewer"  # viewer | operator
+    password_hash: str
+    created_at: int = Field(default_factory=now_ts)
+
+
+# Tables a demo reset leaves alone: people's accounts outlive the demo data.
+KEEP_ON_RESET = {"account"}
+

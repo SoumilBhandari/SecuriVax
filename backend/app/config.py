@@ -12,9 +12,13 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./vialtality.db"
     node_key: str = DEV_NODE_KEY
-    # When set, custody changes, VVM checks and dispatch decisions need this
-    # code (the web app asks for it once per device). Empty: open, for dev.
+    # When set, custody changes, VVM checks and dispatch decisions need an
+    # operator: an account created with this code, or a script sending it in
+    # X-Operator-Token. Empty: open, for dev.
     operator_token: str = ""
+    # Signs the sign-in cookie. Empty: derived from OPERATOR_TOKEN and NODE_KEY
+    # (so a deploy needs nothing new), or random per process in dev.
+    session_secret: str = ""
     # Dev only: save each VVM photo and what the reader made of it here, and a
     # stage-labelled copy once confirmed (input for evals.calibrate_vvm --photos).
     vvm_save_dir: str = ""
@@ -54,7 +58,7 @@ class Settings(BaseSettings):
     def show_api_docs(self) -> bool:
         return self.api_docs if self.api_docs is not None else not self.static_dir
 
-    @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", mode="before")
+    @field_validator("gemini_api_key", "xai_api_key", "node_key", "operator_token", "session_secret", mode="before")
     @classmethod
     def _tidy_pasted_secret(cls, value: object, info) -> object:
         """Secrets get pasted into dashboards with extras: spaces, a line break,

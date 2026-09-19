@@ -502,3 +502,10 @@ export interface LiveRecent {
   server_time: number;
 }
 
+/** Who's signed in. Operators can change custody, VVM checks and dispatch; viewers look. */
+export interface User {
+  id: number; // 0: the demo viewer
+  email: string | null;
+  name: string;
+  role: "operator" | "viewer";
+}

@@ -7,6 +7,7 @@ import { TripChart } from "../components/TripChart";
 import { TripConditions } from "../components/TripConditions";
 import { VerdictHero } from "../components/Verdict";
 import { api } from "../lib/api";
+import { useAuth } from "../lib/auth";
 import type { BoxSummary, FleetSummary, Impact, Report, StoreRisk } from "../types";
 
 // The map screens pull in Leaflet: load them after the page.
@@ -45,6 +46,7 @@ export default function LandingPage() {
 // ---- Top bar
 
 function Nav() {
+  const { user } = useAuth();
   return (
     <nav className="pointer-events-none relative z-30 mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-6 lg:px-10 [&_a]:pointer-events-auto [&_button]:pointer-events-auto">
       <Link to="/" aria-label="SecuriVax" className="flex">
@@ -63,6 +65,11 @@ function Nav() {
         <span className="hidden sm:flex">
           <ThemeToggle />
         </span>
+        {!user && (
+          <Link to="/login" className="mono-label no-underline hover:text-text">
+            Sign in
+          </Link>
+        )}
         <Link to="/boxes" className="pill-btn pill-btn--solid !min-h-10 !px-4 !text-sm">
           Open the app
         </Link>

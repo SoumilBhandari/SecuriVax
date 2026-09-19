@@ -1,8 +1,10 @@
 """Guards for a public deployment.
 
-- Writes that change custody or verdicts need the site's operator code
-  (OPERATOR_TOKEN) when one is configured. Node uploads use per-node keys.
-- Endpoints that call paid AI APIs or heavy models are rate limited per client.
+- Writes that change custody or verdicts need an operator when the site has
+  an operator code (OPERATOR_TOKEN): someone signed in with an operator
+  account, or a script sending the code itself. Node uploads use per-node keys.
+- Endpoints that call paid AI APIs or heavy models, and sign-in, are rate
+  limited per client.
 """
 
 import hmac
@@ -10,15 +12,27 @@ import threading
 import time
 from collections import defaultdict, deque
 
-from fastapi import Header, HTTPException, Request
+from fastapi import Depends, Header, HTTPException, Request
+from sqlmodel import Session
 
 from app.config import get_settings
+from app.db import get_session
 
 
-def require_operator(x_operator_token: str = Header(default="")) -> None:
+def require_operator(request: Request, x_operator_token: str = Header(default=""), session: Session = Depends(get_session)) -> None:
+    from app.services.auth import signed_in
+
     token = get_settings().operator_token
-    if token and not hmac.compare_digest(token.encode(), x_operator_token.encode()):
-        raise HTTPException(401, "operator code required")
+    if not token:
+        return  # a laptop with no code set: open
+    if x_operator_token and hmac.compare_digest(token.encode(), x_operator_token.encode()):
+        return  # scripts and tools
+    user = signed_in(request, session)
+    if user and user["role"] == "operator":
+        return
+    if user:
+        raise HTTPException(403, "only operators can change this: sign in with an operator account")
+    raise HTTPException(401, "sign in as an operator to change this")
 
 
 class RateLimit:
@@ -51,4 +65,6 @@ explain_limit = RateLimit("report", 30)
 agent_limit = RateLimit("agent", 12)
 vvm_limit = RateLimit("photo", 20)
 plan_limit = RateLimit("plan", 20)
-ALL_LIMITS = (explain_limit, agent_limit, vvm_limit, plan_limit)
+sign_in_limit = RateLimit("sign-in", 10)
+sign_up_limit = RateLimit("sign-up", 5)
+ALL_LIMITS = (explain_limit, agent_limit, vvm_limit, plan_limit, sign_in_limit, sign_up_limit)

@@ -17,6 +17,7 @@ import type {
   Report,
   StoresAtRisk,
   TripPlan,
+  User,
   VvmResult,
 } from "../types";
 import { SNAPSHOT } from "./snapshot";
@@ -33,16 +34,6 @@ export class ApiError extends Error {
   }
 }
 
-const CODE_KEY = "vialtality.operator";
-
-function operatorCode(): string {
-  try {
-    return localStorage.getItem(CODE_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
 /** FastAPI errors: a string, a list of validation errors, or an HTML proxy page. */
 function describe(status: number, body: unknown): string {
   const detail = (body as { detail?: unknown } | null)?.detail;
@@ -53,29 +44,18 @@ function describe(status: number, body: unknown): string {
   return `Request failed (${status}).`;
 }
 
-async function request<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+// Who's asking travels in the sign-in cookie (HttpOnly, same origin): changes
+// need an operator account, and the server says so when they don't have one.
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (SNAPSHOT) return fromSnapshot<T>(path, init);
   const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
   if (init?.body) headers["Content-Type"] = "application/json"; // no preflight for plain GETs
-  const code = operatorCode();
-  if (code && init?.method && init.method !== "GET") headers["X-Operator-Token"] = code;
   let res: Response;
   try {
     res = await fetch(`${BASE}${path}`, { ...init, headers, signal: init?.signal ?? AbortSignal.timeout(20000) });
   } catch (e) {
     const timeout = e instanceof DOMException && e.name === "TimeoutError";
     throw new ApiError(0, timeout ? "The server took too long. Check your signal and try again." : "Can't reach SecuriVax. Check your signal.");
-  }
-  if (res.status === 401 && !retried) {
-    const entered = window.prompt("Enter this site's operator code");
-    if (entered) {
-      try {
-        localStorage.setItem(CODE_KEY, entered.trim());
-      } catch {
-        /* private mode: the code lasts for this request only */
-      }
-      return request<T>(path, init, true);
-    }
   }
   if (!res.ok) {
     const body = await res.json().catch(() => null);
@@ -100,7 +80,16 @@ async function fromSnapshot<T>(path: string, init?: RequestInit): Promise<T> {
   );
 }
 
+const post = (body?: unknown): RequestInit => ({ method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+
 export const api = {
+  auth: {
+    me: () => request<{ user: User }>("/api/auth/me"),
+    login: (email: string, password: string) => request<{ user: User }>("/api/auth/login", post({ email, password })),
+    register: (b: { email: string; password: string; name: string; operator_code: string }) => request<{ user: User }>("/api/auth/register", post(b)),
+    demo: () => request<{ user: User }>("/api/auth/demo", post()),
+    logout: () => request<{ user: null }>("/api/auth/logout", post()),
+  },
   boxes: () => request<BoxSummary[]>("/api/boxes"),
   fleet: () => request<FleetSummary>("/api/boxes/fleet/summary"),
   learning: () => request<LearningSummary>("/api/boxes/learning/summary"),

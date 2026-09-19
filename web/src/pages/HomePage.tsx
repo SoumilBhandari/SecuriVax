@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import { BoxCard } from "../components/BoxCard";
 import { Logo, ThemeToggle } from "../components/Brand";
 import { NfcIcon, SearchIcon, XIcon } from "../components/Icons";
-import { ErrorNote, Layout, Spinner } from "../components/Layout";
+import { Account, ErrorNote, Layout, Spinner } from "../components/Layout";
 import { api } from "../lib/api";
 import { useCanTapTags } from "../lib/device";
 import { ago, SEVERITY_ORDER } from "../lib/format";
@@ -76,9 +76,10 @@ export default function HomePage() {
           <Logo height={30} />
         </span>
         <span className="flex items-center gap-3">
-          <span className="ui-caption text-right">{boxes.updatedAt ? `Updated ${ago(boxes.updatedAt / 1000)}` : ""}</span>
-          <span className="flex lg:hidden">
+          <span className="ui-caption hidden text-right sm:inline">{boxes.updatedAt ? `Updated ${ago(boxes.updatedAt / 1000)}` : ""}</span>
+          <span className="flex gap-2 lg:hidden">
             <ThemeToggle />
+            <Account compact />
           </span>
         </span>
       </div>

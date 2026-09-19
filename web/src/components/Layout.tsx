@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
+import { useAuth } from "../lib/auth";
 import { useCanTapTags } from "../lib/device";
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
 import { Logo, ThemeToggle } from "./Brand";
-import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, XIcon } from "./Icons";
+import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, SignOutIcon, XIcon } from "./Icons";
 
 /**
  * The page frame: on a phone, one column with the tab bar at the bottom; from
@@ -81,11 +82,40 @@ function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-auto flex items-center justify-between border-t border-line px-3 pt-5">
-        <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-500">Theme</span>
-        <ThemeToggle />
+      <div className="mt-auto border-t border-line px-3 pt-5">
+        <Account />
+        <div className="mt-4 flex items-center justify-between">
+          <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-neutral-500">Theme</span>
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
+  );
+}
+
+/** Who's signed in, and the way out. */
+export function Account({ compact = false }: { compact?: boolean }) {
+  const { user, signOut } = useAuth();
+  if (!user) return null;
+  // Signed out, the page's guard sends them to sign-in (and back here after).
+  const out = () => void signOut();
+  if (compact) {
+    return (
+      <button onClick={out} aria-label={`Sign out ${user.name}`} title={`Sign out (${user.name})`} className="back-btn">
+        <SignOutIcon size={18} />
+      </button>
+    );
+  }
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate text-sm font-semibold">{user.name}</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-neutral-500">{user.id === 0 ? "View only" : user.role}</span>
+      </span>
+      <button onClick={out} aria-label="Sign out" title="Sign out" className="back-btn !h-9 !w-9">
+        <SignOutIcon size={16} />
+      </button>
+    </div>
   );
 }
 

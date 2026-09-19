@@ -310,7 +310,7 @@ and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
 | GET | `/api/boxes` | Every box with its verdict |
 | GET | `/api/boxes/{id}/report` | Verdict, budget, reasons, legs, route, series |
 | POST | `/api/boxes/{id}/explain` | Gemini place names + Grok report |
-| POST | `/api/boxes/{id}/load` / `unload` | Custody changes |
+| POST | `/api/boxes/{id}/load` / `unload` | Custody changes (an operator: signed in, or `X-Operator-Token`) |
 | GET | `/api/nodes`, `/api/nodes/{id}` | Node status, readings, upload log |
 | GET | `/api/products` | Stability profiles |
 | POST | `/api/ingest/locations` | Tracker positions (SmartTag, phone, GPS) |
@@ -323,8 +323,9 @@ and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
 | GET | `/api/impact` | 90-day ERA5 backtest results |
 | GET | `/api/boxes/learning/summary` | What confirmed VVM photos have taught the model, per product |
 | GET | `/api/health` | Liveness plus configuration (database, AI keys, weather, write protection, commit) |
-| POST | `/api/admin/reset-stage` | Stage demo back to the start (operator code) |
-| POST | `/api/admin/reset-demo` | Re-seed everything with history ending now (needs `OPERATOR_TOKEN` set) |
+| POST | `/api/auth/register` · `login` · `demo` · `logout`, GET `/api/auth/me` | Accounts: an HttpOnly signed cookie; the operator code at sign-up makes an operator, the demo is a viewer |
+| POST | `/api/admin/reset-stage` | Stage demo back to the start (an operator) |
+| POST | `/api/admin/reset-demo` | Re-seed the demo data with history ending now, keeping accounts (needs `OPERATOR_TOKEN` set) |
 
 ## Assumptions and limits
 

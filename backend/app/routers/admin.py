@@ -6,10 +6,10 @@ import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.concurrency import run_in_threadpool
-from sqlmodel import Session, SQLModel, delete, select
+from sqlmodel import Session, delete, select
 
 from app.config import get_settings
-from app.db import engine, get_session, init_db
+from app.db import drop_demo_tables, engine, get_session, init_db
 from app.security import require_operator
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -28,7 +28,7 @@ def _reset(dataset: str, history: bool) -> dict:
     from app.services import climate, learning, twin
 
     started = time.time()
-    SQLModel.metadata.drop_all(engine)
+    drop_demo_tables(engine)  # accounts stay
     init_db()
     with Session(engine) as session:
         seed(session, dataset)
@@ -44,8 +44,9 @@ def _reset(dataset: str, history: bool) -> dict:
 
 @router.post("/reset-demo")
 async def reset_demo(x_operator_token: str = Header(default="")) -> dict:
-    """Wipe everything and re-seed the demo, with history ending now. Use before
-    a demo when the data has gone stale. Confirmed VVM photos are wiped too."""
+    """Wipe the demo data and re-seed it, with history ending now. Use before
+    a demo when the data has gone stale. Confirmed VVM photos are wiped too;
+    accounts are kept."""
     _require_configured_operator(x_operator_token)
     settings = get_settings()
     return await run_in_threadpool(_reset, settings.demo_dataset, settings.demo_history)
