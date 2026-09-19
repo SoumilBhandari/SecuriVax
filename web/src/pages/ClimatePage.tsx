@@ -1,10 +1,7 @@
-import "leaflet/dist/leaflet.css";
-
-import { latLngBounds } from "leaflet";
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import { Link } from "react-router";
 
+import { HeatMap } from "../components/HeatMap";
 import { ChevronRightIcon } from "../components/Icons";
 import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner } from "../components/Layout";
 import { VerdictChip } from "../components/Verdict";
@@ -40,7 +37,7 @@ export default function ClimatePage() {
             <p className="ui-caption m-0 mt-2">None of this changes a box's verdict: it's what to do before the heat arrives.</p>
           </section>
           <div className="mt-3">
-            <RiskMap sites={stores.facilities} />
+            <HeatMap sites={stores.facilities} />
           </div>
           <SectionTitle>Stores and clinics · next 72 h</SectionTitle>
           <ul className="m-0 flex list-none flex-col gap-3 p-0">
@@ -67,47 +64,6 @@ export default function ClimatePage() {
         <ChevronRightIcon size={18} />
       </Link>
     </Layout>
-  );
-}
-
-// Risk isn't a verdict, so no signal colours: hotter sites are bigger and darker.
-const RISK_RADIUS: Record<string, number> = { extreme: 12, high: 9, moderate: 7, low: 5 };
-const RISK_LEVELS = ["extreme", "high", "moderate", "low"] as const;
-
-function RiskMap({ sites }: { sites: StoreRisk[] }) {
-  if (sites.length === 0) return null;
-  const bounds = latLngBounds(sites.map((s) => [s.lat, s.lon] as [number, number])).pad(0.2);
-  return (
-    <div>
-      <div className="h-56 overflow-hidden rounded-2xl border border-line">
-        <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full">
-          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
-          {sites.map((s) => (
-            <CircleMarker
-              key={`${s.id}-${s.risk}`}
-              center={[s.lat, s.lon]}
-              radius={RISK_RADIUS[s.risk] ?? 6}
-              className={`risk-marker risk-${s.risk}`}
-            >
-              <Tooltip>
-                {s.name}: {s.risk}, peak {s.peak_c.toFixed(0)} °C {time(s.peak_ts, s.tz)}
-              </Tooltip>
-            </CircleMarker>
-          ))}
-        </MapContainer>
-      </div>
-      <div className="ui-caption mt-2 flex flex-wrap items-center gap-x-3 gap-y-1" aria-label="Heat risk key">
-        {RISK_LEVELS.map((r) => (
-          <span key={r} className="inline-flex items-center gap-1.5 capitalize">
-            <svg width={26} height={26} viewBox="-13 -13 26 26" aria-hidden="true">
-              <circle r={RISK_RADIUS[r]} className={`risk-marker risk-${r}`} />
-            </svg>
-            {r}
-          </span>
-        ))}
-        <span>· bigger and darker is hotter</span>
-      </div>
-    </div>
   );
 }
 
@@ -185,9 +141,4 @@ function CarrierRow({ carrier }: { carrier: CarrierPerformance }) {
       <span className="text-[15px]">{carrier.note}</span>
     </li>
   );
-}
-
-/** On phones a one-finger drag should scroll the page, not pan the map. */
-function coarsePointer(): boolean {
-  return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 }

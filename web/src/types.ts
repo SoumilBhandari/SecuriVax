@@ -496,3 +496,20 @@ export interface LiveRecent {
   band: { min_c: number; max_c: number; freeze_c: number };
   server_time: number;
 }
+
+/** The forecast heat field under the Climate map (Open-Meteo 2 m temperature). */
+export interface HeatGrid {
+  available: boolean;
+  reason?: string;
+  source: "open-meteo" | "model";
+  generated_at: number;
+  step_deg: number;
+  points: number;
+  rows: number;
+  cols: number;
+  bounds: [[number, number], [number, number]]; // cell edges: [[south, west], [north, east]]
+  lats: number[]; // cell centres, north first
+  lons: number[];
+  times: number[]; // one frame every 3 h
+  frames: (number | null)[][]; // row-major, null where nothing was fetched
+}

@@ -149,3 +149,35 @@ def test_planner_departs_in_daylight_on_the_origins_own_clock(session):
     assert hours and all(FIRST_DEPARTURE_H <= h <= LAST_DEPARTURE_H for h in hours)
     assert all("local (GMT)" in line for line in plan["recommendations"] if "leave" in line)
     assert plan["origin"]["timezone"] == "Africa/Accra"
+
+
+def test_heat_grid_covers_the_sites_every_three_hours(client):
+    from app.services import heatgrid
+
+    heatgrid.clear_cache()
+    g = client.get("/api/climate/grid").json()
+    assert g["available"] and g["source"] == "model"  # tests run offline
+    assert len(g["frames"]) == len(g["times"]) == heatgrid.HORIZON_H // heatgrid.FRAME_STEP_H + 1
+    assert all(len(f) == g["rows"] * g["cols"] for f in g["frames"])
+    assert g["frames"][0].count(None) == g["rows"] * g["cols"] - g["points"]
+    assert g["lats"][0] > g["lats"][-1]  # row 0 is the north
+    (south, west), (north, east) = g["bounds"]
+    for f in client.get("/api/facilities").json():  # every site is inside the field
+        assert south < f["lat"] < north and west < f["lon"] < east
+    assert all(b - a == 3 * 3600 for a, b in zip(g["times"], g["times"][1:]))
+    assert client.get("/api/climate/grid").json()["generated_at"] == g["generated_at"]  # cached
+
+
+
+def test_heat_grid_skips_what_is_far_from_every_site(client, session):
+    # Two sites 4,000 km apart: the grid spans both, but only fetches near each.
+    from app.models import Facility
+    from app.services import heatgrid
+
+    session.add(Facility(id="FAR-WEST", name="Dakar · far west", kind="clinic", lat=14.7, lon=-17.4))
+    session.commit()
+    heatgrid.clear_cache()
+    g = client.get("/api/climate/grid").json()
+    cells = g["rows"] * g["cols"]
+    assert 0 < g["points"] < cells / 2
+    assert g["frames"][0].count(None) == cells - g["points"]

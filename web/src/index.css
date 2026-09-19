@@ -686,15 +686,40 @@
   font: inherit;
   background: var(--fog);
 }
-/* Calm tiles: grey in light, inverted to sit on Ink in dark. */
-.leaflet-tile-pane {
-  filter: grayscale(1) contrast(0.92) brightness(1.04);
+/* The base map only: darkened for the dark theme. The heat and satellite
+   layers sit above it untouched, so their colours stay true. */
+.basemap-dark {
+  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.6);
 }
 [data-theme="dark"] .leaflet-container {
-  background: var(--ink-700);
+  background: #1b1f27;
 }
-[data-theme="dark"] .leaflet-tile-pane {
-  filter: grayscale(1) invert(1) brightness(0.78) contrast(0.9);
+.leaflet-tooltip {
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+/* A carrier on the heat map: its inside temperature on an Ink tag. */
+.carrier-pin-wrap {
+  background: none;
+  border: 0;
+}
+.carrier-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 8px;
+  border: 1.5px solid var(--bg);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
 }
 /* Heat risk on the map: darker is hotter, with a ground-coloured edge. */
 .risk-marker {

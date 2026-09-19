@@ -4,6 +4,7 @@ import { latLngBounds, type LatLngExpression } from "leaflet";
 import { CircleMarker, MapContainer, Polyline, TileLayer, Tooltip } from "react-leaflet";
 
 import { placeName, time } from "../lib/format";
+import { BASEMAP, useTheme } from "../lib/useTheme";
 import type { PointStatus, Segment } from "../types";
 
 // Not verdicts, so no signal colours: in-range is an Ink line, heat a heavier
@@ -23,6 +24,7 @@ function runs(seg: Segment) {
 }
 
 export function RouteMap({ segments, places }: { segments: Segment[]; places: Record<string, string> }) {
+  const theme = useTheme();
   const all = segments.flatMap((s) => s.route.map((p) => [p.lat, p.lon] as [number, number]));
   if (all.length === 0) {
     return <p className="ui-caption m-0 py-6 text-center">No GPS fix recorded yet.</p>;
@@ -34,10 +36,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
     <div>
       <div className="h-64 overflow-hidden rounded-2xl border border-line">
         <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
-          <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          />
+          <TileLayer key={theme} url={BASEMAP.url} attribution={BASEMAP.attribution} className={BASEMAP.className(theme)} />
           {segments.map((s) =>
             runs(s).map((r, i) => (
               <Polyline
