@@ -174,7 +174,7 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
         seg["series"] = _thin(seg["series"])
     open_seg = next((s for s in report.segments if s.end_ts is None), None)
     data["box"] = box.model_dump()
-    data["product"] = asdict(profile)
+    data["product"] = {**asdict(profile), "has_vvm": profile.has_vvm}
     data["current_node_id"] = open_seg.node_id if open_seg else None
     data["places"] = cached_places(session, key_points(report))
     return data

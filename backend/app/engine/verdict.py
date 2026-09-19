@@ -178,7 +178,9 @@ def evaluate(
             f"{_pct(budget)} of the heat budget is used, close to the end point ({profile.stability_ref}).",
         ))
         checks.append(
-            "Check the VVM on each vial" if profile.kind == "vaccine" else "Run a positive control"
+            "Check the VVM on each vial" if profile.has_vvm
+            else "Have a supervisor clear it (it has no VVM to check)" if profile.kind == "vaccine"
+            else "Run a positive control"
         )
 
     between, after = _unmonitored(segments, now)

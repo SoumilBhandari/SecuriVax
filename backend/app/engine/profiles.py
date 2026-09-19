@@ -92,6 +92,12 @@ class ProductProfile:
         """Fraction of the stability budget used per hour at temp_c."""
         return rate_per_hour(self.anchors, temp_c) * self.rate_scale
 
+    @property
+    def has_vvm(self) -> bool:
+        """A vial monitor on the label, not just a VVM-like stability curve: most
+        COVID-19 vaccines, for one, ship without a VVM."""
+        return self.stability_ref.startswith("VVM") and "equivalent" not in self.stability_ref
+
     def t_life(self, temp_c: float) -> float:
         """Hours until the whole budget is used if held at temp_c."""
         return t_life_hours(self.anchors, temp_c) / self.rate_scale
