@@ -1,4 +1,15 @@
-import type { BoxSummary, Explanation, NodeDetail, NodeSummary, Report } from "../types";
+import type {
+  BoxSummary,
+  CarrierPerformance,
+  Explanation,
+  Facility,
+  NodeDetail,
+  NodeSummary,
+  Product,
+  Report,
+  StoresAtRisk,
+  TripPlan,
+} from "../types";
 
 // Same origin in production (FastAPI serves the app); proxied by Vite in dev.
 const BASE = import.meta.env.VITE_API_BASE ?? "";
@@ -41,4 +52,10 @@ export const api = {
     }),
   nodes: () => request<NodeSummary[]>("/api/nodes"),
   node: (id: string) => request<NodeDetail>(`/api/nodes/${encodeURIComponent(id)}`),
+  products: () => request<Product[]>("/api/products"),
+  facilities: () => request<Facility[]>("/api/facilities"),
+  storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),
+  carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
+  plan: (body: { product_id: string; origin_id: string; carrier_id?: string | null; session_h?: number }) =>
+    request<TripPlan>("/api/climate/plan", { method: "POST", body: JSON.stringify(body) }),
 };

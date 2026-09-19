@@ -13,9 +13,17 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
           <img src="/icon.svg" alt="" className="h-7 w-7" />
           ColdTrace
         </Link>
-        <Link to="/tags" className="text-sm text-slate-500 hover:text-slate-800">
-          Tags
-        </Link>
+        <nav className="flex gap-4 text-sm text-slate-500">
+          <Link to="/climate" className="hover:text-slate-800">
+            Climate
+          </Link>
+          <Link to="/plan" className="hover:text-slate-800">
+            Plan
+          </Link>
+          <Link to="/tags" className="hover:text-slate-800">
+            Tags
+          </Link>
+        </nav>
       </header>
       <ArmBanner />
       {children}

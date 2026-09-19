@@ -15,7 +15,8 @@ export function TempChart({ segments, product }: { segments: Segment[]; product:
 
   const t0 = points[0].ts;
   const t1 = points[points.length - 1].ts;
-  const temps = points.map((p) => p.temp_c);
+  const outside = segments.map((s) => (s.environment?.ambient ?? []).filter(([ts]) => ts >= t0 && ts <= t1));
+  const temps = [...points.map((p) => p.temp_c), ...outside.flat().map(([, c]) => c)];
   const lo = Math.floor(Math.min(...temps, FREEZE_C, product.storage_min_c) - 2);
   const hi = Math.ceil(Math.max(...temps, product.storage_max_c) + 2);
   const x = (ts: number) => PAD.l + ((ts - t0) / Math.max(t1 - t0, 1)) * (W - PAD.l - PAD.r);
@@ -48,6 +49,18 @@ export function TempChart({ segments, product }: { segments: Segment[]; product:
         {segments.slice(1).map((s) => (
           <line key={s.start_ts} x1={x(s.start_ts)} x2={x(s.start_ts)} y1={PAD.t} y2={H - PAD.b} className="stroke-slate-300" />
         ))}
+        {outside
+          .filter((o) => o.length > 1)
+          .map((o, i) => (
+            <path
+              key={`out-${i}`}
+              d={o.map(([ts, c], j) => `${j ? "L" : "M"}${x(ts).toFixed(1)},${y(c).toFixed(1)}`).join("")}
+              fill="none"
+              className="stroke-orange-400"
+              strokeWidth={1.2}
+              strokeDasharray="4 3"
+            />
+          ))}
         {paths.map((d, i) => (
           <path key={i} d={d} fill="none" className="stroke-slate-800" strokeWidth={1.5} strokeLinejoin="round" />
         ))}
@@ -74,6 +87,16 @@ export function TempChart({ segments, product }: { segments: Segment[]; product:
           <span className="mr-1 inline-block h-2 w-3 rounded-sm bg-emerald-100 align-middle" />
           Safe range {product.storage_min_c}–{product.storage_max_c} °C
         </span>
+        <span>
+          <span className="mr-1 inline-block h-0 w-3 border-t-2 border-slate-800 align-middle" />
+          Inside
+        </span>
+        {outside.some((o) => o.length > 1) && (
+          <span>
+            <span className="mr-1 inline-block h-0 w-3 border-t-2 border-dashed border-orange-400 align-middle" />
+            Outside air
+          </span>
+        )}
         <span>
           <span className="mr-1 inline-block h-0 w-3 border-t border-dashed border-violet-400 align-middle" />
           Freeze line

@@ -6,8 +6,10 @@ import { BrowserRouter, Link, Route, Routes } from "react-router";
 
 import { Layout } from "./components/Layout";
 import BoxPage from "./pages/BoxPage";
+import ClimatePage from "./pages/ClimatePage";
 import HomePage from "./pages/HomePage";
 import NodePage from "./pages/NodePage";
+import PlanPage from "./pages/PlanPage";
 import TagsPage from "./pages/TagsPage";
 
 function NotFound() {
@@ -28,6 +30,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/box/:id" element={<BoxPage />} />
         <Route path="/node/:id" element={<NodePage />} />
         <Route path="/tags" element={<TagsPage />} />
+        <Route path="/climate" element={<ClimatePage />} />
+        <Route path="/plan" element={<PlanPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

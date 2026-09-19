@@ -87,6 +87,15 @@ export default function NodePage() {
             </span>
           )}
         </p>
+        {node.backup_for && (
+          <p className="mt-1 text-sm text-slate-600">
+            Backup for{" "}
+            <Link to={`/node/${node.backup_for}`} className="underline underline-offset-2">
+              {node.backup_for}
+            </Link>
+            : its readings fill in whenever {node.backup_for} goes quiet.
+          </p>
+        )}
         {node.time_scale !== 1 && (
           <p className="mt-2 inline-block rounded-full bg-slate-900 px-2 py-0.5 text-xs text-white">
             Demo node: {demoRate(node.time_scale)}

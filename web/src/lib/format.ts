@@ -71,3 +71,34 @@ export const VERDICT_STYLE: Record<Verdict, { card: string; chip: string; bar: s
 };
 
 export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE: 1, USE: 2 };
+
+/** Clock time in East Africa Time, which the district schedules run on. */
+export function eat(ts: number | null | undefined): string {
+  if (!ts) return "–";
+  return new Date((ts + 3 * 3600) * 1000).toLocaleString(undefined, {
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+}
+
+export const RISK_STYLE: Record<string, string> = {
+  extreme: "bg-red-100 text-red-800 ring-red-300",
+  high: "bg-orange-100 text-orange-800 ring-orange-300",
+  moderate: "bg-amber-50 text-amber-800 ring-amber-200",
+  low: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+};
+
+export const RISK_COLOR: Record<string, string> = {
+  extreme: "#dc2626",
+  high: "#ea580c",
+  moderate: "#d97706",
+  low: "#059669",
+};
+
+export function weatherSource(source: string): string {
+  if (source === "open-meteo") return "Weather: Open-Meteo";
+  if (source === "model") return "Weather: offline climate model (not observed)";
+  return "Weather: Open-Meteo + offline model";
+}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 
 import { Custody } from "../components/Custody";
+import { Environment } from "../components/Environment";
 import { SparkIcon } from "../components/Icons";
 import { Card, ErrorNote, Layout, Spinner, Toast } from "../components/Layout";
 import { RouteMap } from "../components/RouteMap";
@@ -99,6 +100,9 @@ export default function BoxPage() {
       <WorkerReport boxId={id} verdict={report.verdict} onPlaces={(places) => setReport((r) => (r ? { ...r, places: { ...r.places, ...places } } : r))} />
       <Card title="Temperature" aside={report.data_through ? `updated ${ago(report.data_through)}` : undefined}>
         <TempChart segments={report.segments} product={report.product} />
+      </Card>
+      <Card title="Weather vs carrier" aside="inside vs outside air">
+        <Environment segments={report.segments} />
       </Card>
       <Card title="Route">
         <RouteMap segments={report.segments} places={report.places} />
