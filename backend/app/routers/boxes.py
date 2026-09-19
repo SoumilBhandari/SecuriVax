@@ -4,6 +4,7 @@ import time
 from dataclasses import asdict
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
@@ -85,7 +86,7 @@ def box_report(box_id: str, session: Session = Depends(get_session)) -> dict:
 async def explain_box(box_id: str, session: Session = Depends(get_session)) -> dict:
     """Gemini names the places, then Grok writes the worker-facing report."""
     box = _box(session, box_id)
-    report = evaluate_box(session, box)
+    report = await run_in_threadpool(evaluate_box, session, box)
     places, places_source = await resolve_places(session, key_points(report))
     facts = build_facts(box, PRODUCTS_BY_ID[box.product_id], report, places)
     text, source = await write_report(session, facts)
@@ -153,16 +154,16 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     raw = body.image.split(",", 1)[1] if body.image.startswith("data:") else body.image
     try:
         jpeg = base64.b64decode(raw, validate=True)
-        image = open_photo(jpeg)
+        image = await run_in_threadpool(open_photo, jpeg)
     except (ValueError, binascii.Error, UnidentifiedImageError, Image.DecompressionBombError, OSError) as exc:
         raise HTTPException(400, "not a usable photo (JPEG, PNG or WebP, under 40 megapixels)") from exc
 
-    reading = read_vvm(image)
+    reading = await run_in_threadpool(read_vvm, image)
     gemini = await gemini_vvm(jpeg)
     if not reading.found:
         return {"found": False, "message": reading.message, "gemini": gemini}
 
-    sensor = evaluate_box(session, box).budget_used
+    sensor = (await run_in_threadpool(evaluate_box, session, box)).budget_used
     witnesses = compare(reading.progress, sensor)
     check = VvmCheck(
         box_id=box_id, progress=reading.progress, stage=reading.stage, past_endpoint=reading.past_endpoint,

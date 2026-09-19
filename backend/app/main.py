@@ -25,6 +25,13 @@ async def lifespan(_: FastAPI):
             from simulator.backfill import backfill
 
             backfill(session, int(time.time()))
+        if not settings.weather_offline:
+            from sqlmodel import select as _select
+
+            from app.models import Facility
+            from app.services.weather import warm
+
+            warm([(f.lat, f.lon) for f in session.exec(_select(Facility)).all()])
     yield
 
 

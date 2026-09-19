@@ -7,13 +7,14 @@ trips, and forecast through the weather ensemble:
 """
 
 import statistics
+import threading
 import time
 
 import numpy as np
 from sqlmodel import Session, select
 
 from app.engine import twin
-from app.engine.arrhenius import rate_per_hour
+from app.engine.uncertainty import _rates
 from app.engine.location import attach_positions
 from app.engine.profiles import FREEZE_THRESHOLD_C, PRODUCTS_BY_ID
 from app.engine.redundancy import merge
@@ -25,9 +26,13 @@ HORIZON_H = 12
 LOOKBACK_S = 12 * 3600
 STORAGE_MAX_C = 8.0
 MODEL_FLOOR = 0.15  # never claim tighter than +/-15%: the model itself is simple
-_cache: dict[tuple[str, int], tuple[float, dict, twin.Forecast | None]] = {}
+CARRIER_KINDS = ("carrier", "cold_box")
+# One forecast per node (the latest); bounded memory, safe across threads.
+_cache: dict[str, tuple[int, float, dict, twin.Forecast | None]] = {}
 _track_record: dict[tuple[str, int], float | None] = {}
 _legs: dict[tuple[str, int, int, int], tuple[list[float], float] | None] = {}
+_lock = threading.Lock()
+MAX_LEGS = 2000
 
 
 def carrier_readings(session: Session, node_id: str, start: int, end: int):
@@ -56,13 +61,20 @@ def leg_cold_life(session: Session, node_id: str, start: int, end: int) -> tuple
     readings = carrier_readings(session, node_id, start, end)
     if len(readings) < 12:
         return None
+    if any(r.time_scale != 1 for r in readings):
+        return None  # demo-time trips run on accelerated time: not a real cold life
     key = (node_id, start, end, readings[-1].ts)
-    if key not in _legs:
-        ambient, _ = outside_fn(readings)
-        res = twin.run_filter([(r.ts, r.temp_c, r.time_scale) for r in readings], ambient, n=600)
-        q = twin.weighted_quantiles(twin.effective_cold_life(res.particles), res.particles.weight, (0.1, 0.5, 0.9))
+    with _lock:
+        if key in _legs:
+            return _legs[key]
+    ambient, _ = outside_fn(readings)
+    res = twin.run_filter([(r.ts, r.temp_c, r.time_scale) for r in readings], ambient, n=600)
+    q = twin.weighted_quantiles(twin.effective_cold_life(res.particles), res.particles.weight, (0.1, 0.5, 0.9))
+    with _lock:
+        if len(_legs) > MAX_LEGS:
+            _legs.clear()
         _legs[key] = (_floored(q), res.one_step_rmse_c)
-    return _legs[key]
+        return _legs[key]
 
 
 def _floored(q: list[float]) -> list[float]:
@@ -85,10 +97,10 @@ def track_record(session: Session, node_id: str, before: int) -> float | None:
 
 def fleet_record(session: Session, before: int) -> float | None:
     """For a carrier with no history: the fleet's median cold life (empirical Bayes)."""
-    lives = [
-        life for node in session.exec(select(Node).where(Node.backup_for.is_(None), Node.kind.in_(["carrier", "cold_box"]))).all()
-        if (life := track_record(session, node.id, before)) is not None
-    ]
+    carriers = session.exec(
+        select(Node).where(Node.backup_for.is_(None), Node.kind.in_(CARRIER_KINDS), Node.time_scale == 1)
+    ).all()
+    lives = [life for node in carriers if (life := track_record(session, node.id, before)) is not None]
     return statistics.median(lives) if lives else None
 
 
@@ -99,6 +111,8 @@ def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> 
         raise KeyError(node_id)
     if node.time_scale != 1:
         return {"node_id": node_id, "available": False, "reason": "Demo-time carriers run on accelerated time; the forecast needs real time."}
+    if node.kind not in CARRIER_KINDS:
+        return {"node_id": node_id, "available": False, "reason": "Forecasts are for ice-pack carriers; this is a storage box."}
 
     open_custody = session.exec(select(Custody).where(Custody.node_id == node_id, Custody.end_ts.is_(None))).all()
     trip_start = min((c.start_ts for c in open_custody), default=now - LOOKBACK_S)
@@ -106,24 +120,32 @@ def carrier_forecast(session: Session, node_id: str, now: int | None = None) -> 
     if len(readings) < 6:
         return {"node_id": node_id, "available": False, "reason": "Not enough readings on this trip yet."}
 
-    key = (node_id, readings[-1].ts)
-    if key in _cache and time.time() - _cache[key][0] < 60:
-        return _cache[key][1]
-    return _compute(session, node_id, readings, trip_start, open_custody, now, key)
+    with _lock:
+        hit = _cache.get(node_id)
+        if hit and hit[0] == readings[-1].ts and time.time() - hit[1] < 60:
+            return hit[2]
+    return _compute(session, node_id, readings, trip_start, open_custody, now)
 
 
-def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> dict:
+def _storage_max(session: Session, custodies) -> float:
+    """The tightest upper limit among the products on board (8 C for vaccines)."""
+    limits = [PRODUCTS_BY_ID[session.get(Box, c.box_id).product_id].storage_max_c for c in custodies]
+    return min(limits, default=STORAGE_MAX_C)
+
+
+def _compute(session, node_id, readings, trip_start, open_custody, now) -> dict:
 
     ambient, (lat, lon) = outside_fn(readings)
-    known, spread, source = track_record(session, node_id, trip_start), 0.35, "this carrier's recent trips"
+    known, spread, prior_from = track_record(session, node_id, trip_start), 0.35, "this carrier's recent trips"
     if known is None:
-        known, spread, source = fleet_record(session, trip_start), 1.0, "the fleet's trips (no history for this carrier)"
+        known, spread, prior_from = fleet_record(session, trip_start), 1.0, "the fleet's trips (no history for this carrier)"
     res = twin.run_filter(
         [(r.ts, r.temp_c, r.time_scale) for r in readings], ambient, known_cold_life_h=known, spread=spread
     )
-    members, source = wx.ensemble_for(lat, lon)
+    members, weather_source = wx.ensemble_for(lat, lon)
     ensemble = [(lambda ts, m=m: (m.at(ts) or (ambient(ts),))[0]) for m in members]
-    fc = twin.forecast(res, ensemble, HORIZON_H, STORAGE_MAX_C)
+    storage_max = _storage_max(session, open_custody)
+    fc = twin.forecast(res, ensemble, HORIZON_H, storage_max)
 
     p = res.particles
     now_out = ambient(res.last_ts)
@@ -134,8 +156,12 @@ def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> 
         "available": True,
         "trip_start": trip_start,
         "readings": res.readings,
-        "fit": {"one_step_rmse_c": round(res.one_step_rmse_c, 2), "min_effective_particles": round(res.min_ess)},
-        "prior": {"cold_life_h": known, "from": source if known else "a wide default (no trip history anywhere)"},
+        "fit": {
+            "one_step_rmse_c": None if res.one_step_rmse_c is None else round(res.one_step_rmse_c, 2),
+            "min_effective_particles": round(res.min_ess),
+        },
+        "prior": {"cold_life_h": known, "from": prior_from if known else "a wide default (no trip history anywhere)"},
+        "storage_max_c": storage_max,
         "state": {
             "inside_c": round(float(np.sum(p.weight * p.temp)), 2),
             "outside_c": round(now_out, 1),
@@ -150,10 +176,11 @@ def _compute(session, node_id, readings, trip_start, open_custody, now, key) -> 
             "outside_p50": fc.outside_p50[::3], "horizon_h": HORIZON_H,
         },
         "breach": {"prob": fc.breach_prob, "p10": fc.breach_p10, "p50": fc.breach_p50, "p90": fc.breach_p90},
-        "weather_source": source,
+        "weather_source": weather_source,
         "boxes": _box_risks(session, open_custody, fc, now),
     }
-    _cache[key] = (time.time(), out, fc)
+    with _lock:
+        _cache[node_id] = (readings[-1].ts, time.time(), out, fc)
     return out
 
 
@@ -162,12 +189,15 @@ def p_breach_within(session: Session, node_id: str, minutes: float) -> float | N
     out = carrier_forecast(session, node_id)
     if not out.get("available"):
         return None
-    fc = next((v[2] for k, v in _cache.items() if k[0] == node_id and v[1] is out), None)
+    with _lock:
+        hit = _cache.get(node_id)
+    fc = hit[3] if hit else None
     if fc is None:
         return out["breach"]["prob"]
     steps = int(minutes / 60 / fc.dt_h)
     window = fc.trajectories[:, : max(steps, 1)]
-    return round(float(((window > STORAGE_MAX_C) | (window <= FREEZE_THRESHOLD_C)).any(axis=1).mean()), 3)
+    limit = out.get("storage_max_c", STORAGE_MAX_C)
+    return round(float(((window > limit) | (window <= FREEZE_THRESHOLD_C)).any(axis=1).mean()), 3)
 
 
 def _box_risks(session: Session, custodies, fc: twin.Forecast, now: int) -> list[dict]:
@@ -178,7 +208,7 @@ def _box_risks(session: Session, custodies, fc: twin.Forecast, now: int) -> list
         box = session.get(Box, c.box_id)
         profile = PRODUCTS_BY_ID[box.product_id]
         report = evaluate_box(session, box, now)
-        rates = np.vectorize(lambda t: rate_per_hour(profile.anchors, t))(traj)
+        rates = _rates(profile, traj)
         future = report.budget_used + np.sum(rates, axis=1) * fc.dt_h
         frozen = np.zeros(len(traj), dtype=bool)
         if profile.freeze_sensitive:
@@ -199,6 +229,7 @@ def _box_risks(session: Session, custodies, fc: twin.Forecast, now: int) -> list
 
 
 def clear_cache() -> None:
-    _cache.clear()
-    _track_record.clear()
-    _legs.clear()
+    with _lock:
+        _cache.clear()
+        _track_record.clear()
+        _legs.clear()

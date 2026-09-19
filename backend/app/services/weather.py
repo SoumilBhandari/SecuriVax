@@ -57,6 +57,9 @@ def cell(lat: float, lon: float) -> tuple[float, float]:
 
 _cache: dict[tuple[float, float], tuple[float, Weather]] = {}
 _down_until = 0.0
+# One pooled client: no new TLS handshake per call, and a short connect timeout
+# so a dead network fails fast instead of holding a request for seconds.
+_client = httpx.Client(timeout=httpx.Timeout(6.0, connect=2.0), transport=httpx.HTTPTransport(retries=1))
 
 
 def clear_cache() -> None:
@@ -81,7 +84,7 @@ def model_weather(lat: float, lon: float, now: int | None = None) -> Weather:
 
 
 def _fetch(cells: list[tuple[float, float]]) -> list[Weather]:
-    res = httpx.get(
+    res = _client.get(
         URL,
         params={
             "latitude": ",".join(str(c[0]) for c in cells),
@@ -146,7 +149,7 @@ _ensembles: dict[tuple[float, float], tuple[float, list[Weather], str]] = {}
 
 
 def _fetch_ensemble(c: tuple[float, float]) -> list[Weather]:
-    res = httpx.get(
+    res = _client.get(
         ENSEMBLE_URL,
         params={
             "latitude": c[0], "longitude": c[1], "hourly": "temperature_2m",
@@ -200,8 +203,22 @@ def ensemble_for(lat: float, lon: float) -> tuple[list[Weather], str]:
             return members, label
         except (httpx.HTTPError, KeyError, ValueError) as exc:
             log.warning("ensemble unavailable, perturbing the forecast: %r", exc)
+            _down_until = now + RETRY_AFTER_S
     base = weather_for([c])[c]
     members = _perturbed(base)
     label = "perturbed forecast (offline)" if base.source == "model" else "perturbed open-meteo forecast"
     _ensembles[c] = (now - TTL_S + 120, members, label)  # retry in 2 minutes
     return members, label
+
+
+def warm(points: list[tuple[float, float]]) -> None:
+    """Fetch weather for the known sites in the background at startup."""
+    import threading
+
+    def run():
+        try:
+            weather_for(points)
+        except Exception as exc:  # never let a warm-up take the app down
+            log.warning("weather warm-up failed: %r", exc)
+
+    threading.Thread(target=run, daemon=True).start()

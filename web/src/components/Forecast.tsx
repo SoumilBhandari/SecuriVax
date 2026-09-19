@@ -24,6 +24,7 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
     return <p className="text-sm text-slate-500">{data.reason}</p>;
   }
   const { breach, state, forecast, fit, prior } = data;
+  const range = `2–${data.storage_max_c ?? 8} °C`;
   const box = data.boxes?.find((b) => b.box_id === boxId);
   const likely = breach!.prob >= 0.5;
 
@@ -32,7 +33,7 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
       <div className={`rounded-xl p-3 ${likely ? "bg-orange-50 text-orange-900" : "bg-emerald-50 text-emerald-900"}`}>
         {likely ? (
           <p className="text-sm">
-            <span className="text-base font-semibold">Leaves 2–8 °C {fromNow(breach!.p50)}</span>
+            <span className="text-base font-semibold">Leaves {range} {fromNow(breach!.p50)}</span>
             <br />
             80% range: {eat(breach!.p10)} to {breach!.p90 ? eat(breach!.p90) : "after the forecast window"} EAT ·{" "}
             {pct(breach!.prob)} chance within {forecast!.horizon_h} h
@@ -41,7 +42,7 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
           <p className="text-sm">
             <span className="text-base font-semibold">Stays in range for the next {forecast!.horizon_h} h</span>
             <br />
-            {pct(1 - breach!.prob)} of forecast runs keep it at 2–8 °C
+            {pct(1 - breach!.prob)} of forecast runs keep it at {range}
           </p>
         )}
       </div>
@@ -61,7 +62,9 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
         </div>
         <div className="rounded-lg bg-slate-50 p-2">
           <dt className="text-slate-500">Model error</dt>
-          <dd className="font-semibold text-slate-800">±{fit!.one_step_rmse_c.toFixed(2)} °C</dd>
+          <dd className="font-semibold text-slate-800">
+            {fit?.one_step_rmse_c == null ? "learning…" : `±${fit.one_step_rmse_c.toFixed(2)} °C`}
+          </dd>
         </div>
       </dl>
       {box && (

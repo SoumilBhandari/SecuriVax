@@ -99,8 +99,26 @@ def _box_sites(session: Session, facilities: list[Facility], now: int) -> dict[s
     return out
 
 
+_stores_cache: tuple[float, dict] | None = None
+
+
 def stores_at_risk(session: Session, now: int | None = None) -> dict:
-    now = int(time.time()) if now is None else now
+    """Cached for a minute: the forecast changes hourly, the page polls."""
+    global _stores_cache
+    if now is None and _stores_cache and time.time() - _stores_cache[0] < 60:
+        return _stores_cache[1]
+    result = _stores_at_risk(session, int(time.time()) if now is None else now)
+    if now is None:
+        _stores_cache = (time.time(), result)
+    return result
+
+
+def clear_cache() -> None:
+    global _stores_cache
+    _stores_cache = None
+
+
+def _stores_at_risk(session: Session, now: int) -> dict:
     facilities = session.exec(select(Facility)).all()
     weather = wx.weather_for([(f.lat, f.lon) for f in facilities])
     stock = _box_sites(session, facilities, now)
@@ -161,12 +179,12 @@ def carrier_performance(session: Session, now: int | None = None) -> list[dict]:
     now = int(time.time()) if now is None else now
     out = []
     # Only ice-pack carriers have a cold life; RDT boxes sit in store rooms.
-    carriers = select(Node).where(Node.backup_for.is_(None), Node.kind.in_(["carrier", "cold_box"]))
+    carriers = select(Node).where(Node.backup_for.is_(None), Node.kind.in_(["carrier", "cold_box"]), Node.time_scale == 1)
     for node in session.exec(carriers.order_by(Node.id)).all():
         windows = sorted({
             (c.start_ts, c.end_ts)
             for c in session.exec(select(Custody).where(Custody.node_id == node.id, Custody.end_ts.is_not(None))).all()
-        })
+        })[-6:]  # the last few trips say what the carrier is like now
         legs = []
         for start, end in windows:
             readings = _node_readings(session, node.id, start, end)

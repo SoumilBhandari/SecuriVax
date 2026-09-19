@@ -83,7 +83,7 @@ class DecisionIn(BaseModel):
 
 
 @router.post("/{node_id}/agent", dependencies=[Depends(require_operator), Depends(agent_limit)])
-async def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
+def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
     """Gemini dispatch agent (rules fallback): continue, divert or hold."""
     from app.services.location_agent import recommend
 
@@ -91,7 +91,7 @@ async def location_agent(node_id: str, body: AgentIn, session: Session = Depends
         raise HTTPException(404, f"no node {node_id}")
     if body.destination_id and session.get(Facility, body.destination_id) is None:
         raise HTTPException(404, f"no facility {body.destination_id}")
-    return await recommend(session, node_id, body.destination_id, body.question[:500])
+    return recommend(session, node_id, body.destination_id, body.question[:500])
 
 
 @router.post("/{node_id}/decisions", dependencies=[Depends(require_operator)])

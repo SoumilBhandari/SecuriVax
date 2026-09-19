@@ -59,14 +59,14 @@ def test_gemini_agent_loop_calls_tools_then_submits(client, on_the_road, monkeyp
     ])
 
     class FakeModels:
-        async def generate_content(self, model, contents, config):
+        def generate_content(self, model, contents, config):
             calls = next(script)
             parts = [SimpleNamespace(function_call=SimpleNamespace(name=n, args=a)) for n, a in calls]
             return SimpleNamespace(candidates=[SimpleNamespace(content=SimpleNamespace(parts=parts, role="model"))])
 
     class FakeClient:
         def __init__(self, api_key):
-            self.aio = SimpleNamespace(models=FakeModels())
+            self.models = FakeModels()
 
     monkeypatch.setattr(location_agent.genai, "Client", FakeClient)
     monkeypatch.setattr(location_agent.types, "Content", lambda role, parts: SimpleNamespace(role=role, parts=parts))
@@ -82,3 +82,14 @@ def test_gemini_agent_loop_calls_tools_then_submits(client, on_the_road, monkeyp
 def test_accepting_a_recommendation_is_logged(client, on_the_road):
     res = client.post("/api/nodes/CAR-02/decisions", json={"action": "DIVERT", "facility_id": "MASENO"}).json()
     assert res["logged"] == 2
+
+
+def test_rules_say_so_when_there_is_no_forecast(client, on_the_road, session):
+    # DEMO-01 runs on demo time: no forecast, so no made-up recommendation.
+    from app.models import Custody
+    import time as _t
+
+    session.add(Custody(box_id="BOX-9001", node_id="DEMO-01", start_ts=int(_t.time()) - 60))
+    session.commit()
+    rec = client.post("/api/nodes/DEMO-01/agent", json={"destination_id": "KOMBEWA"}).json()["recommendation"]
+    assert rec["action"] == "UNKNOWN" and "Can't forecast" in rec["summary"]

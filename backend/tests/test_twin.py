@@ -95,3 +95,27 @@ def test_report_carries_verdict_confidence(client, session):
     backfill(session, int(time.time()))
     conf = client.get("/api/boxes/BOX-0002/report").json()["confidence"]
     assert conf["borderline"] and conf["p_use"] + conf["p_quarantine"] + conf["p_discard"] == pytest.approx(1, abs=0.01)
+
+
+def test_forecast_only_for_carriers_and_against_the_products_limit(client, session):
+    backfill(session, int(time.time()))
+    assert client.get("/api/nodes/RDT-01/forecast").json()["available"] is False
+    body = client.get("/api/nodes/CAR-02/forecast").json()
+    assert body["storage_max_c"] == 8.0
+    assert body["prior"]["from"].startswith("this carrier")  # not the weather source
+
+
+def test_short_trip_has_no_fit_error_rather_than_nan():
+    series = [(T0 + i * 60, 5.0, 1.0) for i in range(5)]
+    assert twin.run_filter(series, lambda ts: 25.0).one_step_rmse_c is None
+
+
+def test_resampling_keeps_the_ice_estimate_of_particles_that_still_have_ice():
+    rng = np.random.default_rng(0)
+    p = twin.prior(5.0, 1000, rng, known_cold_life_h=10.0, spread=0.05)
+    p.ice[:500] = 0.0  # half the cloud has run out
+    before = np.median(p.ice[500:] / p.leak[500:])
+    for _ in range(5):
+        p = twin._resample(p, rng)
+    alive = p.ice > 0
+    assert np.median(p.ice[alive] / p.leak[alive]) == pytest.approx(before, rel=0.25)

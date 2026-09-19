@@ -118,16 +118,23 @@ def _resample(p: Particles, rng: np.random.Generator) -> Particles:
     a = LIU_WEST_A
     h = np.sqrt(1 - a**2)
 
-    def smooth(values: np.ndarray, log: bool = False) -> np.ndarray:
+    def smooth(values: np.ndarray, log: bool = False, among: np.ndarray | None = None) -> np.ndarray:
+        """Liu-West: shrink toward the cloud mean, add matching noise.
+        `among` restricts the mean/spread to some particles (e.g. those with ice)."""
         x = np.log(np.maximum(values, 1e-6)) if log else values
-        mean, sd = np.sum(p.weight * x), np.sqrt(np.sum(p.weight * (x - np.sum(p.weight * x)) ** 2))
+        w = p.weight if among is None else p.weight * among
+        w = w / w.sum() if w.sum() > 0 else p.weight
+        mean = np.sum(w * x)
+        sd = np.sqrt(np.sum(w * (x - mean) ** 2))
         out = a * x[idx] + (1 - a) * mean + rng.normal(0, h * sd + 1e-6, n)
         return np.exp(out) if log else out
 
     # Smooth ice-per-leak (what's identifiable), then rebuild ice from it.
     ice_positive = p.ice[idx] > 0
     leak = np.clip(smooth(p.leak, log=True), 0.2, 5)
-    per_leak = np.where(ice_positive, smooth(p.ice / p.leak + 1e-9, log=True), 0.0)
+    # Mean and spread over particles that still have ice: the melted ones sit at
+    # log(0) and would drag every survivor's estimate toward nothing.
+    per_leak = np.where(ice_positive, smooth(p.ice / p.leak + 1e-9, log=True, among=(p.ice > 0).astype(float)), 0.0)
     return Particles(
         temp=p.temp[idx] + rng.normal(0, 0.05, n),
         ice=per_leak * leak,
@@ -144,7 +151,7 @@ def _resample(p: Particles, rng: np.random.Generator) -> Particles:
 class FilterResult:
     particles: Particles
     readings: int
-    one_step_rmse_c: float  # how well the twin predicted each reading before seeing it
+    one_step_rmse_c: float | None  # how well the twin predicted each reading (None: too few yet)
     min_ess: float  # effective sample size; low means the data surprised the model
     last_ts: int
 
@@ -206,7 +213,7 @@ def run_filter(
         min_ess = min(min_ess, ess)
         if ess < n / 2:
             p = _resample(p, rng)
-    rmse = float(np.sqrt(np.mean(np.square(errors[5:])))) if len(errors) > 5 else float("nan")
+    rmse = float(np.sqrt(np.mean(np.square(errors[5:])))) if len(errors) > 5 else None
     return FilterResult(p, len(series), rmse, min_ess, series[-1][0])
 
 

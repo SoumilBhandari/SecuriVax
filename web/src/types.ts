@@ -183,7 +183,8 @@ export interface CarrierForecast {
   reason?: string;
   trip_start?: number;
   readings?: number;
-  fit?: { one_step_rmse_c: number; min_effective_particles: number };
+  fit?: { one_step_rmse_c: number | null; min_effective_particles: number };
+  storage_max_c?: number;
   prior?: { cold_life_h: number | null; from: string };
   state?: {
     inside_c: number;
@@ -344,7 +345,7 @@ export interface AgentAdvice {
   node_id: string;
   source: "gemini" | "rules";
   recommendation: {
-    action: "CONTINUE" | "DIVERT" | "HOLD";
+    action: "CONTINUE" | "DIVERT" | "HOLD" | "UNKNOWN";
     facility_id: string | null;
     facility_name: string | null;
     eta_min: number | null;

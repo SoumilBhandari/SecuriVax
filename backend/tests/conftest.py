@@ -9,6 +9,7 @@ from app.db import get_session, init_db, make_engine
 from app.main import app
 from app.seed import seed
 from app.security import ALL_LIMITS
+from app.services import climate as climate_service
 from app.services import twin as twin_service
 from app.services import weather
 
@@ -19,6 +20,7 @@ def offline_weather(monkeypatch):
     monkeypatch.setattr(get_settings(), "weather_offline", True)
     weather.clear_cache()
     twin_service.clear_cache()
+    climate_service.clear_cache()
     for limit in ALL_LIMITS:
         limit.reset()
 

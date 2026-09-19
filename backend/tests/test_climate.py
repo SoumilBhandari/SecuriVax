@@ -74,7 +74,7 @@ def test_carrier_performance_calls_out_the_bad_carriers(client, session):
     assert perf["CAR-01"]["rating"] == "failing"  # the parked-car trip
     assert "froze" in perf["CAR-01"]["note"]
     assert perf["CAR-02"]["rating"] in ("underperforming", "failing")  # hot outreach days
-    assert perf["DEMO-01"]["rating"] == "untested"
+    assert "DEMO-01" not in perf  # demo time isn't real time: never rated
     assert "RDT-01" not in perf  # store-room box, not an ice-pack carrier
 
 

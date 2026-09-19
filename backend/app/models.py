@@ -94,6 +94,7 @@ class Custody(SQLModel, table=True):
             "uq_custody_one_open_per_box", "box_id", unique=True,
             sqlite_where=text("end_ts IS NULL"), postgresql_where=text("end_ts IS NULL"),
         ),
+        Index("ix_custody_node_end", "node_id", "end_ts"),
     )
 
     id: int | None = Field(default=None, primary_key=True)

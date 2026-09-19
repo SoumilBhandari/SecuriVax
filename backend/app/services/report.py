@@ -90,11 +90,17 @@ def evaluate_box(session: Session, box: Box, now: int | None = None) -> Report:
 
 
 def _thin(points: list[dict], keep_if=lambda p: False) -> list[dict]:
+    """At most MAX_ROUTE_POINTS: an even sample, plus the flagged points (which are
+    themselves thinned if a long hot spell would otherwise blow the budget)."""
     if len(points) <= MAX_ROUTE_POINTS:
         return points
+    flagged = [i for i, p in enumerate(points) if keep_if(p)]
+    if len(flagged) > MAX_ROUTE_POINTS // 2:
+        stride = len(flagged) / (MAX_ROUTE_POINTS // 2)
+        flagged = [flagged[round(k * stride)] for k in range(MAX_ROUTE_POINTS // 2)]
     step = len(points) / MAX_ROUTE_POINTS
-    keep = {round(i * step) for i in range(MAX_ROUTE_POINTS)} | {len(points) - 1}
-    return [p for i, p in enumerate(points) if i in keep or keep_if(p)]
+    keep = {round(i * step) for i in range(MAX_ROUTE_POINTS)} | {len(points) - 1} | set(flagged)
+    return [p for i, p in enumerate(points) if i in keep]
 
 
 def key_points(report: Report) -> list[tuple[float, float]]:

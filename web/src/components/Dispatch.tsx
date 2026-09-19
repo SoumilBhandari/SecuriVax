@@ -7,6 +7,7 @@ const ACTION_STYLE: Record<AgentAdvice["recommendation"]["action"], string> = {
   CONTINUE: "bg-emerald-50 text-emerald-900",
   DIVERT: "bg-orange-50 text-orange-900",
   HOLD: "bg-red-50 text-red-900",
+  UNKNOWN: "bg-slate-100 text-slate-800",
 };
 
 const TOOL_LABEL: Record<string, string> = {

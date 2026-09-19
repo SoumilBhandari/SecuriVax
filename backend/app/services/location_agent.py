@@ -11,7 +11,6 @@ With no Gemini key, or if Gemini fails, the same tools drive a
 deterministic rule, so the demo never depends on the network.
 """
 
-import asyncio
 import json
 import logging
 import time
@@ -32,6 +31,7 @@ log = logging.getLogger(__name__)
 SPEED_KMH = 30.0
 MAX_TURNS = 6
 SAFE_BREACH_P = 0.2
+DEADLINE_S = 25  # the whole Gemini conversation, not each turn
 
 SYSTEM = """You dispatch vaccine carriers for a district health office in western Kenya.
 Decide what the driver of one carrier should do right now: CONTINUE to the destination,
@@ -72,7 +72,7 @@ DECLARATIONS = [
         parameters_json_schema={
             "type": "object",
             "properties": {
-                "action": {"type": "string", "enum": ["CONTINUE", "DIVERT", "HOLD"]},
+                "action": {"type": "string", "enum": ["CONTINUE", "DIVERT", "HOLD", "UNKNOWN"]},
                 "facility_id": {"type": "string", "description": "Where to go (destination or diversion); empty for HOLD"},
                 "summary": {"type": "string", "description": "One or two sentences for the driver"},
                 "reasons": {"type": "array", "items": {"type": "string"}},
@@ -119,7 +119,9 @@ class Tools:
             "boxes": boxes,
             "destination_id": self.destination_id,
         }
-        if f.get("available"):
+        if not f.get("available"):
+            status["forecast_unavailable"] = f.get("reason", "no forecast")
+        else:
             status["forecast"] = {
                 "inside_now_c": f["state"]["inside_c"], "outside_now_c": f["state"]["outside_c"],
                 "ice_left_hours_p10_p50_p90": f["state"]["ice_left_h"],
@@ -171,8 +173,15 @@ def rule_based(tools: Tools) -> dict:
     keep the carrier in range at least this long).
     """
     status = tools.get_carrier_status()
+    if "forecast" not in status:
+        # No twin forecast (demo time, too few readings, not a carrier): say so
+        # rather than guess. The node page still shows the live temperature.
+        return {"action": "UNKNOWN", "facility_id": "",
+                "summary": f"Can't forecast this carrier: {status.get('forecast_unavailable', 'no data')}. "
+                           "Check its temperature on the node page before deciding.",
+                "reasons": ["No forecast available, so no recommendation either way."]}
     near = tools.find_facilities()
-    forecast = status.get("forecast", {})
+    forecast = status["forecast"]
     p10 = (forecast.get("minutes_until_it_leaves_2_8C_p10_p50_p90") or [None])[0]
 
     def nearest_safe(exclude: str | None = None) -> tuple[dict, dict] | None:
@@ -213,9 +222,10 @@ def rule_based(tools: Tools) -> dict:
             "reasons": ["Every nearby facility is further than the carrier's remaining cold."]}
 
 
-async def _gemini_agent(tools: Tools, question: str) -> dict | None:
+def _gemini_agent(tools: Tools, question: str) -> dict | None:
     settings = get_settings()
     client = genai.Client(api_key=settings.gemini_api_key)
+    started = time.monotonic()
     config = types.GenerateContentConfig(
         system_instruction=SYSTEM,
         tools=[types.Tool(function_declarations=DECLARATIONS)],
@@ -230,10 +240,10 @@ async def _gemini_agent(tools: Tools, question: str) -> dict | None:
         "breach_chance_before_arrival": lambda **a: tools.breach_chance_before_arrival(str(a.get("facility_id", ""))),
     }
     for _ in range(MAX_TURNS):
-        resp = await asyncio.wait_for(
-            client.aio.models.generate_content(model=settings.gemini_model, contents=contents, config=config),
-            settings.ai_timeout_s,
-        )
+        if time.monotonic() - started > DEADLINE_S:
+            log.warning("gemini agent ran out of time")
+            return None
+        resp = client.models.generate_content(model=settings.gemini_model, contents=contents, config=config)
         content = resp.candidates[0].content
         contents.append(content)
         calls = [p.function_call for p in content.parts or [] if p.function_call]
@@ -251,12 +261,14 @@ async def _gemini_agent(tools: Tools, question: str) -> dict | None:
     return None
 
 
-async def recommend(session: Session, node_id: str, destination_id: str | None, question: str) -> dict:
+def recommend(session: Session, node_id: str, destination_id: str | None, question: str) -> dict:
+    """Synchronous on purpose: FastAPI runs it in the threadpool, so the particle
+    filter, database and Gemini calls never block other requests."""
     tools = Tools(session, node_id, destination_id)
     rec, source = None, "rules"
     if get_settings().gemini_api_key:
         try:
-            rec = await _gemini_agent(tools, question)
+            rec = _gemini_agent(tools, question)
             source = "gemini" if rec else "rules"
         except Exception as exc:
             log.warning("gemini location agent failed: %r", exc)
