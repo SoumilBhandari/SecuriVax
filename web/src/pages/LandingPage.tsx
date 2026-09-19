@@ -141,7 +141,6 @@ interface Screen {
   key: string;
   label: string;
   sub: string;
-  to: string;
   body: ReactNode;
 }
 
@@ -170,7 +169,6 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
           key: "verdict",
           label: "The verdict",
           sub: v.box.id,
-          to: `/box/${v.box.id}`,
           body: (
             <>
               <p className="eyebrow m-0 mb-1">{v.box.id}</p>
@@ -180,13 +178,12 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
           ),
         }
       : null,
-    t ? { key: "trip", label: "Trip conditions", sub: t.box.id, to: `/box/${t.box.id}`, body: <TripConditions report={t} /> } : null,
+    t ? { key: "trip", label: "Trip conditions", sub: t.box.id, body: <TripConditions report={t} /> } : null,
     boxes.length
       ? {
           key: "map",
           label: "Shipments map",
           sub: `${boxes.length} boxes`,
-          to: "/boxes?view=map",
           body: (
             <Suspense fallback={null}>
               <ShipmentsView boxes={boxes} />
@@ -199,7 +196,6 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
           key: "chart",
           label: "Temperature over the trip",
           sub: t.box.id,
-          to: `/box/${t.box.id}`,
           body: <TripChart segments={t.segments} product={t.product} budgetUsed={t.budget_used} />,
         }
       : null,
@@ -208,7 +204,6 @@ function useScreens(boxes: BoxSummary[]): Screen[] {
           key: "heat",
           label: "Heat ahead",
           sub: `${sites.length} sites · 72 h`,
-          to: "/climate",
           body: (
             <Suspense fallback={null}>
               <RiskMap sites={sites} />
@@ -292,15 +287,15 @@ function Stack({ screens }: { screens: Screen[] }) {
 
 const SCREEN_W = 428; // the app's own column width inside a card
 
-/** A screen in a frame: a mono title bar, then the live component, drawn at the app's width and scaled to fit. */
+/** A screen in a frame, to look at (not a link): a mono title bar, then the live component, drawn at the app's width and scaled to fit. */
 function ScreenCard({ screen, index, width, hoverLift = false }: { screen: Screen; index: number; width: number; hoverLift?: boolean }) {
   const inner = width - 32;
   const scale = inner / SCREEN_W;
   const height = Math.round((width * 10) / 16);
   return (
-    <Link to={screen.to} className="group block text-text no-underline" aria-label={`${screen.label}: open it`}>
+    <div className="group block cursor-default select-none text-text">
       <span className="mono-label mb-2 block opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        {screen.label} · open →
+        {screen.label} · {screen.sub}
       </span>
       <span
         className={`lp-screen block ${hoverLift ? "lp-screen--lift" : ""}`}
@@ -312,13 +307,13 @@ function ScreenCard({ screen, index, width, hoverLift = false }: { screen: Scree
           </span>
           <span className="mono-label shrink-0">{screen.sub}</span>
         </span>
-        <span className="pointer-events-none block overflow-hidden px-4 pt-3" style={{ height: height - 41 }} aria-hidden="true">
+        <span className="pointer-events-none block overflow-hidden px-4 pt-3" style={{ height: height - 41 }} aria-hidden="true" inert>
           <span className="lp-screen__body block origin-top-left" style={{ width: SCREEN_W, transform: `scale(${scale})` }}>
             {screen.body}
           </span>
         </span>
       </span>
-    </Link>
+    </div>
   );
 }
 
