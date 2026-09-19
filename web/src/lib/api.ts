@@ -85,6 +85,7 @@ export const api = {
   boxes: () => request<BoxSummary[]>("/api/boxes"),
   fleet: () => request<FleetSummary>("/api/boxes/fleet/summary"),
   learning: () => request<LearningSummary>("/api/boxes/learning/summary"),
+  resetStage: () => request<{ reset: boolean }>("/api/admin/reset-stage", { method: "POST" }),
   counterfactual: (id: string) => request<CounterfactualRow[]>(`/api/boxes/${encodeURIComponent(id)}/counterfactual`),
   report: (id: string) => request<Report>(`/api/boxes/${encodeURIComponent(id)}/report`),
   explain: (id: string) =>

@@ -14,10 +14,10 @@ const POLICY: Record<PolicyId, { name: string; color: string }> = {
 const ORDER: PolicyId[] = ["status_quo", "alarm_logger", "vialtality", "vialtality_planned"];
 
 const METRICS: { key: string; title: string; unit: string; lowerIsBetter: string; fmt?: (v: number) => string }[] = [
-  { key: "unsafe_used", title: "Damaged doses given at the next session", unit: "doses", lowerIsBetter: "Patient safety" },
-  { key: "good_discarded", title: "Good doses thrown away", unit: "doses", lowerIsBetter: "Waste" },
-  { key: "damaged_freeze", title: "Doses damaged by freezing in the first place", unit: "doses", lowerIsBetter: "Prevention" },
   { key: "trips_breached", title: "Trips that left 2–8 °C", unit: "trips", lowerIsBetter: "Prevention" },
+  { key: "damaged_freeze", title: "Doses freeze-exposed (at or below −0.5 °C for an hour or more)", unit: "doses", lowerIsBetter: "Prevention" },
+  { key: "unsafe_used", title: "Heat-spent or freeze-exposed doses given at the next session", unit: "doses", lowerIsBetter: "Patient safety" },
+  { key: "good_discarded", title: "Good doses thrown away (if an alarm means discard)", unit: "doses", lowerIsBetter: "Waste" },
   { key: "value_lost_usd", title: "Value of doses lost", unit: "US$", lowerIsBetter: "Cost", fmt: (v) => `$${Math.round(v).toLocaleString()}` },
 ];
 
@@ -34,6 +34,7 @@ export default function ImpactPage() {
 
   const s = data.sweep.summary;
   const unsafeCut = 1 - s.vialtality_planned.unsafe_used.mean / Math.max(s.status_quo.unsafe_used.mean, 1);
+  const trips = (p: PolicyId) => Math.round(s[p].trips_breached.mean);
   return (
     <Layout back>
       <h1 className="text-2xl font-bold tracking-tight text-slate-900">Impact backtest</h1>
@@ -43,14 +44,24 @@ export default function ImpactPage() {
         decided four ways. Numbers are the mean over {data.sweep.seeds} random seeds; bars show the P10–P90 range.
       </p>
 
+      <div className="mb-3 rounded-2xl bg-slate-900 p-4 text-white">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Prevention</p>
+        <p className="mt-1 font-display text-4xl font-bold">
+          {trips("status_quo")} → {trips("vialtality_planned")}
+        </p>
+        <p className="mt-1 text-sm text-slate-300">
+          trips that left 2–8 °C, when departures and routes are planned from the forecast. No assumption about what
+          anyone does with an alarm: these excursions never happen.
+        </p>
+      </div>
       <div className="mb-4 grid grid-cols-2 gap-3">
         <div className="rounded-2xl bg-slate-900 p-4 text-white">
           <p className="text-3xl font-bold">−{Math.round(unsafeCut * 100)}%</p>
-          <p className="mt-1 text-sm text-slate-300">damaged doses reaching patients, vs today</p>
+          <p className="mt-1 text-sm text-slate-300">heat-spent or freeze-exposed doses given, vs today</p>
         </div>
         <div className="rounded-2xl bg-slate-900 p-4 text-white">
           <p className="text-3xl font-bold">{Math.round(s.alarm_logger.good_discarded.mean).toLocaleString()} → 0</p>
-          <p className="mt-1 text-sm text-slate-300">good doses thrown away, alarm logger vs Vialtality</p>
+          <p className="mt-1 text-sm text-slate-300">good doses thrown away, if every alarm meant discard</p>
         </div>
       </div>
 
@@ -88,6 +99,8 @@ export default function ImpactPage() {
         </table>
         <p className="mt-2 text-[11px] text-slate-400">
           A simulation, not a field trial: it shows what each way of deciding does with the same trips, on real weather.
+          Freeze-exposed doses are counted as exposed, not proven damaged: chilled vaccine often supercools and stays
+          liquid, which only a shake test settles.
         </p>
       </Card>
     </Layout>

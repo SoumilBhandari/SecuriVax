@@ -30,9 +30,12 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
     return <p className="text-sm text-muted">Not loaded into a monitored carrier yet.</p>;
   }
   const now = Date.now() / 1000;
+  const last = segments[segments.length - 1];
   return (
     <ol className="divide-y divide-line">
-      {segments.map((s) => {
+      {segments.map((s, i) => {
+        const prev = i > 0 ? segments[i - 1] : null;
+        const gap = prev?.end_ts != null ? s.start_ts - prev.end_ts : 0;
         const env = s.environment;
         const code = env ? ENV[env.code] : null;
         const from = placeName(places, s.start_lat, s.start_lon);
@@ -40,6 +43,7 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
         const dur = hours(((s.end_ts ?? now) - s.start_ts) / 3600);
         return (
           <li key={`${s.node_id}-${s.start_ts}`}>
+            {gap > UNMONITORED_S && <Unmonitored seconds={gap} />}
             <details className="group">
               <summary className="flex min-h-11 cursor-pointer list-none gap-3 py-2.5 [&::-webkit-details-marker]:hidden">
                 <span className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${s.end_ts ? "bg-faint" : "bg-ok"}`} />
@@ -100,6 +104,23 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
           </li>
         );
       })}
+      {last.end_ts != null && now - last.end_ts > UNMONITORED_S && (
+        <li>
+          <Unmonitored seconds={now - last.end_ts} since={last.end_ts} />
+        </li>
+      )}
     </ol>
+  );
+}
+
+/** Same threshold as the engine: a shorter handoff is a blip, not a hole. */
+const UNMONITORED_S = 15 * 60;
+
+function Unmonitored({ seconds, since }: { seconds: number; since?: number }) {
+  return (
+    <p className="flex items-center gap-2 py-2 pl-0.5 text-xs font-semibold text-amber-800">
+      <OfflineIcon size={12} />
+      {since ? `Not in a monitored carrier since ${time(since)} (${hours(seconds / 3600)})` : `Unmonitored for ${hours(seconds / 3600)}: no temperature record`}
+    </p>
   );
 }

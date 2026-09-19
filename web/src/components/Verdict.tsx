@@ -30,25 +30,23 @@ export function VerdictCard({
   const lead = report.reasons.find((r) => r.severity !== "ok" && r.severity !== "advisory") ?? report.reasons[0];
   return (
     <section className={`mb-3 rounded-2xl p-4 ${style.card}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">Verdict at point of use</p>
-          <h2 className="mt-1 font-display text-4xl font-bold leading-none tracking-tight">{style.label}</h2>
-        </div>
-        <div className="shrink-0 text-right">
-          <p className="font-display text-3xl font-bold leading-none tabular-nums">
-            {Math.round(report.budget_used * 100)}
-            <span className="text-base opacity-80">%</span>
-          </p>
-          <p className="mt-1 text-[11px] font-bold uppercase tracking-wider opacity-80">budget used</p>
-        </div>
-      </div>
+      <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">Verdict at point of use</p>
+      <h2 className="mt-1 break-words font-display text-[clamp(2rem,10vw,2.5rem)] font-bold leading-none tracking-tight">
+        {style.label}
+      </h2>
       <span className="sr-only" role="status" aria-live="polite">
         Verdict: {style.label}. {report.action}
       </span>
 
+      <div className="mt-4 flex items-baseline justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider opacity-80">Stability budget used</span>
+        <span className="font-display text-2xl font-bold leading-none tabular-nums">
+          {Math.round(report.budget_used * 100)}
+          <span className="text-sm opacity-80">%</span>
+        </span>
+      </div>
       <div
-        className="relative mt-4 h-2 rounded-full bg-black/15"
+        className="relative mt-2 h-2 rounded-full bg-black/15"
         role="meter"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -71,12 +69,12 @@ export function VerdictCard({
         <p className="mt-0.5 text-[15px] font-semibold leading-snug">{report.action}</p>
       </div>
 
-      <div className="mt-3 flex items-center gap-3 text-xs font-semibold">
-        <span className="shrink-0">
-          Confidence {pct(report.confidence.confidence)}
-          {report.confidence.label_fused && <span className="font-normal opacity-85"> · with the VVM label</span>}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs font-semibold">
+        <span title="Share of plausible scenarios (sensor error, batch variation, starting budget) that give the same verdict">
+          Holds in {pct(report.confidence.confidence)} of scenarios
+          {report.confidence.label_fused && <span className="font-normal opacity-85"> · VVM label included</span>}
         </span>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/20">
+        <div className="h-1.5 min-w-20 flex-1 overflow-hidden rounded-full bg-black/20">
           <div className="h-full bg-current" style={{ width: `${report.confidence.confidence * 100}%` }} />
         </div>
       </div>
@@ -104,7 +102,7 @@ export function KeyStats({ report }: { report: Report }) {
   const fresh = report.current_node_id && report.data_through && report.computed_at - report.data_through < 600;
   return (
     <div>
-      <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-line bg-line">
+      <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line min-[420px]:grid-cols-3">
         <Stat label="Mean kinetic" value={temp(report.mkt_c)} />
         <Stat label="Peak" value={temp(report.peak_c)} />
         <Stat label="Out of range" value={`${Math.round(report.hours_out_of_range)} h`} />
@@ -143,6 +141,7 @@ const REASON_ICON: Record<string, ReactNode> = {
   BUDGET_LOW: <AlertIcon className="text-warn" />,
   HUMIDITY: <DropIcon className="text-cold" />,
   HISTORY_GAP: <OfflineIcon className="text-warn" />,
+  UNMONITORED: <OfflineIcon className="text-warn" />,
   NODE_OFFLINE: <OfflineIcon className="text-warn" />,
   ALL_CLEAR: <CheckIcon className="text-ok" />,
 };

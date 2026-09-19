@@ -8,6 +8,7 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ForecastCard } from "../components/Forecast";
 import { HistoryScrubber } from "../components/HistoryScrubber";
 import { SparkIcon } from "../components/Icons";
+import { StageReset } from "../components/StageReset";
 import { Card, Layout, Spinner, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
 import { KeyStats, Reasons, VerdictCard } from "../components/Verdict";
@@ -80,7 +81,12 @@ export default function BoxPage() {
   const hideToast = useCallback(() => setToast(null), []);
   const offline = !data ? cached(id) : null;
   const report = data ?? offline?.report ?? null;
-  const stale = error && report ? `Can't reach the server: result from ${time(Math.round((updatedAt ?? offline?.at ?? Date.now()) / 1000))}` : null;
+  const savedAt = time(Math.round((updatedAt ?? offline?.at ?? Date.now()) / 1000));
+  const stale = error && report
+    ? `Can't reach the server: result from ${savedAt}`
+    : !data && offline
+      ? `Updating… showing the result from ${savedAt}`
+      : null;
 
   if (!report) {
     return (
@@ -224,6 +230,11 @@ function BoxTabs({
             </ErrorBoundary>
           </Card>
           <MoveBox report={report} onMoved={onChanged} />
+          {report.box.id.startsWith("BOX-9") && (
+            <Card title="Stage demo" aside="rehearsal">
+              <StageReset onDone={onChanged} />
+            </Card>
+          )}
         </>,
       )}
 

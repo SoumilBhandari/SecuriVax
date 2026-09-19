@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Card, Layout } from "../components/Layout";
+import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
 import type { BoxSummary, NodeSummary } from "../types";
 
@@ -23,6 +24,13 @@ export default function TagsPage() {
         a sticker opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it.
         Print the same URL as a QR code on the sticker for phones without NFC.
       </p>
+      <Card title="Stage demo" aside="DEMO-01 · BOX-9001/9002">
+        <p className="mb-3 text-sm text-slate-600">
+          Between rehearsals: clear the stage carrier's readings and put both stage boxes back to fresh. The eight
+          lanes are not touched.
+        </p>
+        <StageReset />
+      </Card>
       <Card title="VVM test card">
         <p className="mb-2 text-sm text-slate-600">
           Print this and stick one VVM on the demo bottle to try the camera check.

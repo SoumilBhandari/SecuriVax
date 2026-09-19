@@ -38,10 +38,10 @@ export default function HomePage() {
           </div>
           <div className="mb-5 grid gap-2 sm:grid-cols-3">
             <Tile label="Doses and tests tracked" value={fleet.data.doses_tracked} />
-            <Tile label="Saved from needless discard" value={fleet.data.saved_from_needless_discard} tone="text-ok"
-              note="Threshold alarms fired, budget says still good" />
-            <Tile label="Silent failures caught" value={fleet.data.silent_failures_caught} tone="text-hot"
-              note="No alarm ever fired, damage still accrued" />
+            <Tile label="Alarm fired, still in budget" value={fleet.data.saved_from_needless_discard} tone="text-ok"
+              note="A threshold logger would flag these; the stability budget says they're usable" />
+            <Tile label="Damage no alarm saw" value={fleet.data.silent_failures_caught} tone="text-hot"
+              note="No threshold alarm fired, but the budget says damage accrued" />
           </div>
         </>
       )}
@@ -59,9 +59,9 @@ export default function HomePage() {
       )}
       {!boxes.data && !boxes.error && <Spinner />}
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
         {sorted.map((b) => (
-          <Link key={b.id} to={`/box/${b.id}`} className="block rounded-2xl border border-line bg-white p-4 hover:border-faint">
+          <Link key={b.id} to={`/box/${b.id}`} className="block min-w-0 rounded-2xl border border-line bg-white p-4 hover:border-faint">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate font-display text-lg font-bold">{b.product_name}</p>

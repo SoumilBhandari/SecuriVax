@@ -74,3 +74,18 @@ def test_health_reports_configuration_not_secrets(client):
     body = client.get("/api/health").json()
     assert body["status"] == "ok" and body["database"] == "ok"
     assert set(body["ai"]) == {"grok", "gemini"} and all(isinstance(v, bool) for v in body["ai"].values())
+
+
+def test_stage_reset_clears_only_the_stage(client, session):
+    from sqlmodel import select
+
+    from app.models import Custody, Reading
+
+    client.post("/api/boxes/BOX-9001/load", json={"node_id": "DEMO-01"})
+    before_other = len(session.exec(select(Custody).where(Custody.box_id != "BOX-9001")).all())
+    res = client.post("/api/admin/reset-stage")
+    assert res.status_code == 200 and "BOX-9001" in res.json()["boxes"]
+    session.expire_all()
+    assert not session.exec(select(Custody).where(Custody.box_id == "BOX-9001")).all()
+    assert not session.exec(select(Reading).where(Reading.node_id == "DEMO-01")).all()
+    assert len(session.exec(select(Custody).where(Custody.box_id != "BOX-9001")).all()) == before_other

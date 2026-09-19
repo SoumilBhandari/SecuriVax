@@ -18,7 +18,7 @@ export function LearningCard() {
     <section className="mb-4 rounded-2xl border border-line bg-white p-4">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h2 className="text-sm font-semibold">The model learns from every confirmed label</h2>
-        <span className="text-xs text-muted">{data.photos} field photo{data.photos === 1 ? "" : "s"}</span>
+        {data.photos > 0 && <span className="text-xs text-muted">{data.photos} field photo{data.photos === 1 ? "" : "s"}</span>}
       </div>
       <p className="text-sm leading-snug text-muted">
         Each VVM photo a health worker confirms is a real-world reading of how far a vial degraded, next to the heat our
@@ -27,7 +27,8 @@ export function LearningCard() {
       </p>
       {learnt.length === 0 ? (
         <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-muted">
-          No confirmed photos yet: every product runs on its label's curve.
+          Try it: open any vaccine box, go to its Label tab and photograph the VVM. Once you confirm the reading, that
+          product's line appears here with its learned speed. Until then every product runs on its label's curve.
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-line">
