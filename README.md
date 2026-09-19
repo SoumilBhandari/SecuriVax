@@ -1,6 +1,8 @@
 # Vialtality
 
-**Last-mile cold chain monitor for vaccines and rapid diagnostic tests.**
+**Is this vial still good? A last-mile cold chain monitor for vaccines and rapid tests.**
+
+HopHacks 2026 · Healthcare track
 
 > Today's cold chain goes blind on the last mile and doesn't monitor rapid tests at all.
 > We cover both, and tell the health worker whether this box is still good.
@@ -14,11 +16,22 @@ NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
 DISCARD** for *that product*, worked out from everything the box has been
 through.
 
-On top of that, **environmental intelligence** (our environmental track):
-- Weather forecasts show which stores and clinics the heat is about to hit.
-- Real trips are compared against a thermal model, which shows which carriers
-  underperform.
-- The forecast plans when to travel and where stock should go.
+What makes it more than a logger:
+
+- **A digital twin of every carrier.** A particle filter estimates how much ice
+  the carrier has left and how fast it leaks. It learns each carrier's real cold
+  life from past trips, then forecasts through a 40-member weather ensemble when
+  the carrier will leave 2–8 °C, with an 80% range.
+- **Two witnesses.** The phone camera measures the vial's own VVM label and
+  cross-checks it against the sensor record. A worker confirms before it counts.
+- **Honest confidence.** Every verdict is re-run 400 times over sensor bias and
+  batch-to-batch variation. Borderline ones send the worker to the label.
+- **A dispatch agent.** Gemini calls our own tools (carrier status, nearby
+  fridges, chance of breaching before arrival) and recommends continue, divert
+  or hold. A supervisor accepts it.
+- **Measured impact.** A 90-day backtest on real ERA5 weather cuts damaged
+  doses reaching patients by 98% versus today, without the ~1,100 good doses an
+  alarm-only logger throws away.
 
 ![Phone web app: box list, a discarded OPV box, a rapid-test box](docs/img/overview.png)
 
@@ -30,21 +43,23 @@ flowchart LR
         N["ESP32 node + backup<br/>temp · humidity<br/>logs offline"]
         S["Samsung SmartTag<br/>location"]
         T["NFC sticker<br/>on every box"]
+        V["VVM label<br/>on every vial"]
     end
     subgraph api[FastAPI backend]
         I["Ingest<br/>idempotent, acked"]
-        E["Verdict engine<br/>deterministic"]
-        W["Environmental intelligence<br/>Open-Meteo + carrier model"]
-        G["Gemini + Google Maps<br/>names places"]
+        E["Verdict engine<br/>Arrhenius budget + rules<br/>+ Monte Carlo confidence"]
+        TW["Carrier twin<br/>particle filter +<br/>weather ensemble"]
+        CV["VVM reader<br/>image measurement<br/>+ Gemini vision"]
+        AG["Gemini dispatch agent<br/>function calling"]
         X["Grok<br/>writes the report"]
     end
-    P["Phone web app<br/>verdict · map · custody<br/>climate · planner"]
-    N -- batched uploads --> I
-    S -- Home Assistant bridge --> I
+    P["Phone web app"]
+    N --> I --> E --> P
+    S --> I --> TW --> P
+    V -- camera --> CV --> E
+    TW --> AG --> P
     T -- tap opens URL --> P
-    I --> E --> P
-    W --> P
-    E --> G --> X --> P
+    E --> X --> P
 ```
 
 1. **The node logs continuously, even offline.** Readings queue in flash and
@@ -60,7 +75,16 @@ flowchart LR
 
    `t_life(T)` comes from a two-point Arrhenius fit through the product's WHO
    vaccine vial monitor (VVM) category. So `B` tracks how far the VVM on the
-   vial has moved. `B_0` is budget used before our monitoring.
+   vial has moved. `B_0` is budget used before our monitoring. The same
+   integral runs everywhere:
+   - in every verdict;
+   - on each of the 400 confidence samples;
+   - along every forecast trajectory, for the chance a box reaches QUARANTINE;
+   - in the trip planner;
+   - over every simulated box in the backtest.
+
+   The VVM camera measures the same quantity off the label (0 = fresh, 1 = end
+   point), which is why the two witnesses can be compared directly.
 4. **Rules decide the verdict.** The same history always gives the same answer.
 5. **AI only explains.** Gemini (with Google Maps grounding) turns GPS points
    into place names. Grok turns the engine's facts into a 90-word report for the
@@ -88,6 +112,74 @@ Products seeded (`backend/app/engine/profiles.py`):
 - **Pentavalent**: VVM14, freeze-sensitive
 - **HPV**: VVM30, freeze-sensitive
 - **Malaria and HIV rapid tests**: an illustrative curve anchored at the 24-month label shelf life at 30 °C and the WHO stress test of 60 days at 45 °C.
+
+## The carrier twin
+
+![Carrier forecast, borderline verdict, carrier twin](docs/img/twin-vvm.png)
+
+The inside of a carrier holds at the ice packs' temperature until the ice is
+gone, then drifts toward the outside air, plus any heat from sun or a vehicle.
+Ice, leak rate, pack temperature and heat gain can't be measured, so the
+carrier's twin estimates them from the readings.
+
+- **Particle filter.** A sequential Monte Carlo filter tracks 1,000 candidate
+  carriers. It uses a Student-t likelihood (robust to one odd reading) and
+  Liu–West resampling (so the cloud doesn't collapse). It reports *effective*
+  cold life, ice divided by leak, because that ratio is the part the data can
+  actually identify.
+- **Prior from the carrier's own history.** Its last few trips set the starting
+  estimate for the next one.
+- **Validated on synthetic carriers with a known answer.** Cold life is
+  recovered to about 5% mean error, and the model predicts each next reading to
+  within about 0.2 °C.
+- **Forecast.** It rolls forward through the 40-member Open-Meteo ensemble and
+  reports:
+  - when the carrier leaves 2–8 °C, with P10, P50 and P90 times;
+  - each box's chance of reaching QUARANTINE.
+- **Dispatch.** The same forecast feeds the dispatch agent: continue, or divert
+  to the nearest fridge the carrier can reach in range.
+
+## Impact
+
+![Impact backtest](docs/img/impact.png)
+
+We ran 360 outreach trips over 90 days on the actual hourly ERA5 weather at the
+district's clinics. Each trip includes the failures that happen in the field:
+packs straight from the freezer, worn carriers, a carrier left in a hot
+vehicle. The same trips were then decided four ways. Means over 20 seeds:
+
+| | Damaged doses given | Good doses thrown away | Doses damaged at all | Trips out of 2–8 °C |
+| --- | --- | --- | --- | --- |
+| Today (VVM read by eye) | 1,699 | 4 | 1,700 | 144 |
+| Alarm-only logger | 0 | 1,121 | 1,700 | 144 |
+| Vialtality | 192 | 0 | 1,700 | 144 |
+| **Vialtality + planning** | **36** | **0** | **368** | **12** |
+
+In this climate, freezing does far more damage than heat. Vialtality catches
+it without throwing away freeze-proof OPV and MR.
+
+Planning means the forecast's cool departure slot, repacking carriers once the
+twin flags a short cold life, and the "packs too cold" warning at departure.
+Together they stop most of the damage from happening at all.
+
+Every assumption is listed on the `/impact` page and in
+`backend/app/backtest/simulate.py`. This is a simulation on real weather, not a
+field trial.
+
+## How it's different
+
+Existing cold-chain platforms, such as CryoTrace AI, sell dashboards and
+threshold or "predictive" alerts to logistics teams. Vialtality answers a
+different question, for a different person:
+
+| | Enterprise monitoring | Vialtality |
+| --- | --- | --- |
+| For | Logistics and QA teams on dashboards | The health worker holding the box, on any phone |
+| Answer | "Temperature left range" | USE / QUARANTINE / DISCARD for this product, from WHO VVM kinetics |
+| Prediction | Trend alerts | Physics twin with hidden-state estimation and calibrated P10–P90 |
+| Ground truth | Sensors only | Sensor record cross-checked against the vial's own VVM label |
+| Where | Warehouses and trucks | The unmonitored last mile and outreach carriers, plus rapid tests |
+| Setting | Connected, enterprise | Offline-first $10 nodes, SmartTag location, no app install |
 
 ## Environmental intelligence
 
@@ -212,6 +304,10 @@ The starter instance is on purpose: free instances sleep and take about a minute
 | GET | `/api/climate/stores` | 72 h heat risk per store/clinic |
 | GET | `/api/climate/carriers` | Effective cold life per carrier (model vs reality) |
 | POST | `/api/climate/plan` | Departure × destination predictions from the forecast |
+| GET | `/api/nodes/{id}/forecast` | Carrier twin: state, forecast fan, breach time P10/P50/P90, per-box risk |
+| POST | `/api/nodes/{id}/agent` | Gemini dispatch agent (rules fallback): continue / divert / hold, with its tool calls |
+| POST | `/api/boxes/{id}/vvm` · `/vvm/{check}/confirm` | Camera VVM reading vs sensor; worker confirms |
+| GET | `/api/impact` | 90-day ERA5 backtest results |
 
 ## Assumptions and limits
 
