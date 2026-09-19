@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import { BatteryIcon, DropIcon, OfflineIcon, TapIcon, ThermoIcon } from "../components/Icons";
+import { Dispatch } from "../components/Dispatch";
 import { ForecastCard } from "../components/Forecast";
 import { Card, ErrorNote, Layout, Spinner, Toast } from "../components/Layout";
 import { VerdictChip } from "../components/Verdict";
@@ -122,6 +123,12 @@ export default function NodePage() {
       {node.kind !== "rdt_box" && !node.backup_for && (
         <Card title="Forecast" aside="digital twin">
           <ForecastCard nodeId={node.id} />
+        </Card>
+      )}
+
+      {node.kind !== "rdt_box" && !node.backup_for && node.box_ids.length > 0 && (
+        <Card title="What should this carrier do?" aside="location agent">
+          <Dispatch nodeId={node.id} />
         </Card>
       )}
 

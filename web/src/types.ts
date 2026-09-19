@@ -339,3 +339,17 @@ export interface TripPlan {
   recommendations: string[];
   stock_advice: string[];
 }
+
+export interface AgentAdvice {
+  node_id: string;
+  source: "gemini" | "rules";
+  recommendation: {
+    action: "CONTINUE" | "DIVERT" | "HOLD";
+    facility_id: string | null;
+    facility_name: string | null;
+    eta_min: number | null;
+    summary: string;
+    reasons: string[];
+  };
+  steps: { tool: string; args: Record<string, unknown>; result: unknown }[];
+}

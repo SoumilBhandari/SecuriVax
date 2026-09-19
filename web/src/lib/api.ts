@@ -1,4 +1,5 @@
 import type {
+  AgentAdvice,
   BoxSummary,
   CarrierForecast,
   CarrierPerformance,
@@ -61,6 +62,16 @@ export const api = {
     request<{ confirmed: boolean }>(`/api/boxes/${encodeURIComponent(boxId)}/vvm/${checkId}/confirm`, {
       method: "POST",
       body: JSON.stringify(stage ? { stage } : {}),
+    }),
+  agent: (nodeId: string, destinationId: string | null) =>
+    request<AgentAdvice>(`/api/nodes/${encodeURIComponent(nodeId)}/agent`, {
+      method: "POST",
+      body: JSON.stringify({ destination_id: destinationId }),
+    }),
+  decide: (nodeId: string, action: string, facilityId: string | null) =>
+    request<{ logged: number }>(`/api/nodes/${encodeURIComponent(nodeId)}/decisions`, {
+      method: "POST",
+      body: JSON.stringify({ action, facility_id: facilityId }),
     }),
   products: () => request<Product[]>("/api/products"),
   facilities: () => request<Facility[]>("/api/facilities"),

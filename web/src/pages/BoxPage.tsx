@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router";
 
 import { Custody } from "../components/Custody";
+import { Dispatch } from "../components/Dispatch";
 import { Environment } from "../components/Environment";
 import { ForecastCard } from "../components/Forecast";
 import { SparkIcon } from "../components/Icons";
@@ -102,6 +103,11 @@ export default function BoxPage() {
       {report.current_node_id && (
         <Card title="Carrier forecast" aside={report.current_node_id}>
           <ForecastCard nodeId={report.current_node_id} boxId={report.box.id} />
+        </Card>
+      )}
+      {report.current_node_id && (
+        <Card title="What should the carrier do?" aside="location agent">
+          <Dispatch nodeId={report.current_node_id} />
         </Card>
       )}
       {report.product.kind === "vaccine" && (
