@@ -5,11 +5,12 @@ import { Counterfactual } from "../components/Counterfactual";
 import { Custody } from "../components/Custody";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { forecastLine } from "../components/Forecast";
-import { ChevronRightIcon, ScanIcon, SparkIcon, XIcon } from "../components/Icons";
+import { ChevronRightIcon, ScanIcon, XIcon } from "../components/Icons";
 import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
 import { StageReset } from "../components/StageReset";
 import { TripChart } from "../components/TripChart";
+import { TripConditions } from "../components/TripConditions";
 import { Numbers, Reasons, VerdictHero } from "../components/Verdict";
 import { VvmCheck } from "../components/VvmCheck";
 import { api } from "../lib/api";
@@ -18,7 +19,7 @@ import { time } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
-import type { CarrierForecast, Explanation, NodeSummary, Report } from "../types";
+import type { CarrierForecast, NodeSummary, Report } from "../types";
 
 function cached(id: string): { report: Report; at: number } | null {
   try {
@@ -189,6 +190,10 @@ export default function BoxPage() {
               </Link>
             )}
 
+            <ErrorBoundary label="The trip conditions">
+              <TripConditions report={report} />
+            </ErrorBoundary>
+
             <SectionTitle>More detail</SectionTitle>
             <Details>
               <Detail first title="Temperature over the trip">
@@ -208,11 +213,6 @@ export default function BoxPage() {
               <Detail title="Same trip, other products">
                 <ErrorBoundary label="The comparison">
                   <Counterfactual boxId={report.box.id} />
-                </ErrorBoundary>
-              </Detail>
-              <Detail title="Written report">
-                <ErrorBoundary label="The report">
-                  <WorkerReport boxId={report.box.id} verdict={report.verdict} />
                 </ErrorBoundary>
               </Detail>
               {report.box.id.startsWith("BOX-9") && (
@@ -283,65 +283,6 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
         </div>
         {children}
       </section>
-    </div>
-  );
-}
-
-/** Grok's plain-language write-up, requested only when someone opens it. */
-function WorkerReport({ boxId, verdict }: { boxId: string; verdict: Report["verdict"] }) {
-  const [data, setData] = useState<Explanation | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const seq = useRef(0);
-
-  const run = useCallback(() => {
-    const mine = ++seq.current;
-    setLoading(true);
-    api
-      .explain(boxId)
-      .then((d) => {
-        if (mine === seq.current) {
-          setData(d);
-          setFailed(false);
-        }
-      })
-      .catch(() => mine === seq.current && setFailed(true))
-      .finally(() => mine === seq.current && setLoading(false));
-  }, [boxId]);
-
-  useEffect(() => {
-    run();
-    return () => {
-      seq.current++;
-    };
-  }, [run, verdict]);
-
-  if (!data) {
-    return loading ? (
-      <div className="space-y-2" aria-busy="true">
-        <div className="h-3 w-full animate-pulse rounded bg-neutral-800" />
-        <div className="h-3 w-5/6 animate-pulse rounded bg-neutral-800" />
-      </div>
-    ) : (
-      <p className="m-0 text-sm text-neutral-400">Report unavailable right now.</p>
-    );
-  }
-  const source = data.source === "grok" ? "Written by Grok" : "Written from a template (Grok didn't answer)";
-  const places = data.places_source === "gemini" ? "places named by Gemini" : "places shown as coordinates";
-  return (
-    <div className={loading ? "opacity-60" : ""}>
-      {data.text.split(/\n\s*\n/).map((para, i) => (
-        <p key={i} className="m-0 mb-3 [text-wrap:pretty] last:mb-0">
-          {para}
-        </p>
-      ))}
-      <p className="ui-caption m-0 mt-3 flex flex-wrap items-center gap-1">
-        <SparkIcon size={12} /> {source} · {places} · the verdict comes from the rule engine
-        <button onClick={run} disabled={loading} className="ml-auto !min-h-0 font-bold text-accent-300 underline-offset-2 hover:underline disabled:opacity-50">
-          {loading ? "Writing…" : "Refresh"}
-        </button>
-      </p>
-      {failed && <p className="ui-caption m-0 mt-1">Couldn't refresh; showing the last report.</p>}
     </div>
   );
 }
