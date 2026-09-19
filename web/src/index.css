@@ -73,7 +73,7 @@
 
 /* ---- Tokens: the light theme. */
 :root,
-[data-theme="light"] {
+[data-theme] {
   /* The accent, and the shades it needs for text and tints. */
   --accent: #35d0c3;
   --accent-deep: #0b7a73;
@@ -270,6 +270,53 @@
   --shadow-lift: var(--shadow-lift);
   --ease-out: var(--ease-out);
   --ease-spring: var(--ease-spring);
+}
+
+/*
+ * A section can carry its own [data-theme]: the landing page art-directs its
+ * chapters light or dark while the page around them stays the other way.
+ * Tailwind's --color-* names above are aliases, and a browser resolves an
+ * alias on the element that declares it, so utilities inside such a section
+ * would paint with the page's colours instead of the section's: a white pill
+ * with white text on a dark chapter. Declaring them again here resolves them
+ * against the section's own tokens.
+ */
+[data-theme] {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-fill: var(--fill);
+  --color-fill-hover: var(--fill-hover);
+  --color-text: var(--text);
+  --color-text-2: var(--text-2);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-divider: var(--border);
+
+  --color-ink: var(--text);
+  --color-glacier: var(--accent);
+  --color-accent: var(--accent);
+  --color-accent-100: var(--accent-tint);
+  --color-accent-200: var(--accent-tint-strong);
+  --color-accent-300: var(--text-accent);
+  --color-accent-400: var(--text-accent);
+  --color-accent-500: var(--accent);
+  --color-accent-600: var(--accent-deep);
+  --color-accent-700: var(--accent-deep);
+  --color-accent-800: var(--border-strong);
+  --color-accent-900: var(--quiet);
+
+  --color-neutral-100: var(--text);
+  --color-neutral-200: var(--text);
+  --color-neutral-300: var(--text-2);
+  --color-neutral-400: var(--text-muted);
+  --color-neutral-500: var(--text-muted);
+  --color-neutral-600: var(--text-faint);
+  --color-neutral-700: var(--border-strong);
+  --color-neutral-800: var(--track);
+  --color-neutral-900: var(--quiet);
 }
 
 /* ---- Element defaults sit in the base layer, so any utility class overrides them. */
