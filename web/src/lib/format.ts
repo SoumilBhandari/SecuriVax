@@ -6,12 +6,20 @@ export const temp = (c: number | null | undefined) => (c == null ? "–" : `${c.
 
 export const humidity = (rh: number | null | undefined) => (rh == null ? "–" : `${Math.round(rh)}%`);
 
+/**
+ * One time format everywhere: the phone's own time zone, labelled, with the
+ * date once it's more than a day away (a supervisor in Baltimore and a nurse
+ * in Kano both read their own clock, and know which one it is).
+ */
 export function time(ts: number | null | undefined): string {
   if (!ts) return "–";
-  return new Date(ts * 1000).toLocaleString(undefined, {
-    weekday: "short",
+  const d = new Date(ts * 1000);
+  const far = Math.abs(Date.now() - d.getTime()) > 86400e3;
+  return d.toLocaleString(undefined, {
+    ...(far ? { day: "numeric", month: "short" } : { weekday: "short" }),
     hour: "2-digit",
     minute: "2-digit",
+    timeZoneName: "short",
   });
 }
 
@@ -49,39 +57,18 @@ export function placeName(
   return places[placeKey(lat, lon)] ?? `${lat.toFixed(3)}, ${lon.toFixed(3)}`;
 }
 
-export const VERDICT_STYLE: Record<Verdict, { card: string; chip: string; bar: string; label: string }> = {
-  USE: {
-    card: "bg-emerald-50 border-emerald-300 text-emerald-950",
-    chip: "bg-emerald-100 text-emerald-800 ring-emerald-300",
-    bar: "bg-emerald-500",
-    label: "Use",
-  },
-  QUARANTINE: {
-    card: "bg-amber-50 border-amber-300 text-amber-950",
-    chip: "bg-amber-100 text-amber-900 ring-amber-300",
-    bar: "bg-amber-500",
-    label: "Quarantine",
-  },
-  DISCARD: {
-    card: "bg-red-50 border-red-300 text-red-950",
-    chip: "bg-red-100 text-red-800 ring-red-300",
-    bar: "bg-red-500",
-    label: "Discard",
-  },
+/** Solid fills: readable in sunlight, where pale tints all look white. */
+export const VERDICT_STYLE: Record<Verdict, { card: string; chip: string; bar: string; label: string; text: string }> = {
+  USE: { card: "bg-ok text-white", chip: "bg-emerald-100 text-emerald-900 ring-emerald-300", bar: "bg-ok", label: "USE", text: "text-ok" },
+  USE_FIRST: { card: "bg-[#f4b942] text-ink", chip: "bg-amber-100 text-amber-900 ring-amber-300", bar: "bg-[#f4b942]", label: "USE FIRST", text: "text-warn" },
+  QUARANTINE: { card: "bg-hot text-white", chip: "bg-orange-100 text-orange-900 ring-orange-300", bar: "bg-hot", label: "QUARANTINE", text: "text-hot" },
+  DISCARD: { card: "bg-bad text-white", chip: "bg-red-100 text-red-900 ring-red-300", bar: "bg-bad", label: "DISCARD", text: "text-bad" },
 };
 
-export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE: 1, USE: 2 };
+export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE: 1, USE_FIRST: 2, USE: 3 };
 
-/** Clock time in East Africa Time, which the district schedules run on. */
-export function eat(ts: number | null | undefined): string {
-  if (!ts) return "–";
-  return new Date((ts + 3 * 3600) * 1000).toLocaleString(undefined, {
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
-}
+/** Kept for older call sites: same as time(). */
+export const eat = time;
 
 export const RISK_STYLE: Record<string, string> = {
   extreme: "bg-red-100 text-red-800 ring-red-300",

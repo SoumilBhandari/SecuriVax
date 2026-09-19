@@ -31,6 +31,7 @@ export function VvmCheck({
   const [result, setResult] = useState<VvmResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cameraApp = useRef<HTMLInputElement>(null);
 
   const submit = (image: string) => {
     setBusy(true);
@@ -45,10 +46,21 @@ export function VvmCheck({
       });
   };
 
-  const fromFile = (file: File) => {
+  const fromFile = (input: HTMLInputElement) => {
+    const file = input.files?.[0];
+    input.value = ""; // so picking the same photo again still fires
+    if (!file) return;
+    const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => submit(cropCenter(img, img.naturalWidth, img.naturalHeight));
-    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      submit(cropCenter(img, img.naturalWidth, img.naturalHeight));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError("That photo couldn't be opened. Try a JPEG or PNG.");
+    };
+    img.src = url;
   };
 
   const confirm = (stage?: number) => {
@@ -79,7 +91,14 @@ export function VvmCheck({
       )}
 
       {camera ? (
-        <Camera onCapture={submit} onCancel={() => setCamera(false)} onError={() => { setCamera(false); fileRef.current?.click(); }} />
+        <Camera
+          onCapture={submit}
+          onCancel={() => setCamera(false)}
+          onError={() => {
+            setCamera(false);
+            setError("Camera not available here. Use \"Take a photo\" instead.");
+          }}
+        />
       ) : !result ? (
         <div className="flex gap-2">
           <button
@@ -90,6 +109,13 @@ export function VvmCheck({
             {busy ? "Reading…" : "Check the VVM label"}
           </button>
           <button
+            onClick={() => cameraApp.current?.click()}
+            disabled={busy}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
+          >
+            Take a photo
+          </button>
+          <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700"
@@ -98,14 +124,8 @@ export function VvmCheck({
           </button>
         </div>
       ) : null}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => e.target.files?.[0] && fromFile(e.target.files[0])}
-      />
+      <input ref={cameraApp} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => fromFile(e.target)} />
+      <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => fromFile(e.target)} />
       {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
       {result && <Result result={result} busy={busy} onConfirm={confirm} onRetry={() => setResult(null)} />}
     </div>
@@ -210,20 +230,30 @@ function Camera({ onCapture, onCancel, onError }: { onCapture: (img: string) => 
   const failed = useRef(onError);
   failed.current = onError;
 
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     let stream: MediaStream | null = null;
+    let cancelled = false;
     if (!navigator.mediaDevices) {
-      failed.current(); // no camera API (e.g. plain http): fall back to the file picker
+      failed.current(); // no camera API (e.g. plain http): fall back to the photo picker
       return;
     }
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 } }, audio: false })
       .then((s) => {
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop()); // cancelled while the prompt was up
+          return;
+        }
         stream = s;
         if (video.current) video.current.srcObject = s;
       })
       .catch(() => failed.current());
-    return () => stream?.getTracks().forEach((t) => t.stop());
+    return () => {
+      cancelled = true;
+      stream?.getTracks().forEach((t) => t.stop());
+    };
   }, []);
 
   const capture = () => {
@@ -235,15 +265,15 @@ function Camera({ onCapture, onCancel, onError }: { onCapture: (img: string) => 
   return (
     <div>
       <div className="relative overflow-hidden rounded-xl bg-black">
-        <video ref={video} autoPlay playsInline muted className="block w-full" />
+        <video ref={video} autoPlay playsInline muted className="block w-full" onLoadedMetadata={() => setReady(true)} />
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
           <div className="aspect-square w-[55%] rounded-full border-4 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
         </div>
       </div>
       <p className="mt-1 text-center text-xs text-slate-500">Fill the circle with the VVM, avoid glare, hold steady.</p>
       <div className="mt-2 flex gap-2">
-        <button onClick={capture} className="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-          Take photo
+        <button onClick={capture} disabled={!ready} className="flex-1 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+          {ready ? "Take photo" : "Starting camera…"}
         </button>
         <button onClick={onCancel} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700">
           Cancel

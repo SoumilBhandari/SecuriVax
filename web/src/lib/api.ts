@@ -3,8 +3,10 @@ import type {
   BoxSummary,
   CarrierForecast,
   CarrierPerformance,
+  CounterfactualRow,
   Explanation,
   Facility,
+  FleetSummary,
   Impact,
   NodeDetail,
   NodeSummary,
@@ -79,6 +81,8 @@ async function request<T>(path: string, init?: RequestInit, retried = false): Pr
 
 export const api = {
   boxes: () => request<BoxSummary[]>("/api/boxes"),
+  fleet: () => request<FleetSummary>("/api/boxes/fleet/summary"),
+  counterfactual: (id: string) => request<CounterfactualRow[]>(`/api/boxes/${encodeURIComponent(id)}/counterfactual`),
   report: (id: string) => request<Report>(`/api/boxes/${encodeURIComponent(id)}/report`),
   explain: (id: string) =>
     request<Explanation>(`/api/boxes/${encodeURIComponent(id)}/explain`, { method: "POST" }),

@@ -1,6 +1,6 @@
 // Mirrors the JSON returned by the FastAPI backend.
 
-export type Verdict = "USE" | "QUARANTINE" | "DISCARD";
+export type Verdict = "USE" | "USE_FIRST" | "QUARANTINE" | "DISCARD";
 export type Severity = "discard" | "quarantine" | "advisory" | "ok";
 export type PointStatus = "ok" | "heat" | "freeze";
 
@@ -42,6 +42,7 @@ export interface SeriesPoint {
   ts: number;
   temp_c: number;
   rh: number | null;
+  budget: number; // box-level cumulative budget at this point
 }
 
 export type EnvCode = "PROTECTED" | "TRACKING_AMBIENT" | "HEAT_SOURCE" | "FROZEN_PACKS" | "CALM" | "NO_DATA";
@@ -106,6 +107,8 @@ export interface Box {
   quantity: number;
   initial_budget_used: number;
   created_at: number;
+  origin: string | null;
+  destination: string | null;
 }
 
 export interface Report {
@@ -130,11 +133,43 @@ export interface Report {
   places: Record<string, string>;
   confidence: Confidence;
   label_check: LabelCheck | null;
+  mkt_c: number | null;
+  peak_c: number | null;
+  peak_rh: number | null;
+  hours_out_of_range: number;
+  logger: LoggerView;
+}
+
+export interface LoggerView {
+  alarm: boolean;
+  alarms: string[];
+  hours_out_of_range: number;
+  says: string;
+  outcome: "SAVED" | "CAUGHT" | "AGREE";
+  note: string;
+}
+
+export interface FleetSummary {
+  boxes: number;
+  counts: Record<Verdict, number>;
+  doses_tracked: number;
+  saved_from_needless_discard: number;
+  silent_failures_caught: number;
+}
+
+export interface CounterfactualRow {
+  product_id: string;
+  name: string;
+  stability_ref: string;
+  budget_used: number;
+  verdict: Verdict;
+  this_box: boolean;
 }
 
 export interface Confidence {
   confidence: number;
   p_use: number;
+  p_use_first: number;
   p_quarantine: number;
   p_discard: number;
   budget_p10: number;
@@ -215,6 +250,9 @@ export interface BoxSummary extends Box {
   current_node_id: string | null;
   verdict: Verdict;
   budget_used: number;
+  mkt_c: number | null;
+  logger_outcome: LoggerView["outcome"] | null;
+  status: "In transit" | "Delivered" | "Not dispatched";
 }
 
 export interface LatestReading {

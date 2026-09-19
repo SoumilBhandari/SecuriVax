@@ -1,13 +1,67 @@
 @import "tailwindcss";
 
+/* Design tokens from the team's reference design (light theme values). */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Bricolage Grotesque", "DM Sans", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-ground: #f4f7fa;
+  --color-ink: #0e1a28;
+  --color-muted: #4f6072;
+  --color-faint: #93a3b5;
+  --color-line: #dbe3eb;
+  --color-cold: #1b6fdc;
+  --color-ok: #0d8a5f;
+  --color-warn: #a86400;
+  --color-hot: #d9420f;
+  --color-bad: #c62828;
 }
 
 html {
   -webkit-tap-highlight-color: transparent;
 }
 
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
 .leaflet-container {
   font: inherit;
+}
+
+/* Every tappable thing is at least 44px tall; form text is 16px so iOS doesn't zoom. */
+button,
+select,
+input:not([type="range"]),
+a.button {
+  min-height: 44px;
+}
+
+select,
+input,
+textarea {
+  font-size: 16px;
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--color-cold);
+  outline-offset: 2px;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -1,39 +1,48 @@
 import "./index.css";
 
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, Route, Routes } from "react-router";
 
-import { Layout } from "./components/Layout";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { Layout, Spinner } from "./components/Layout";
 import BoxPage from "./pages/BoxPage";
-import ClimatePage from "./pages/ClimatePage";
 import HomePage from "./pages/HomePage";
-import ImpactPage from "./pages/ImpactPage";
 import NodePage from "./pages/NodePage";
-import PlanPage from "./pages/PlanPage";
-import TagsPage from "./pages/TagsPage";
+
+// Pages off the tap-a-sticker path load on demand (they pull in the map).
+const ClimatePage = lazy(() => import("./pages/ClimatePage"));
+const PlanPage = lazy(() => import("./pages/PlanPage"));
+const ImpactPage = lazy(() => import("./pages/ImpactPage"));
+const TagsPage = lazy(() => import("./pages/TagsPage"));
 
 function NotFound() {
   return (
     <Layout back>
-      <p className="py-16 text-center text-slate-600">
+      <p className="py-16 text-center text-muted">
         Nothing here. <Link to="/" className="underline">Go home</Link>
       </p>
     </Layout>
   );
 }
 
+const page = (el: ReactNode) => (
+  <ErrorBoundary page>
+    <Suspense fallback={<Spinner />}>{el}</Suspense>
+  </ErrorBoundary>
+);
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/box/:id" element={<BoxPage />} />
-        <Route path="/node/:id" element={<NodePage />} />
-        <Route path="/tags" element={<TagsPage />} />
-        <Route path="/climate" element={<ClimatePage />} />
-        <Route path="/plan" element={<PlanPage />} />
-        <Route path="/impact" element={<ImpactPage />} />
+        <Route path="/" element={page(<HomePage />)} />
+        <Route path="/box/:id" element={page(<BoxPage />)} />
+        <Route path="/node/:id" element={page(<NodePage />)} />
+        <Route path="/tags" element={page(<TagsPage />)} />
+        <Route path="/climate" element={page(<ClimatePage />)} />
+        <Route path="/plan" element={page(<PlanPage />)} />
+        <Route path="/impact" element={page(<ImpactPage />)} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

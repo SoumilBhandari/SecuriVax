@@ -13,7 +13,7 @@ export function Layout({ back, children }: { back?: boolean; children: ReactNode
           <img src="/icon.svg" alt="" className="h-7 w-7" />
           Vialtality
         </Link>
-        <nav className="flex gap-4 text-sm text-slate-500">
+        <nav className="-mr-2 flex text-sm text-muted [&_a]:flex [&_a]:min-h-11 [&_a]:items-center [&_a]:px-2">
           <Link to="/climate" className="hover:text-slate-800">
             Climate
           </Link>
@@ -53,12 +53,12 @@ function ArmBanner() {
   const left = Math.max(0, Math.ceil((ARM_TTL_MS - (Date.now() - arm.at)) / 1000));
   const next = arm.kind === "node" ? `a box to load it into ${arm.id}` : `a carrier to load ${arm.id} into it`;
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white">
+    <div role="status" className="mb-4 flex items-center gap-3 rounded-xl bg-slate-900 px-4 py-3 text-sm text-white">
       <TapIcon className="shrink-0 animate-pulse text-sky-300" />
       <p className="flex-1">
         Now tap {next}. <span className="text-slate-400">{left}s</span>
       </p>
-      <button onClick={clearArm} aria-label="Cancel" className="rounded p-1 text-slate-400 hover:text-white">
+      <button onClick={clearArm} aria-label="Cancel the pending link" className="flex h-11 w-11 items-center justify-center rounded text-slate-300 hover:text-white">
         <XIcon size={16} />
       </button>
     </div>
@@ -73,7 +73,7 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
   }, [message, onDone]);
   if (!message) return null;
   return (
-    <div className="fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[1000] mx-auto max-w-md rounded-xl bg-slate-900 px-4 py-3 text-center text-sm text-white shadow-lg">
+    <div role="status" className={`fixed inset-x-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[1000] mx-auto max-w-md rounded-xl px-4 py-3 text-center text-sm text-white shadow-lg ${message.startsWith("Couldn't") ? "bg-bad" : "bg-slate-900"}`}>
       {message}
     </div>
   );
@@ -103,5 +103,5 @@ export function Spinner({ label = "Loading" }: { label?: string }) {
 }
 
 export function ErrorNote({ error }: { error: string }) {
-  return <p className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>;
+  return <p role="alert" className="rounded-xl bg-red-50 p-4 text-sm text-red-800">{error}</p>;
 }

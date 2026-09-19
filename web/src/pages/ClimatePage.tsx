@@ -35,7 +35,7 @@ export default function ClimatePage() {
         <>
           <div className="mb-4 rounded-2xl bg-slate-900 p-4 text-white">
             <p className="text-lg font-semibold leading-snug">{stores.summary}</p>
-            <p className="mt-1 text-xs text-slate-400">{weatherSource(stores.source)} · updated {eat(stores.generated_at)} EAT</p>
+            <p className="mt-1 text-xs text-slate-400">{weatherSource(stores.source)} · updated {eat(stores.generated_at)}</p>
           </div>
           <Card title="Stores and clinics at risk" aside="next 72 h">
             <RiskMap sites={stores.facilities} />
@@ -75,9 +75,9 @@ function RiskMap({ sites }: { sites: StoreRisk[] }) {
   const bounds = latLngBounds(sites.map((s) => [s.lat, s.lon] as [number, number])).pad(0.2);
   return (
     <div className="h-56 overflow-hidden rounded-xl border border-slate-200">
-      <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full">
+      <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full">
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {sites.map((s) => (
@@ -194,4 +194,9 @@ function CarrierRow({ carrier }: { carrier: CarrierPerformance }) {
       <p className="mt-1 text-sm text-slate-700">{carrier.note}</p>
     </li>
   );
+}
+
+/** On phones a one-finger drag should scroll the page, not pan the map. */
+function coarsePointer(): boolean {
+  return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 }

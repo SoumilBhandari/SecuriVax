@@ -2,59 +2,75 @@ import type { ReactNode } from "react";
 
 import { demoRate, hours, humidity, pct, temp, time, VERDICT_STYLE } from "../lib/format";
 import type { Reason, Report, Verdict } from "../types";
-import { AlertIcon, CheckIcon, DropIcon, FlameIcon, OfflineIcon, SnowIcon, ThermoIcon } from "./Icons";
+import { AlertIcon, CheckIcon, DropIcon, FlameIcon, OfflineIcon, SnowIcon } from "./Icons";
 
 export function VerdictChip({ verdict }: { verdict: Verdict }) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${VERDICT_STYLE[verdict].chip}`}
-    >
-      {verdict}
+    <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide ring-1 ${VERDICT_STYLE[verdict].chip}`}>
+      {VERDICT_STYLE[verdict].label}
     </span>
   );
 }
 
-export function VerdictCard({ report }: { report: Report }) {
+/** The one thing a nurse needs: the verdict, what to do now, and how sure we are. */
+export function VerdictCard({ report, stale }: { report: Report; stale: string | null }) {
   const style = VERDICT_STYLE[report.verdict];
+  const where = report.current_node_id ? "In transit" : "Delivered";
+  const lead = report.reasons.find((r) => r.severity !== "ok" && r.severity !== "advisory") ?? report.reasons[0];
   return (
-    <section className={`mb-4 rounded-2xl border-2 p-5 ${style.card}`} aria-live="polite">
-      <p className="text-xs font-medium uppercase tracking-wider opacity-70">Verdict</p>
-      <p className="mt-1 text-4xl font-bold tracking-tight">{report.verdict}</p>
-      <p className="mt-2 text-base leading-snug">{report.action}</p>
-      <p className="mt-2 text-xs opacity-80">
-        {pct(report.confidence.confidence)} sure · budget {pct(report.confidence.budget_p10)}–{pct(report.confidence.budget_p90)} across{" "}
-        {report.confidence.samples} what-ifs (sensor bias, batch variation)
+    <section className={`mb-4 rounded-2xl p-5 ${style.card}`}>
+      <p className="text-xs font-bold uppercase tracking-wider opacity-80">
+        Verdict at point of use · {where}
       </p>
+      <h2 className="mt-1 font-display text-5xl font-bold tracking-tight">{style.label}</h2>
+      <span className="sr-only" role="status" aria-live="polite">
+        Verdict: {style.label}. {report.action}
+      </span>
+      {lead && <p className="mt-2 text-[15px] leading-snug opacity-95">{lead.text}</p>}
+      <div className="mt-4 rounded-xl bg-black/15 p-3">
+        <p className="text-[11px] font-bold uppercase tracking-wider opacity-80">Next 60 seconds</p>
+        <p className="mt-0.5 text-base font-semibold leading-snug">{report.action}</p>
+      </div>
+      <div className="mt-3 flex items-center gap-3 text-sm">
+        <span className="shrink-0">Confidence {pct(report.confidence.confidence)}</span>
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/20">
+          <div className="h-full bg-current" style={{ width: `${report.confidence.confidence * 100}%` }} />
+        </div>
+      </div>
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
-        {report.confidence.borderline && (
-          <a href="#vvm" className="rounded-full bg-amber-200 px-2 py-0.5 font-medium text-amber-900">
+        {report.confidence.borderline && report.product.kind === "vaccine" && (
+          <a href="#vvm" className="rounded-full bg-white/90 px-2.5 py-1 font-semibold text-ink">
             Borderline: check the VVM label
           </a>
         )}
-        {report.provisional && (
-          <span className="rounded-full bg-white/70 px-2 py-0.5">
-            Provisional: data through {time(report.data_through)}
+        {stale && <span className="rounded-full bg-white/90 px-2.5 py-1 font-semibold text-bad">{stale}</span>}
+        {!stale && report.provisional && (
+          <span className="rounded-full bg-white/90 px-2.5 py-1 text-ink">
+            Carrier quiet since {time(report.data_through)}: this may change
           </span>
         )}
         {report.demo_time && (
-          <span className="rounded-full bg-slate-900 px-2 py-0.5 text-white">
-            Demo time: {demoRate(report.time_scale)}
-          </span>
+          <span className="rounded-full bg-ink px-2.5 py-1 text-white">Demo time: {demoRate(report.time_scale)}</span>
         )}
       </div>
+      <p className="mt-3 text-[11px] opacity-75">Decision support with a human in the loop. Not a clinical determination.</p>
     </section>
   );
 }
 
+/** Stability budget with the design's markers, plus the numbers behind it. */
 export function BudgetCard({ report }: { report: Report }) {
   const used = Math.min(report.budget_used, 1);
-  const initial = Math.min(report.initial_budget_used, used);
   const style = VERDICT_STYLE[report.verdict];
+  const fresh = report.current_node_id && report.data_through && report.computed_at - report.data_through < 600;
   return (
-    <section className="mb-4 rounded-2xl border border-slate-200 bg-white p-4">
+    <section className="mb-4 rounded-2xl border border-line bg-white p-4">
       <div className="flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-slate-900">Heat budget used</h2>
-        <span className="text-2xl font-bold tabular-nums text-slate-900">{pct(report.budget_used)}</span>
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted">Stability budget consumed</h2>
+        <span className="font-display text-4xl font-bold tabular-nums">
+          {Math.round(report.budget_used * 100)}
+          <span className="text-lg text-muted">%</span>
+        </span>
       </div>
       <div
         className="relative mt-2 h-3 overflow-hidden rounded-full bg-slate-100"
@@ -62,58 +78,56 @@ export function BudgetCard({ report }: { report: Report }) {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(used * 100)}
-        aria-label="Heat budget used"
+        aria-label="Stability budget consumed"
       >
         <div className={`absolute inset-y-0 left-0 ${style.bar} transition-all duration-700`} style={{ width: `${used * 100}%` }} />
-        <div className="absolute inset-y-0 left-0 bg-slate-400/60" style={{ width: `${initial * 100}%` }} />
-        <div className="absolute inset-y-0 w-px bg-slate-900/40" style={{ left: "75%" }} title="Quarantine threshold" />
+        {[40, 75].map((m) => (
+          <div key={m} className="absolute inset-y-0 w-0.5 bg-ink/40" style={{ left: `${m}%` }} />
+        ))}
       </div>
-      <div className="mt-1 flex justify-between text-xs text-slate-500">
-        <span>
-          <span className="mr-1 inline-block h-2 w-2 rounded-sm bg-slate-400/80" />
-          {pct(report.initial_budget_used)} before our monitoring
-        </span>
-        <span>{report.product.stability_ref}</span>
+      <div className="relative mt-1 h-4 text-[11px] text-muted">
+        <span className="absolute left-0">0</span>
+        <span className="absolute -translate-x-1/2" style={{ left: "40%" }}>40 use first</span>
+        <span className="absolute -translate-x-1/2" style={{ left: "75%" }}>75 quarantine</span>
+        <span className="absolute right-0">100</span>
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-        <Stat
-          icon={<ThermoIcon size={16} />}
-          label={report.current_node_id ? "Now" : "Last reading"}
-          value={temp(report.current_temp_c)}
-        />
-        <Stat icon={<DropIcon size={16} />} label="Humidity" value={humidity(report.current_rh)} />
-        <Stat
-          label={report.current_temp_c == null ? "Time left" : "Left at this temp"}
-          value={report.budget_remaining <= 0 ? "none" : hours(report.hours_left_at_current)}
-        />
-      </div>
+      <p className="mt-2 text-xs text-muted">
+        {pct(report.initial_budget_used)} was used before our monitoring · {report.product.stability_ref}
+      </p>
+      <dl className="mt-3 grid grid-cols-2 gap-2">
+        <Stat label="Mean kinetic temp" value={temp(report.mkt_c)} />
+        <Stat label="Peak reading" value={temp(report.peak_c)} />
+        <Stat label="Hours out of range" value={`${Math.round(report.hours_out_of_range)} h`} />
+        <Stat label="Peak humidity" value={humidity(report.peak_rh)} />
+        <Stat label={fresh ? "Now" : `At ${time(report.data_through)}`} value={temp(report.current_temp_c)} />
+        <Stat label="Left at that temp" value={report.budget_remaining <= 0 ? "none" : hours(report.hours_left_at_current)} />
+      </dl>
     </section>
   );
 }
 
-function Stat({ icon, label, value }: { icon?: ReactNode; label: string; value: string }) {
+function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-slate-50 px-2 py-2">
-      <p className="flex items-center justify-center gap-1 text-[11px] text-slate-500">
-        {icon}
-        {label}
-      </p>
-      <p className="mt-0.5 font-semibold tabular-nums text-slate-900">{value}</p>
+    <div className="rounded-xl bg-slate-50 px-3 py-2">
+      <dt className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="mt-0.5 font-display text-xl font-bold tabular-nums">{value}</dd>
     </div>
   );
 }
 
 const REASON_ICON: Record<string, ReactNode> = {
-  FREEZE: <SnowIcon className="text-violet-600" />,
-  FREEZE_TOLERATED: <SnowIcon className="text-slate-400" />,
-  HEAT_ALARM: <FlameIcon className="text-red-600" />,
-  HEAT_EXCURSION: <FlameIcon className="text-orange-500" />,
-  BUDGET_EXHAUSTED: <FlameIcon className="text-red-600" />,
-  BUDGET_LOW: <AlertIcon className="text-amber-600" />,
-  HUMIDITY: <DropIcon className="text-sky-600" />,
-  HISTORY_GAP: <OfflineIcon className="text-amber-600" />,
-  NODE_OFFLINE: <OfflineIcon className="text-amber-600" />,
-  ALL_CLEAR: <CheckIcon className="text-emerald-600" />,
+  FREEZE: <SnowIcon className="text-violet-700" />,
+  FREEZE_POSSIBLE: <SnowIcon className="text-violet-700" />,
+  FREEZE_TOLERATED: <SnowIcon className="text-slate-500" />,
+  PACKS_TOO_COLD: <SnowIcon className="text-violet-700" />,
+  HEAT_ALARM: <FlameIcon className="text-bad" />,
+  HEAT_EXCURSION: <FlameIcon className="text-hot" />,
+  BUDGET_EXHAUSTED: <FlameIcon className="text-bad" />,
+  BUDGET_LOW: <AlertIcon className="text-warn" />,
+  HUMIDITY: <DropIcon className="text-cold" />,
+  HISTORY_GAP: <OfflineIcon className="text-warn" />,
+  NODE_OFFLINE: <OfflineIcon className="text-warn" />,
+  ALL_CLEAR: <CheckIcon className="text-ok" />,
 };
 
 const SEVERITY_LABEL: Record<Reason["severity"], string> = {
@@ -128,11 +142,11 @@ export function Reasons({ reasons }: { reasons: Reason[] }) {
     <ul className="space-y-3">
       {reasons.map((r, i) => (
         <li key={i} className="flex gap-3">
-          <span className="mt-0.5 shrink-0">{REASON_ICON[r.code] ?? <AlertIcon className="text-slate-400" />}</span>
+          <span className="mt-0.5 shrink-0">{REASON_ICON[r.code] ?? <AlertIcon className="text-muted" />}</span>
           <div>
-            <p className="text-sm leading-snug text-slate-800">{r.text}</p>
+            <p className="text-sm leading-snug">{r.text}</p>
             {SEVERITY_LABEL[r.severity] && (
-              <p className="mt-0.5 text-[11px] uppercase tracking-wide text-slate-400">{SEVERITY_LABEL[r.severity]}</p>
+              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-muted">{SEVERITY_LABEL[r.severity]}</p>
             )}
           </div>
         </li>

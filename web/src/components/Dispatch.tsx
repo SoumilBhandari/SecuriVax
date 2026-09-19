@@ -23,6 +23,8 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
   const [advice, setAdvice] = useState<AgentAdvice | null>(null);
   const [busy, setBusy] = useState(false);
   const [accepted, setAccepted] = useState<string | null>(null);
+  const [failure, setFailure] = useState<string | null>(null);
+  const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
     api.facilities().then(setFacilities).catch(() => {});
@@ -31,17 +33,23 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
   const ask = () => {
     setBusy(true);
     setAccepted(null);
+    setFailure(null);
     api
       .agent(nodeId, destination || null)
       .then(setAdvice)
-      .catch(() => setAdvice(null))
+      .catch((e: Error) => setFailure(`The agent couldn't answer: ${e.message}`))
       .finally(() => setBusy(false));
   };
 
   const accept = () => {
     if (!advice) return;
     const { action, facility_id } = advice.recommendation;
-    api.decide(nodeId, action, facility_id).then(() => setAccepted(`Logged: ${action.toLowerCase()} for every box inside.`));
+    setAccepting(true);
+    api
+      .decide(nodeId, action, facility_id)
+      .then(() => setAccepted(`Logged: ${action.toLowerCase()} for every box inside.`))
+      .catch((e: Error) => setFailure(`Couldn't log it: ${e.message}`))
+      .finally(() => setAccepting(false));
   };
 
   const rec = advice?.recommendation;
@@ -50,7 +58,10 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
       <div className="flex gap-2">
         <select
           value={destination}
-          onChange={(e) => setDestination(e.target.value)}
+          onChange={(e) => {
+            setDestination(e.target.value);
+            setAdvice(null); // advice was for the old destination
+          }}
           className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
           aria-label="Destination"
         >
@@ -65,6 +76,7 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
           {busy ? "Thinking…" : "Ask"}
         </button>
       </div>
+      {failure && <p role="alert" className="text-sm text-bad">{failure}</p>}
       {rec && (
         <div className={`rounded-xl p-3 ${ACTION_STYLE[rec.action]}`}>
           <p className="text-xs font-semibold tracking-wider">
@@ -80,8 +92,8 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
           {accepted ? (
             <p className="mt-2 text-xs font-medium">{accepted}</p>
           ) : (
-            <button onClick={accept} className="mt-2 rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-slate-900">
-              Accept and log
+            <button onClick={accept} disabled={accepting || rec.action === "UNKNOWN"} className="mt-2 rounded-lg bg-white/80 px-4 text-sm font-semibold text-slate-900 disabled:opacity-50">
+              {accepting ? "Logging…" : "Accept and log"}
             </button>
           )}
         </div>

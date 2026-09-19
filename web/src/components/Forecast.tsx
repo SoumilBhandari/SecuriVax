@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
-
 import { api } from "../lib/api";
-import { eat, fromNow, pct } from "../lib/format";
+import { eat, fromNow, pct, time } from "../lib/format";
+import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast } from "../types";
 
 const W = 340;
@@ -9,40 +8,43 @@ const H = 140;
 const PAD = { l: 30, r: 8, t: 10, b: 20 };
 
 /** The carrier's twin: when it will leave 2–8 °C, and how sure we are. */
-export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string }) {
-  const [data, setData] = useState<CarrierForecast | null>(null);
+export function ForecastCard({ nodeId, boxId, initial }: { nodeId: string; boxId?: string; initial?: CarrierForecast }) {
+  const polled = usePoll(() => api.forecast(nodeId), initial ? null : 60000, [nodeId]);
+  const data = initial ?? polled.data;
 
-  useEffect(() => {
-    const load = () => api.forecast(nodeId).then(setData).catch(() => setData(null));
-    load();
-    const timer = setInterval(load, 60000);
-    return () => clearInterval(timer);
-  }, [nodeId]);
-
-  if (!data) return <p className="py-4 text-center text-sm text-slate-500">Running the forecast…</p>;
+  if (!data && polled.error) return <p className="py-4 text-center text-sm text-muted">Forecast unavailable: {polled.error}</p>;
+  if (!data) return <p className="py-4 text-center text-sm text-muted">Running the forecast…</p>;
   if (!data.available) {
     return <p className="text-sm text-slate-500">{data.reason}</p>;
   }
   const { breach, state, forecast, fit, prior } = data;
+  if (!breach || !state || !forecast || !prior) return <p className="text-sm text-muted">Forecast incomplete.</p>;
   const range = `2–${data.storage_max_c ?? 8} °C`;
   const box = data.boxes?.find((b) => b.box_id === boxId);
-  const likely = breach!.prob >= 0.5;
+  const likely = breach.prob >= 0.5;
+  const already = state.inside_c > (data.storage_max_c ?? 8) || (breach.p50 != null && breach.p50 * 1000 < Date.now());
 
   return (
     <div>
       <div className={`rounded-xl p-3 ${likely ? "bg-orange-50 text-orange-900" : "bg-emerald-50 text-emerald-900"}`}>
-        {likely ? (
+        {already ? (
           <p className="text-sm">
-            <span className="text-base font-semibold">Leaves {range} {fromNow(breach!.p50)}</span>
+            <span className="text-base font-semibold">Already outside {range}</span>
             <br />
-            80% range: {eat(breach!.p10)} to {breach!.p90 ? eat(breach!.p90) : "after the forecast window"} EAT ·{" "}
-            {pct(breach!.prob)} chance within {forecast!.horizon_h} h
+            Inside is {state.inside_c.toFixed(1)} °C now.
+          </p>
+        ) : likely ? (
+          <p className="text-sm">
+            <span className="text-base font-semibold">Leaves {range} {fromNow(breach.p50)}</span>
+            <br />
+            80% range: {eat(breach.p10)} to {breach.p90 ? eat(breach.p90) : "after the forecast window"} ·{" "}
+            {pct(breach.prob)} chance within {forecast.horizon_h} h
           </p>
         ) : (
           <p className="text-sm">
-            <span className="text-base font-semibold">Stays in range for the next {forecast!.horizon_h} h</span>
+            <span className="text-base font-semibold">Stays in range for the next {forecast.horizon_h} h</span>
             <br />
-            {pct(1 - breach!.prob)} of forecast runs keep it at {range}
+            {pct(1 - breach.prob)} of forecast runs keep it at {range}
           </p>
         )}
       </div>
@@ -51,13 +53,13 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
         <div className="rounded-lg bg-slate-50 p-2">
           <dt className="text-slate-500">Ice left</dt>
           <dd className="font-semibold text-slate-800">
-            {state!.ice_left_h[1]} h <span className="font-normal text-slate-500">({state!.ice_left_h[0]}–{state!.ice_left_h[2]})</span>
+            {state.ice_left_h[1]} h <span className="font-normal text-slate-500">({state.ice_left_h[0]}–{state.ice_left_h[2]})</span>
           </dd>
         </div>
         <div className="rounded-lg bg-slate-50 p-2">
           <dt className="text-slate-500">Cold life (learnt)</dt>
           <dd className="font-semibold text-slate-800">
-            {state!.effective_cold_life_h[1]} h <span className="font-normal text-slate-500">vs 20 rated</span>
+            {state.effective_cold_life_h[1]} h <span className="font-normal text-slate-500">vs 20 rated</span>
           </dd>
         </div>
         <div className="rounded-lg bg-slate-50 p-2">
@@ -74,7 +76,7 @@ export function ForecastCard({ nodeId, boxId }: { nodeId: string; boxId?: string
         </p>
       )}
       <p className="mt-2 text-[11px] leading-snug text-slate-400">
-        Particle filter over the carrier's hidden ice and heat leak ({data.readings} readings, prior from {prior!.from}),
+        Particle filter over the carrier's hidden ice and heat leak ({data.readings} readings, prior from {prior.from}),
         rolled forward through {data.weather_source}.
       </p>
     </div>
@@ -108,8 +110,8 @@ function Fan({ data }: { data: CarrierForecast }) {
             {v}°
           </text>
         ))}
-        <text x={PAD.l} y={H - 5} className="fill-slate-400 text-[9px]">
-          now
+        <text x={PAD.l} y={H - 5} className="fill-slate-500 text-[10px]">
+          {time(f.times[0] - 600)}
         </text>
         <text x={W - PAD.r} y={H - 5} textAnchor="end" className="fill-slate-400 text-[9px]">
           +{f.horizon_h} h

@@ -31,9 +31,9 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
   return (
     <div>
       <div className="h-64 overflow-hidden rounded-xl border border-slate-200">
-        <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full" attributionControl>
+        <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
           <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           {segments.map((s) =>
@@ -101,4 +101,11 @@ function SegmentEnds({ seg, places }: { seg: Segment; places: Record<string, str
         ))}
     </>
   );
+}
+
+export default RouteMap;
+
+/** On phones a one-finger drag should scroll the page, not pan the map. */
+function coarsePointer(): boolean {
+  return typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 }

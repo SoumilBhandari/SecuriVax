@@ -132,7 +132,7 @@ function PlanResult({ plan }: { plan: TripPlan }) {
           </div>
         )}
         <p className="mt-3 text-[11px] text-slate-400">
-          {weatherSource(plan.source)} · {plan.assumptions} · times in EAT
+          {weatherSource(plan.source)} · {plan.assumptions}
         </p>
       </Card>
 

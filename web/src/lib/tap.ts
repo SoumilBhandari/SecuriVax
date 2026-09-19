@@ -46,6 +46,6 @@ export function takeTap(): boolean {
   const url = new URL(window.location.href);
   if (url.searchParams.get("tap") !== "1") return false;
   url.searchParams.delete("tap");
-  window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash); // keep the router's state
   return true;
 }
