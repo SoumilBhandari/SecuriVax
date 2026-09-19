@@ -23,6 +23,8 @@ import urllib.request
 
 SAMPLE = re.compile(r"^#(\d+) (-?\d+(?:\.\d+)?) C (nan|-?\d+(?:\.\d+)?)%")
 BOOT = re.compile(r"\bboot (\d+)\b")
+# The boot line naming the temperature sensor, e.g. "temperature and humidity: DHT11 on GPIO 4".
+SENSOR = re.compile(r"^temperature(?: and humidity)?: (DS18B20|SHT31|DHT11|DHT22)\b")
 MAX_PENDING = 5000
 
 
@@ -34,9 +36,17 @@ def parse_sample(line: str) -> dict | None:
     return {"seq": int(m.group(1)), "ts": int(time.time()), "temp_c": float(m.group(2)), "rh": rh}
 
 
-def upload(api: str, node: str, key: str, boot: int, readings: list[dict]) -> int | None:
+def parse_sensor(line: str) -> str | None:
+    m = SENSOR.match(line)
+    return m.group(1).lower() if m else None
+
+
+def upload(api: str, node: str, key: str, boot: int, readings: list[dict], sensor: str | None = None) -> int | None:
     """Send a batch; returns the acked seq, or None if it didn't go through."""
-    body = json.dumps({"node_id": node, "boot_id": boot, "fw_version": "usb-bridge", "readings": readings}).encode()
+    batch = {"node_id": node, "boot_id": boot, "fw_version": "usb-bridge", "readings": readings}
+    if sensor:
+        batch["sensor"] = sensor  # so the server allows for this sensor's error
+    body = json.dumps(batch).encode()
     req = urllib.request.Request(
         f"{api.rstrip('/')}/api/ingest/readings", data=body, method="POST",
         headers={"Content-Type": "application/json", "X-Node-Key": key},
@@ -81,6 +91,7 @@ def main() -> None:
     print(f"bridging {args.port} -> {args.api} as {args.node}")
 
     boot = args.boot
+    sensor = None
     pending: list[dict] = []
     while True:
         raw = port.readline()
@@ -90,6 +101,7 @@ def main() -> None:
         if not line:
             continue
         print(line)
+        sensor = parse_sensor(line) or sensor
         if (m := BOOT.search(line)) and "Vialtality" in line:
             if boot is not None and int(m.group(1)) != boot:
                 pending.clear()  # the board restarted: its sequence starts over
@@ -102,7 +114,7 @@ def main() -> None:
             print("  waiting for the boot line (or pass --boot) before uploading", file=sys.stderr)
             continue
         pending = (pending + [sample])[-MAX_PENDING:]
-        acked = upload(args.api, args.node, key, boot, pending)
+        acked = upload(args.api, args.node, key, boot, pending, sensor)
         if acked is not None:
             pending = [r for r in pending if r["seq"] > acked]
 

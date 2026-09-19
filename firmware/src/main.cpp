@@ -267,6 +267,9 @@ bool sendBatch(const Record *records, size_t n) {
   doc["node_id"] = NODE_ID;
   doc["boot_id"] = boot_id;
   doc["fw_version"] = FW_VERSION;
+  // The server sizes its allowance for calibration error by this.
+  const char *sensor = use_probe ? "ds18b20" : sht_ok ? "sht31" : use_dht ? (DHT_TYPE == DHT11 ? "dht11" : "dht22") : nullptr;
+  if (sensor) doc["sensor"] = sensor;
   doc["battery_v"] = readBatteryMv() / 1000.0;
   // For records we can't date: the server rebuilds their time from this.
   doc["uptime_ms"] = (uint64_t)nowClock() * 1000;

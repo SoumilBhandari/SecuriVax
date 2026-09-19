@@ -29,11 +29,40 @@ RDT_ANCHORS = ((30.0, 730 * DAY), (45.0, 60 * DAY))
 # WHO 30-day temperature recorder alarms.
 FREEZE_THRESHOLD_C = -0.5
 FREEZE_ALARM_MINUTES = 60
-# Guard band for sensor calibration error (SHT31: sigma about 0.2 C). A reading
-# at or below this could be a true -0.5 C with 95% one-sided confidence, so a
-# freeze-sensitive box that sits here for an hour is held for a shake test.
-SENSOR_SIGMA_C = 0.2
-FREEZE_GUARD_C = round(FREEZE_THRESHOLD_C + 1.645 * SENSOR_SIGMA_C, 2)
+
+
+@dataclass(frozen=True)
+class SensorSpec:
+    name: str
+    accuracy_c: float  # the datasheet's ± figure
+    sigma_c: float  # calibration error, one sigma
+
+
+# A node reports which sensor it read with; one that doesn't is taken to be the
+# design's SHT31. The datasheet's ± figure is read as about two sigma.
+SENSORS = {
+    "sht31": SensorSpec("SHT31", 0.2, 0.2),
+    "ds18b20": SensorSpec("DS18B20", 0.5, 0.25),
+    "dht22": SensorSpec("DHT22", 0.5, 0.25),
+    "dht11": SensorSpec("DHT11", 2.0, 1.0),
+}
+DEFAULT_SENSOR = SENSORS["sht31"]
+SENSOR_SIGMA_C = DEFAULT_SENSOR.sigma_c
+
+
+def sensor_spec(sensor: str | None) -> SensorSpec:
+    return SENSORS.get((sensor or "").lower(), DEFAULT_SENSOR)
+
+
+def freeze_guard(sigma_c: float) -> float:
+    """Guard band for sensor calibration error: a reading at or below this could
+    be a true -0.5 C with 95% one-sided confidence, so a freeze-sensitive box that
+    sits here for an hour is held for a shake test. The coarser the sensor, the
+    warmer the guard: a DHT11 (±2 C) can't rule out freezing below about 1 C."""
+    return round(FREEZE_THRESHOLD_C + 1.645 * sigma_c, 2)
+
+
+FREEZE_GUARD_C = freeze_guard(SENSOR_SIGMA_C)
 HEAT_ALARM_C = 8.0
 HEAT_ALARM_MINUTES = 10 * 60
 

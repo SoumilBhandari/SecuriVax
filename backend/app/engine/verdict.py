@@ -19,7 +19,6 @@ from app.engine.history import (
 )
 from app.engine.profiles import (
     FREEZE_ALARM_MINUTES,
-    FREEZE_GUARD_C,
     HEAT_ALARM_C,
     HEAT_ALARM_MINUTES,
     HUMIDITY_ADVISORY_MINUTES,
@@ -204,7 +203,8 @@ def evaluate(
             reasons.append(Reason(
                 "FREEZE_POSSIBLE", "quarantine",
                 f"Sat at {min(x.extreme for x in near):.1f} °C {_how_long(near)} in {r.node_label}: within the "
-                f"sensor's error of the freeze alarm ({FREEZE_GUARD_C:g} °C guard band).",
+                f"{r.sensor} sensor's ±{r.sensor_accuracy_c:g} °C error of the freeze alarm "
+                f"({r.freeze_guard_c:g} °C guard band).",
             ))
             checks.append(profile.freeze_check)
         packs = _packs_too_cold(seg)

@@ -4,7 +4,7 @@ import time
 import pytest
 
 from app.routers import live
-from scripts.serial_bridge import parse_sample
+from scripts.serial_bridge import parse_sample, parse_sensor
 
 KEY = {"X-Node-Key": "dev-node-key"}
 
@@ -83,3 +83,10 @@ def test_bridge_reads_the_firmware_serial_line():
     assert (s["seq"], s["temp_c"], s["rh"]) == (12, 23.4, 52.0)
     assert parse_sample("#3 4.10 C nan% fix")["rh"] is None
     assert parse_sample("uploaded 3: 3 new, 0 dup, 0 rejected") is None
+
+
+def test_bridge_reads_the_sensor_from_the_boot_line():
+    assert parse_sensor("temperature and humidity: DHT11 on GPIO 4") == "dht11"
+    assert parse_sensor("temperature: DS18B20 probe on GPIO 13, humidity: SHT31") == "ds18b20"
+    assert parse_sensor("no temperature sensor found: SHT31 on SDA 21 / SCL 22") is None
+

@@ -12,10 +12,11 @@ demo nodes). Gaps are always measured in real time.
 from dataclasses import dataclass, field, replace
 
 from app.engine.profiles import (
-    FREEZE_GUARD_C,
     FREEZE_THRESHOLD_C,
     HUMIDITY_ADVISORY_RH,
     ProductProfile,
+    freeze_guard,
+    sensor_spec,
 )
 
 # Intervals longer than this between readings are not integrated; they are
@@ -48,6 +49,11 @@ class Segment:
     backup_filled: int = 0
     max_disagreement_c: float | None = None
     located_by: str | None = None
+    sensor: str | None = None  # what the node reads with (None: the design's SHT31)
+
+    @property
+    def sensor_sigma_c(self) -> float:
+        return sensor_spec(self.sensor).sigma_c
 
 
 @dataclass
@@ -121,6 +127,9 @@ class SegmentResult:
     backup_filled: int = 0
     max_disagreement_c: float | None = None
     located_by: str | None = None
+    sensor: str = "SHT31"
+    sensor_accuracy_c: float = 0.2
+    freeze_guard_c: float = 0.0
 
 
 def _status(profile: ProductProfile, temp_c: float) -> str:
@@ -159,6 +168,9 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         backup_label=seg.backup_label, backup_filled=seg.backup_filled,
         max_disagreement_c=seg.max_disagreement_c, located_by=seg.located_by,
     )
+    spec = sensor_spec(seg.sensor)
+    res.sensor, res.sensor_accuracy_c = spec.name, spec.accuracy_c
+    res.freeze_guard_c = guard = freeze_guard(spec.sigma_c)
     points, end = _window(seg, now)
 
     if not points:
@@ -237,7 +249,7 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         res.budget_used += used
         minutes = hours * 60
         track("freeze", p.temp_c <= FREEZE_THRESHOLD_C, p, q.ts, p.temp_c, minutes, used)
-        track("near_freeze", p.temp_c <= FREEZE_GUARD_C, p, q.ts, p.temp_c, minutes, used)
+        track("near_freeze", p.temp_c <= guard, p, q.ts, p.temp_c, minutes, used)
         track("heat", p.temp_c > profile.storage_max_c, p, q.ts, p.temp_c, minutes, used)
         humid = p.rh is not None and p.rh >= HUMIDITY_ADVISORY_RH
         track("humid", humid, p, q.ts, p.rh or 0.0, minutes, used)

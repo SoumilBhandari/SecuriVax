@@ -15,7 +15,7 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from app.db import get_session
-from app.engine.profiles import FREEZE_GUARD_C
+from app.engine.profiles import FREEZE_GUARD_C, freeze_guard, sensor_spec
 from app.models import Node, Reading
 
 router = APIRouter(prefix="/api/live", tags=["live"])
@@ -32,8 +32,9 @@ MAX_STREAMS = 50
 _open_streams = 0
 
 
-def band(temp_c: float) -> str:
-    if temp_c <= FREEZE_GUARD_C:
+def band(temp_c: float, freeze_c: float = FREEZE_GUARD_C) -> str:
+    """freeze_c: the reading's sensor's freeze guard band."""
+    if temp_c <= freeze_c:
         return "freeze"
     if temp_c < STORAGE_MIN_C:
         return "cold"
@@ -43,10 +44,13 @@ def band(temp_c: float) -> str:
 
 
 def _event(r: Reading, node: Node) -> dict:
+    spec = sensor_spec(node.sensor)
+    guard = freeze_guard(spec.sigma_c)
     return {
         "id": r.id, "node_id": r.node_id, "label": node.label, "kind": node.kind,
         "ts": r.ts, "received_at": r.received_at, "ts_source": r.ts_source,
-        "temp_c": r.temp_c, "rh": r.rh, "battery_v": r.battery_v, "band": band(r.temp_c),
+        "temp_c": r.temp_c, "rh": r.rh, "battery_v": r.battery_v, "band": band(r.temp_c, guard),
+        "sensor": spec.name, "sensor_accuracy_c": spec.accuracy_c, "freeze_c": guard,
     }
 
 

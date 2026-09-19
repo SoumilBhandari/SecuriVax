@@ -122,6 +122,7 @@ def ingest_readings(
         latest_battery = next((r.battery_v for r in reversed(batch.readings) if r.battery_v), None)
         node.battery_v = batch.battery_v or latest_battery or node.battery_v
         node.fw_version = batch.fw_version or node.fw_version
+        node.sensor = batch.sensor.lower() if batch.sensor else node.sensor
         ack_seq = max(seen) if seen else None
         session.add(node)
         session.add(IngestLog(

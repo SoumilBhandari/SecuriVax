@@ -23,6 +23,9 @@ class Node(SQLModel, table=True):
     last_seen_at: int | None = None
     battery_v: float | None = None
     fw_version: str | None = None
+    # The temperature sensor the node reports reading with (e.g. "dht11"), which
+    # sets how much calibration error the verdict allows for. None: the design's SHT31.
+    sensor: str | None = None
 
 
 class Facility(SQLModel, table=True):

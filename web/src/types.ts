@@ -85,6 +85,9 @@ export interface Segment {
   backup_filled: number;
   max_disagreement_c: number | null;
   located_by: string | null;
+  sensor: string;
+  sensor_accuracy_c: number;
+  freeze_guard_c: number;
   environment?: LegEnvironment;
 }
 
@@ -476,6 +479,9 @@ export interface LiveReading {
   rh: number | null;
   battery_v: number | null;
   band: Band;
+  sensor: string;
+  sensor_accuracy_c: number;
+  freeze_c: number;
 }
 
 export interface LiveRecent {

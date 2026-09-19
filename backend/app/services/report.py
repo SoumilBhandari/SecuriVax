@@ -9,7 +9,7 @@ from collections import Counter
 
 from app.engine import history
 from app.engine.location import MAX_INTERPOLATE_S, attach_positions
-from app.engine.profiles import PRODUCTS_BY_ID
+from app.engine.profiles import PRODUCTS_BY_ID, sensor_spec
 from app.engine.redundancy import merge
 from app.engine.verdict import LabelCheck, Report, evaluate
 from app.models import Box, Custody, LocationPoint, Node, Reading, TextCache, VvmCheck
@@ -68,6 +68,8 @@ def box_segments(session: Session, box_id: str, now: int) -> list[history.Segmen
             backup_filled=merged.backup_filled if merged else 0,
             max_disagreement_c=merged.max_disagreement_c if merged and merged.pairs >= 3 else None,
             located_by=located_by,
+            # Merged readings are only as trustworthy as the coarser of the two sensors.
+            sensor=max((n.sensor for n in (node, backup) if n), key=lambda s: sensor_spec(s).sigma_c, default=None),
         ))
     return segments
 

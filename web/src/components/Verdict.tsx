@@ -17,6 +17,11 @@ export function VerdictChip({ verdict, small = false }: { verdict: Verdict; smal
 export function VerdictHero({ report, stale, onCheckLabel }: { report: Report; stale: string | null; onCheckLabel?: () => void }) {
   const v = VERDICT_STYLE[report.verdict];
   const used = Math.min(report.budget_used, 1);
+  // The coarsest sensor that watched this box, if it's coarser than the design's.
+  const coarse = report.segments.reduce<Report["segments"][number] | null>(
+    (worst, s) => ((s.sensor_accuracy_c ?? 0) > Math.max(worst?.sensor_accuracy_c ?? 0, 0.5) ? s : worst),
+    null,
+  );
   const budgetLine =
     report.budget_remaining <= 0
       ? "Heat budget used up."
@@ -63,6 +68,7 @@ export function VerdictHero({ report, stale, onCheckLabel }: { report: Report; s
       <p className="m-0 mt-1 text-[13.5px] text-neutral-400" title="Share of plausible scenarios (sensor error, batch variation, starting budget) that give the same verdict">
         Holds in {pct(report.confidence.confidence)} of scenarios
         {report.confidence.label_fused && " · VVM label included"}
+        {coarse && ` · allows for a ${coarse.sensor}'s ±${coarse.sensor_accuracy_c} °C`}
       </p>
 
       {(stale || report.provisional || report.demo_time) && (

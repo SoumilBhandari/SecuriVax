@@ -20,6 +20,8 @@ class IngestBatch(BaseModel):
     uptime_ms: int | None = Field(None, ge=0, description="ms since boot when the batch was sent")
     fw_version: str | None = None
     battery_v: float | None = None
+    sensor: str | None = Field(None, max_length=16, pattern=r"^[A-Za-z0-9_-]+$",
+                               description="The temperature sensor, e.g. dht11, ds18b20, sht31")
     readings: list[ReadingIn] = Field(max_length=MAX_BATCH)
 
 

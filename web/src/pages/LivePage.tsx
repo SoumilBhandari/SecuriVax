@@ -136,6 +136,7 @@ function Hero({ readings, band, now, live }: { readings: LiveReading[]; band: Ra
         <span className="h-[7px] w-[7px] rounded-full" style={{ background: fresh ? "var(--color-good)" : "var(--color-neutral-500)", animation: fresh ? "vt-pulse 1.6s infinite" : undefined }} />
         {since(now, last.received_at)}
         {gap != null && ` · every ${gap < 90 ? `${Math.round(gap)} s` : `${Math.round(gap / 60)} min`}`}
+        {last.sensor && ` · ${last.sensor} ±${last.sensor_accuracy_c} °C`}
       </p>
       <LiveChart points={recent} band={band} />
     </section>

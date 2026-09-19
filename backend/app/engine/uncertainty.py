@@ -3,7 +3,8 @@
 The verdict itself is computed from the point estimate. Here we ask how
 often it would come out the same if the inputs were a little different:
 
-- the sensor's calibration is off by a fixed bias (SHT31: about ±0.2 °C),
+- each node's sensor is off by a fixed bias, as large as that sensor's error
+  (SHT31: about ±0.2 °C; DHT11: ±2 °C),
 - this batch degrades a bit faster or slower than its VVM category's nominal curve,
 - the budget used before our monitoring was read off by eye.
 
@@ -22,10 +23,9 @@ import numpy as np
 
 from app.engine.arrhenius import KELVIN, _slope
 from app.engine.history import MAX_GAP_S, Segment, integration_points
-from app.engine.profiles import FREEZE_ALARM_MINUTES, FREEZE_GUARD_C, FREEZE_THRESHOLD_C, ProductProfile
+from app.engine.profiles import FREEZE_ALARM_MINUTES, FREEZE_THRESHOLD_C, ProductProfile, freeze_guard
 from app.engine.verdict import DISCARD_AT, QUARANTINE_AT, USE_FIRST_AT
 
-SENSOR_BIAS_C = 0.2
 RATE_SPREAD = 0.15  # lognormal sigma on the degradation rate
 INITIAL_SPREAD = 0.05
 SAMPLES = 400
@@ -85,19 +85,22 @@ def verdict_confidence(
     seed: int = 3,
     now: int | None = None,
     samples: int = SAMPLES,
-    bias_c: float = SENSOR_BIAS_C,
+    bias_c: float | None = None,
     rate_spread: float = RATE_SPREAD,
     initial_spread: float = INITIAL_SPREAD,
     label_progress: float | None = None,
     label_sigma: float = 0.08,
 ) -> Confidence:
     """forced_quarantine: gaps or offline nodes, which no sensor bias can explain away.
+    bias_c: one sensor error for every leg; None uses each leg's own sensor.
     label_progress: a confirmed VVM reading, brought forward to now."""
     import time as _time
 
     now = int(_time.time()) if now is None else now
     rng = np.random.default_rng(seed)
-    bias = rng.normal(0, bias_c, samples) if bias_c else np.zeros(samples)
+    # One draw per world, scaled by each leg's sensor error: the legs' biases move
+    # together, which spreads the worlds wider than independent sensors would.
+    z = rng.normal(0, 1, samples) if bias_c != 0 else np.zeros(samples)
     rate_mult = np.exp(rng.normal(0, rate_spread, samples)) if rate_spread else np.ones(samples)
     budget = np.clip(initial_budget + (rng.normal(0, initial_spread, samples) if initial_spread else 0.0), 0, None)
     froze = np.zeros(samples, dtype=bool)
@@ -113,13 +116,15 @@ def verdict_confidence(
         dt = np.diff(ts)
         ok = (dt >= 0) & (dt <= MAX_GAP_S)
         hours = dt / 3600 * scale[:-1] * ok
-        shifted = temps[None, :] + bias[:, None]  # (samples, points)
+        sigma = seg.sensor_sigma_c if bias_c is None else bias_c
+        shifted = temps[None, :] + (z * sigma)[:, None]  # (samples, points)
         r = _rates(profile, shifted)
         budget += rate_mult * np.sum(hours[None, :] * 0.5 * (r[:, :-1] + r[:, 1:]), axis=1)
         if profile.freeze_sensitive:
             minutes = hours * 60
             froze |= _longest_runs(shifted[:, :-1] <= FREEZE_THRESHOLD_C, minutes, ok) >= FREEZE_ALARM_MINUTES
-            near |= _longest_runs(shifted[:, :-1] <= FREEZE_GUARD_C, minutes, ok) >= FREEZE_ALARM_MINUTES
+            guard = freeze_guard(seg.sensor_sigma_c)
+            near |= _longest_runs(shifted[:, :-1] <= guard, minutes, ok) >= FREEZE_ALARM_MINUTES
 
     discard = budget >= DISCARD_AT
     quarantine = ~discard & (froze | near | (budget >= QUARANTINE_AT) | forced_quarantine)
