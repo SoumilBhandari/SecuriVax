@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef } from "react";
 
 import { pct, temp, time } from "../lib/format";
 import { EASE, gsap, prefersReducedMotion } from "../lib/motion";
@@ -10,6 +10,21 @@ import { chapterHeight, reveal, useChapter } from "./useChapter";
 
 const VW = 1200;
 const VH = 480;
+
+/** How much of the budget is gone: the figure, and a bar under it. */
+function Spent({ className = "" }: { className?: string }) {
+  return (
+    <div className={className}>
+      <p className="eyebrow m-0">Budget used</p>
+      <p data-spent className="m-0 mt-2 font-display text-[34px] font-semibold leading-none tracking-[-0.03em] tabular-nums lg:text-[56px]">
+        0%
+      </p>
+      <span className="mt-3 block h-[3px] w-full overflow-hidden rounded-full lg:mt-4" style={{ background: "rgba(255,255,255,0.14)" }}>
+        <span data-bar className="block h-full w-full origin-left rounded-full" style={{ background: "currentColor", transform: "scaleX(0)" }} />
+      </span>
+    </div>
+  );
+}
 
 /**
  * The ground under the trace, by how much of the product's stability budget
@@ -31,14 +46,11 @@ function heat(budget: number): string {
  */
 export function TraceChapter({ report }: { report: Report | null }) {
   const section = useRef<HTMLElement>(null);
-  const path = useRef<SVGPathElement>(null);
+  const wipe = useRef<SVGRectElement>(null);
   const head = useRef<SVGCircleElement>(null);
   const copy = useRef<HTMLDivElement>(null);
   const peakLabel = useRef<HTMLDivElement>(null);
   const view = useRef<HTMLDivElement>(null);
-  const spent = useRef<HTMLParagraphElement>(null);
-  const bar = useRef<HTMLSpanElement>(null);
-  const [length, setLength] = useState(0);
 
   const trace = useMemo(() => {
     if (!report) return null;
@@ -61,20 +73,17 @@ export function TraceChapter({ report }: { report: Report | null }) {
       }
     });
     const budgets = pts.map((p) => p.b);
-    return { d, x, y, lo, hi, t0, t1, peak, peakAt: peakI / (pts.length - 1), budgets, min: report.product.storage_min_c, max: report.product.storage_max_c, tz: report.segments[0]?.tz };
+    const at = (f: number) => pts[Math.max(0, Math.min(pts.length - 1, Math.round(f * (pts.length - 1))))];
+    return { d, x, y, lo, hi, t0, t1, peak, peakAt: peakI / (pts.length - 1), budgets, at, min: report.product.storage_min_c, max: report.product.storage_max_c, tz: report.segments[0]?.tz };
   }, [report]);
-
-  useEffect(() => {
-    if (path.current) setLength(path.current.getTotalLength());
-  }, [trace]);
 
   useChapter(
     section,
     (tl) => {
       if (copy.current) reveal(tl, copy.current.children, 0.02);
-      const p = path.current;
       const h = head.current;
-      if (!p || !trace || !length) return;
+      const w = wipe.current;
+      if (!w || !trace) return;
       const o = { f: 0 };
       tl.to(
         o,
@@ -82,19 +91,23 @@ export function TraceChapter({ report }: { report: Report | null }) {
           f: 1,
           duration: 0.7,
           onUpdate: () => {
-            p.style.strokeDashoffset = String(length * (1 - o.f));
+            // The line is revealed by a wipe across the plot, not by a dash:
+            // the stroke doesn't scale with the box, so a dash measured in the
+            // viewBox's units tiles across it and the trip appears in pieces.
+            w.setAttribute("width", String(VW * o.f));
+            const now = trace.at(o.f);
             if (h) {
-              const pt = p.getPointAtLength(length * o.f);
-              h.setAttribute("cx", String(pt.x));
-              h.setAttribute("cy", String(pt.y));
+              h.setAttribute("cx", String(trace.x(now.ts)));
+              h.setAttribute("cy", String(trace.y(now.c)));
             }
             // The budget the engine had spent by this reading, as the line
             // reaches it: the number climbs, the bar fills, and the ground
             // warms with it, so the cost of the hot stretch is visible while
             // it happens rather than at the end.
             const b = trace.budgets[Math.round(o.f * (trace.budgets.length - 1))] ?? 0;
-            if (spent.current) spent.current.textContent = pct(b);
-            if (bar.current) bar.current.style.transform = `scaleX(${Math.min(1, b)})`;
+            const shown = pct(b);
+            view.current?.querySelectorAll<HTMLElement>("[data-spent]").forEach((el) => (el.textContent = shown));
+            view.current?.querySelectorAll<HTMLElement>("[data-bar]").forEach((el) => (el.style.transform = `scaleX(${Math.min(1, b)})`));
             if (view.current) view.current.style.background = heat(b);
           },
         },
@@ -103,7 +116,7 @@ export function TraceChapter({ report }: { report: Report | null }) {
       if (peakLabel.current) reveal(tl, peakLabel.current, 0.18 + 0.7 * trace.peakAt, { duration: 0.08, y: 10 });
       if (view.current) view.current.style.background = heat(0);
     },
-    [trace, length],
+    [trace],
   );
 
   return (
@@ -113,19 +126,10 @@ export function TraceChapter({ report }: { report: Report | null }) {
           <div ref={copy}>
             <p className="eyebrow m-0">{report?.box.id ?? " "}</p>
             <h2 className="ui-title-1 m-0 mt-4">Temperature over the trip</h2>
+            {trace && <Spent className="mt-7 max-w-[220px] lg:hidden" />}
           </div>
         </div>
-        {trace && (
-          <div className="absolute right-6 top-[calc(var(--nav-h)+9vh)] w-[176px] text-right lg:right-10 lg:top-[calc(var(--nav-h)+10vh)] lg:w-[220px]">
-            <p className="eyebrow m-0">Budget used</p>
-            <p ref={spent} className="m-0 mt-2 font-display text-[40px] font-semibold tabular-nums leading-none tracking-[-0.03em] lg:text-[56px]">
-              0%
-            </p>
-            <span className="mt-4 block h-[3px] w-full overflow-hidden rounded-full" style={{ background: "rgba(255,255,255,0.14)" }}>
-              <span ref={bar} className="block h-full w-full origin-left rounded-full" style={{ background: "currentColor", transform: "scaleX(0)" }} />
-            </span>
-          </div>
-        )}
+        {trace && <Spent className="absolute right-6 top-[calc(var(--nav-h)+7vh)] hidden w-[220px] text-right lg:block lg:right-10" />}
         {trace && (
           <div className="absolute inset-x-0 bottom-[max(6vh,calc(env(safe-area-inset-bottom,0px)+24px))] px-6 lg:bottom-[10vh] lg:px-10">
             <div className="relative mx-auto max-w-[1180px]">
@@ -133,16 +137,18 @@ export function TraceChapter({ report }: { report: Report | null }) {
                 <rect x="0" y={trace.y(trace.max)} width={VW} height={trace.y(trace.min) - trace.y(trace.max)} fill="var(--accent)" opacity="0.14" />
                 <line x1="0" x2={VW} y1={trace.y(trace.max)} y2={trace.y(trace.max)} stroke="var(--accent)" strokeOpacity="0.5" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
                 <line x1="0" x2={VW} y1={trace.y(trace.min)} y2={trace.y(trace.min)} stroke="var(--accent)" strokeOpacity="0.5" strokeDasharray="4 6" vectorEffect="non-scaling-stroke" />
+                <clipPath id="trace-wipe">
+                  <rect ref={wipe} x="0" y="0" width="0" height={VH} />
+                </clipPath>
                 <path
-                  ref={path}
                   d={trace.d}
+                  clipPath="url(#trace-wipe)"
                   fill="none"
                   stroke="var(--text)"
                   strokeWidth="2.5"
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   vectorEffect="non-scaling-stroke"
-                  style={{ strokeDasharray: length || undefined, strokeDashoffset: length || undefined }}
                 />
                 <circle ref={head} r="6" fill="var(--accent)" vectorEffect="non-scaling-stroke" style={{ transform: "scale(1)" }} />
               </svg>
