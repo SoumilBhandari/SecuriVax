@@ -142,6 +142,17 @@ def _window(seg: Segment, now: int) -> tuple[list[Reading], int]:
     return points, end
 
 
+def integration_points(seg: Segment, now: int) -> list[Reading]:
+    """The exact points the engine integrates over: readings in the leg, the
+    value held from just before it started, and (for a finished leg) the last
+    value held to the unload time. Shared with the Monte Carlo confidence so
+    the two can never disagree about the data."""
+    points, end = _window(seg, now)
+    if points and seg.end_ts is not None and 0 < end - points[-1].ts <= MAX_GAP_S:
+        points = points + [replace(points[-1], ts=end)]
+    return points
+
+
 def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentResult:
     res = SegmentResult(
         seg.node_id, seg.node_label, seg.start_ts, seg.end_ts,

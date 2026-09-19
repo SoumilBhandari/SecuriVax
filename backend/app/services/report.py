@@ -135,7 +135,7 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     report = evaluate(profile, segments, now, box.initial_budget_used, _label(check))
     data = asdict(report)
     forced = any(r.code in ("HISTORY_GAP", "NODE_OFFLINE", "VVM_NEAR_ENDPOINT") for r in report.reasons)
-    confidence = verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced)
+    confidence = verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced, now=now)
     if check and check.past_endpoint:  # a person confirmed the label: no sensor doubt applies
         confidence.confidence, confidence.p_discard, confidence.borderline = 1.0, 1.0, False
     data["confidence"] = asdict(confidence)

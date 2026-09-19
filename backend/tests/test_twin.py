@@ -68,8 +68,11 @@ def test_confidence_accounts_for_sensor_bias_on_freezes():
     penta = PRODUCTS_BY_ID["penta"]
     clear = verdict_confidence(penta, segment([5.0] + [-3.0] * 3 + [5.0], step=1800), 0.1, "QUARANTINE", False)
     assert clear.confidence > 0.99
-    marginal = verdict_confidence(penta, segment([5.0] + [-0.6] * 3 + [5.0], step=1800), 0.1, "QUARANTINE", False)
-    assert marginal.borderline
+    # The guard band makes a -0.6 C hour a robust hold; the knife edge is now at the guard band itself.
+    robust = verdict_confidence(penta, segment([5.0] + [-0.6] * 3 + [5.0], step=1800), 0.1, "QUARANTINE", False)
+    assert not robust.borderline
+    edge = verdict_confidence(penta, segment([5.0] + [-0.15] * 3 + [5.0], step=1800), 0.1, "USE", False)
+    assert edge.borderline
 
 
 # --- API ---------------------------------------------------------------------
