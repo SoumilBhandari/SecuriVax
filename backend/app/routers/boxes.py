@@ -10,6 +10,8 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.engine.profiles import PRODUCTS_BY_ID
+from sqlalchemy.exc import IntegrityError
+
 from app.engine.vvm import compare, read_vvm
 from app.models import Box, Custody, Node, Scan, VvmCheck
 from app.services.narrative import build_facts, write_report
@@ -38,6 +40,9 @@ class VvmConfirmIn(BaseModel):
 
 
 STAGE_PROGRESS = {1: 0.1, 2: 0.6, 3: 1.0, 4: 1.2}
+# A transfer this soon after loading is a mis-tap: undo it rather than keep a
+# zero-length leg in the box's history.
+RETAP_WINDOW_S = 120
 
 
 def _box(session: Session, box_id: str) -> Box:
@@ -103,7 +108,11 @@ def load_box(box_id: str, body: LoadIn, session: Session = Depends(get_session))
     if current and current.node_id == body.node_id:
         return {"status": "already_loaded", "node_id": body.node_id}
     action = "load"
-    if current:
+    if current and now - current.start_ts <= RETAP_WINDOW_S:
+        session.delete(current)  # wrong carrier tapped a moment ago
+        session.flush()
+        action = "retap"
+    elif current:
         current.end_ts = now
         current.end_note = f"transferred to {body.node_id}"
         session.add(current)
@@ -111,7 +120,13 @@ def load_box(box_id: str, body: LoadIn, session: Session = Depends(get_session))
         action = "transfer"
     session.add(Custody(box_id=box_id, node_id=body.node_id, start_ts=now))
     session.add(Scan(box_id=box_id, node_id=body.node_id, action=action, ts=now))
-    session.commit()
+    try:
+        session.commit()
+    except IntegrityError:
+        # Two taps raced (NFC reads twice): the other one already loaded it.
+        session.rollback()
+        current = _open_custody(session, box_id)
+        return {"status": "already_loaded", "node_id": current.node_id if current else body.node_id}
     return {"status": "loaded", "action": action, "node_id": body.node_id}
 
 

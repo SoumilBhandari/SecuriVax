@@ -19,6 +19,11 @@ def send(client, node, temps, start, step=60, boot=1, first_seq=1):
 def test_load_unload_and_transfer(client, session):
     assert client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-01"}).json()["action"] == "load"
     assert client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-01"}).json()["status"] == "already_loaded"
+    # Make the first load old enough that the next one is a real transfer, not a mis-tap.
+    first = session.exec(select(Custody)).one()
+    first.start_ts -= 600
+    session.add(first)
+    session.commit()
     assert client.post("/api/boxes/BOX-0001/load", json={"node_id": "CAR-02"}).json()["action"] == "transfer"
     assert client.post("/api/boxes/BOX-0001/unload", json={"note": "clinic fridge"}).json()["status"] == "unloaded"
     assert client.post("/api/boxes/BOX-0001/unload", json={}).json()["status"] == "not_loaded"
@@ -64,3 +69,21 @@ def test_list_endpoints(client):
     assert "key" not in nodes["CAR-02"]
     assert len(client.get("/api/products").json()) >= 6
     assert client.get("/api/nodes/CAR-02").json()["recent"] == []
+
+
+def test_quick_retap_to_another_carrier_undoes_the_mistake(client, session):
+    client.post("/api/boxes/BOX-0002/load", json={"node_id": "CAR-02"})
+    res = client.post("/api/boxes/BOX-0002/load", json={"node_id": "CAR-01"}).json()
+    assert res["action"] == "retap"
+    custody = session.exec(select(Custody).where(Custody.box_id == "BOX-0002")).all()
+    assert [c.node_id for c in custody] == ["CAR-01"]
+    report = client.get("/api/boxes/BOX-0002/report").json()
+    assert "HISTORY_GAP" not in {r["code"] for r in report["reasons"]}
+
+
+def test_short_unmonitored_leg_is_not_a_history_gap(client, session):
+    now = int(time.time())
+    session.add(Custody(box_id="BOX-0003", node_id="CAR-02", start_ts=now - 300, end_ts=now - 120))
+    session.commit()
+    codes = {r["code"] for r in client.get("/api/boxes/BOX-0003/report").json()["reasons"]}
+    assert "HISTORY_GAP" not in codes

@@ -22,6 +22,9 @@ from app.engine.profiles import (
 # Intervals longer than this between readings are not integrated; they are
 # reported as holes in the history instead.
 MAX_GAP_S = 60 * 60
+# A finished leg shorter than this with no readings is a handoff blip (the node
+# hadn't reported yet), not a hole in the history.
+MIN_UNMONITORED_LEG_S = 15 * 60
 
 
 @dataclass(frozen=True)
@@ -146,15 +149,16 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         max_disagreement_c=seg.max_disagreement_c, located_by=seg.located_by,
     )
     points, end = _window(seg, now)
-    real = [p for p in points if p.ts >= seg.start_ts]
 
     if not points:
-        # A box loaded moments ago is just waiting for the node's next upload.
-        if seg.end_ts is not None or end - seg.start_ts > MAX_GAP_S:
+        # A box loaded moments ago is just waiting for the node's next upload,
+        # and a leg of a few minutes with no reading is a handoff blip.
+        too_long = MIN_UNMONITORED_LEG_S if seg.end_ts is not None else MAX_GAP_S
+        if end - seg.start_ts > too_long:
             res.gaps.append(Gap(seg.node_id, seg.start_ts, end, ongoing=seg.end_ts is None))
         return res
 
-    res.reading_count = len(real)
+    res.reading_count = sum(1 for r in seg.readings if seg.start_ts <= r.ts <= end)
     res.data_through = points[-1].ts
     res.last_temp_c, res.last_rh = points[-1].temp_c, points[-1].rh
     temps = [p.temp_c for p in points]
