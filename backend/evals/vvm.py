@@ -10,7 +10,7 @@ import time
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
-from app.engine.vvm import ENDPOINT_AT, read_vvm, stage_for
+from app.engine.vvm import CALIBRATION, read_vvm, stage_for
 from evals.core import Metric, SuiteResult
 
 
@@ -81,6 +81,22 @@ def photo(rng: np.random.Generator, progress: float | None, hard: bool = True, f
     return Image.open(io.BytesIO(buf.getvalue()))
 
 
+def light_invariance(rng: np.random.Generator, n: int) -> tuple[int, int, float]:
+    """The same photo at full and 45% exposure: the ratio should not move."""
+    same = pairs = 0
+    drift = []
+    for _ in range(n):
+        truth = float(rng.uniform(0.3, 1.3))
+        bright = photo(rng, truth, hard=False)
+        dim = Image.fromarray((np.asarray(bright, dtype=float) * 0.45).astype(np.uint8))
+        a, b = read_vvm(bright), read_vvm(dim)
+        if a.found and b.found:
+            pairs += 1
+            same += a.past_endpoint == b.past_endpoint
+            drift.append(abs(b.rho - a.rho) / a.rho)
+    return same, pairs, float(np.median(drift)) if drift else float("nan")
+
+
 def run(quick: bool) -> SuiteResult:
     started = time.time()
     rng = np.random.default_rng(11)
@@ -110,10 +126,11 @@ def run(quick: bool) -> SuiteResult:
         spent_missed += truth >= 1.0 and not r.past_endpoint
         fresh_flagged += truth <= 0.6 and r.past_endpoint
     false_found = sum(read_vvm(photo(rng, None)).found for _ in range(n // 4))
+    same_call, pairs, drift = light_invariance(rng, n // 3)
     metrics = [
         Metric("labels read, no glare on them", clear_found / max(clear_total, 1), 0.95, unit="%"),
         Metric("glare on label: retake asked or read right", glare_safe / max(glare_total, 1), 0.9, unit="%"),
-        Metric("labels read, all photos", found / n, None, note="retakes are asked for glare"),
+        Metric("labels read, all photos", found / n, None, unit="%", note="retakes are asked for glare"),
         Metric("median progress error", float(np.median(errs)), 0.08, higher_is_better=False),
         Metric("progress within 0.15", float(np.mean(np.array(errs) <= 0.15)), 0.85, unit="%"),
         Metric("stage correct", stage_ok / max(found, 1), 0.8, unit="%"),
@@ -121,6 +138,12 @@ def run(quick: bool) -> SuiteResult:
                note="the dangerous error"),
         Metric("fresh labels read as spent", fresh_flagged / max(fresh_total, 1), 0.03, higher_is_better=False, unit="%"),
         Metric("VVM 'found' on photos with no VVM", false_found / max(n // 4, 1), 0.1, higher_is_better=False, unit="%"),
+        Metric("same discard call in bright and dim light", same_call / max(pairs, 1), 0.98, unit="%",
+               note="rho = L_square / L_ring, photo at 100% and 45% exposure"),
+        Metric("median rho change, bright vs dim", drift, 0.05, higher_is_better=False, unit="%"),
+        Metric("calibrated discard cutoff (rho at or below)", CALIBRATION.discard, None, note=CALIBRATION.source),
+        Metric("held-out: spent read as usable", CALIBRATION.held_out.get("spent_read_as_usable", float("nan")), None, unit="%"),
+        Metric("held-out: usable read as spent", CALIBRATION.held_out.get("usable_read_as_spent", float("nan")), None, unit="%"),
     ]
     return SuiteResult(
         "vvm", "Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare, shadow, colour cast, JPEG)",

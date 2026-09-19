@@ -9,6 +9,8 @@ are illustrative; see RDT_ANCHORS.
 
 from dataclasses import dataclass
 
+from app.engine.arrhenius import rate_per_hour, t_life_hours
+
 DAY = 24.0
 
 # WHO/PQS/E006/IN05.3, table 1a: days to VVM end point. The spec defines each
@@ -53,6 +55,17 @@ class ProductProfile:
     storage_min_c: float
     storage_max_c: float
     notes: str = ""
+    # Field correction to the label's degradation speed, learned from confirmed
+    # VVM photos (see app.engine.learning). 1.0 = the curve exactly as labelled.
+    rate_scale: float = 1.0
+
+    def rate(self, temp_c: float) -> float:
+        """Fraction of the stability budget used per hour at temp_c."""
+        return rate_per_hour(self.anchors, temp_c) * self.rate_scale
+
+    def t_life(self, temp_c: float) -> float:
+        """Hours until the whole budget is used if held at temp_c."""
+        return t_life_hours(self.anchors, temp_c) / self.rate_scale
 
 
 PRODUCTS: list[ProductProfile] = [

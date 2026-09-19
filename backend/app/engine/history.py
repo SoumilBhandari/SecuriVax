@@ -11,7 +11,6 @@ demo nodes). Gaps are always measured in real time.
 
 from dataclasses import dataclass, field, replace
 
-from app.engine.arrhenius import rate_per_hour
 from app.engine.profiles import (
     FREEZE_GUARD_C,
     FREEZE_THRESHOLD_C,
@@ -233,7 +232,7 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
             continue
         hours = dt / 3600 * p.time_scale
         used = hours * 0.5 * (
-            rate_per_hour(profile.anchors, p.temp_c) + rate_per_hour(profile.anchors, q.temp_c)
+            profile.rate(p.temp_c) + profile.rate(q.temp_c)
         )
         res.budget_used += used
         minutes = hours * 60
@@ -252,7 +251,7 @@ def analyze_segment(profile: ProductProfile, seg: Segment, now: int) -> SegmentR
         dt = q.ts - p.ts
         if 0 < dt <= MAX_GAP_S:
             cum += dt / 3600 * p.time_scale * 0.5 * (
-                rate_per_hour(profile.anchors, p.temp_c) + rate_per_hour(profile.anchors, q.temp_c)
+                profile.rate(p.temp_c) + profile.rate(q.temp_c)
             )
         at[q.ts] = cum
     for sp in res.series:

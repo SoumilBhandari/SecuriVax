@@ -10,6 +10,10 @@ often it would come out the same if the inputs were a little different:
 A verdict that survives 95% of those worlds is solid. One that flips in 40%
 of them is borderline, so we ask the health worker to check the VVM label
 with the camera (the second witness).
+
+Once a confirmed label reading exists (and agrees with the record), the two
+witnesses are fused: each simulated world is weighted by how well its budget
+matches what the label showed, so the label narrows what we don't know.
 """
 
 from dataclasses import dataclass
@@ -40,11 +44,22 @@ class Confidence:
     budget_p90: float
     borderline: bool
     samples: int
+    label_fused: bool = False  # a confirmed VVM reading narrowed the worlds
 
 
 def _rates(profile: ProductProfile, temps: np.ndarray) -> np.ndarray:
     (c1, h1), _ = profile.anchors
-    return np.exp(-_slope(profile.anchors) * (1 / (temps + KELVIN) - 1 / (c1 + KELVIN))) / h1
+    return profile.rate_scale * np.exp(-_slope(profile.anchors) * (1 / (temps + KELVIN) - 1 / (c1 + KELVIN))) / h1
+
+
+def _weighted_quantiles(values: np.ndarray, weights: np.ndarray, qs) -> list[float]:
+    order = np.argsort(values)
+    cdf = np.cumsum(weights[order])
+    cdf /= cdf[-1]
+    return [float(np.interp(q, cdf, values[order])) for q in qs]
+
+
+LABEL_SATURATES = 1.2  # beyond this a label can't tell more heat apart
 
 
 def _longest_runs(cold: np.ndarray, minutes: np.ndarray, ok: np.ndarray) -> np.ndarray:
@@ -73,8 +88,11 @@ def verdict_confidence(
     bias_c: float = SENSOR_BIAS_C,
     rate_spread: float = RATE_SPREAD,
     initial_spread: float = INITIAL_SPREAD,
+    label_progress: float | None = None,
+    label_sigma: float = 0.08,
 ) -> Confidence:
-    """forced_quarantine: gaps or offline nodes, which no sensor bias can explain away."""
+    """forced_quarantine: gaps or offline nodes, which no sensor bias can explain away.
+    label_progress: a confirmed VVM reading, brought forward to now."""
     import time as _time
 
     now = int(_time.time()) if now is None else now
@@ -108,17 +126,28 @@ def verdict_confidence(
     use = ~discard & ~quarantine
     use_first = use & (budget >= USE_FIRST_AT)
     agree = {"DISCARD": discard, "QUARANTINE": quarantine, "USE_FIRST": use_first, "USE": use & ~use_first}[point_verdict]
-    q10, q50, q90 = np.percentile(budget, [10, 50, 90])
-    conf = float(agree.mean())
+
+    w = np.full(samples, 1 / samples)
+    fused = False
+    if label_progress is not None:
+        cap = LABEL_SATURATES
+        lw = np.exp(-0.5 * ((np.minimum(budget, cap) - min(label_progress, cap)) / label_sigma) ** 2)
+        # Fuse only if the label sits inside the worlds we simulated; if it
+        # doesn't, the witnesses disagree and the cross-check has flagged it.
+        if lw.sum() > 0 and lw.sum() ** 2 / (lw**2).sum() >= 0.05 * samples:
+            w, fused = lw / lw.sum(), True
+    q10, q50, q90 = _weighted_quantiles(budget, w, (0.1, 0.5, 0.9))
+    conf = float(np.sum(w * agree))
     return Confidence(
         confidence=round(conf, 3),
-        p_use=round(float(use.mean()), 3),
-        p_use_first=round(float(use_first.mean()), 3),
-        p_quarantine=round(float(quarantine.mean()), 3),
-        p_discard=round(float(discard.mean()), 3),
+        p_use=round(float(np.sum(w * use)), 3),
+        p_use_first=round(float(np.sum(w * use_first)), 3),
+        p_quarantine=round(float(np.sum(w * quarantine)), 3),
+        p_discard=round(float(np.sum(w * discard)), 3),
         budget_p10=round(float(q10), 4),
         budget_p50=round(float(q50), 4),
         budget_p90=round(float(q90), 4),
         borderline=conf < BORDERLINE_BELOW,
         samples=samples,
+        label_fused=fused,
     )

@@ -21,6 +21,7 @@ from app.engine.profiles import FREEZE_THRESHOLD_C, PRODUCTS_BY_ID
 from app.engine.redundancy import merge
 from app.models import Box, Custody, LocationPoint, Node
 from app.services import weather as wx
+from app.services.learning import profile_for
 from app.services.report import _node_readings, evaluate_box
 
 RATED_COLD_LIFE_H = CarrierSpec().cold_life_h
@@ -210,7 +211,7 @@ def _box_risks(session: Session, custodies, fc: twin.Forecast, now: int) -> list
     traj = fc.trajectories
     for c in custodies:
         box = session.get(Box, c.box_id)
-        profile = PRODUCTS_BY_ID[box.product_id]
+        profile = profile_for(session, box.product_id)
         report = evaluate_box(session, box, now)
         rates = _rates(profile, traj)
         future = report.budget_used + np.sum(rates, axis=1) * fc.dt_h

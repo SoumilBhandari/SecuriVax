@@ -14,7 +14,6 @@ import math
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from app.engine.arrhenius import rate_per_hour
 from app.engine.profiles import ProductProfile
 
 RATED_AT_C = 43.0
@@ -54,7 +53,7 @@ def budget_used(profile: ProductProfile, series: list[tuple[int, float]]) -> flo
     total = 0.0
     for (t0, c0), (t1, c1) in zip(series, series[1:]):
         hours = (t1 - t0) / 3600
-        total += hours * 0.5 * (rate_per_hour(profile.anchors, c0) + rate_per_hour(profile.anchors, c1))
+        total += hours * 0.5 * (profile.rate(c0) + profile.rate(c1))
     return total
 
 

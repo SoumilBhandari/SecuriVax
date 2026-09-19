@@ -153,6 +153,17 @@ class VvmCheck(SQLModel, table=True):
     past_endpoint: bool
     sensor_budget: float  # what our record said at the moment of the photo
     agreement: str  # AGREE | LABEL_AHEAD | SENSOR_AHEAD
+    rho: float | None = None  # L_square / L_ring
+    flagged: bool = False  # camera and logger disagree beyond both their errors
+    predicted_stage: int | None = None  # from the temperature record
+    sensor_p10: float | None = None
+    sensor_p90: float | None = None
+    # For crowdsourced calibration: the record split into what was assumed
+    # before monitoring and the heat dose we measured, at the label's nominal
+    # (unlearned) speed. A confirmed photo then says how fast this product
+    # really degrades: progress = initial + rate_scale x dose.
+    initial_budget: float | None = None
+    nominal_dose: float | None = None
     gemini_stage: int | None = None
     gemini_confidence: float | None = None
     gemini_note: str = ""

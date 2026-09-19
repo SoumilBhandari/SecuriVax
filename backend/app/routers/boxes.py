@@ -9,17 +9,19 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from app.db import get_session
-from app.engine.profiles import PRODUCTS_BY_ID
 from sqlalchemy.exc import IntegrityError
 
-from app.engine.vvm import compare, open_photo, read_vvm
+from app.db import get_session
+from app.engine.profiles import PRODUCTS_BY_ID
+from app.engine.uncertainty import verdict_confidence
+from app.engine.verdict import VERDICT_ORDER, evaluate
+from app.engine.vvm import cross_check, open_photo, read_vvm
 from app.models import Box, Custody, Node, Scan, VvmCheck
+from app.security import explain_limit, require_operator, vvm_limit
+from app.services import learning
 from app.services.narrative import build_facts, write_report
 from app.services.places import resolve_places
-from app.engine.verdict import VERDICT_ORDER
-from app.services.report import counterfactual, evaluate_box, key_points, report_json
-from app.security import explain_limit, require_operator, vvm_limit
+from app.services.report import box_segments, counterfactual, evaluate_box, key_points, report_json
 from app.services.vvm_vision import gemini_vvm
 
 router = APIRouter(prefix="/api/boxes", tags=["boxes"])
@@ -194,11 +196,16 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     if not reading.found:
         return {"found": False, "message": reading.message, "gemini": gemini}
 
-    sensor = (await run_in_threadpool(evaluate_box, session, box)).budget_used
-    witnesses = compare(reading.progress, sensor)
+    record = await run_in_threadpool(_record_prediction, session, box)
+    witnesses = cross_check(
+        reading.progress, reading.stage, record["budget"], record["p10"], record["p90"], rho=reading.rho
+    )
     check = VvmCheck(
         box_id=box_id, progress=reading.progress, stage=reading.stage, past_endpoint=reading.past_endpoint,
-        sensor_budget=round(sensor, 4), agreement=witnesses.code,
+        sensor_budget=round(record["budget"], 4), agreement=witnesses.code, rho=reading.rho,
+        flagged=witnesses.flagged, predicted_stage=witnesses.predicted_stage,
+        sensor_p10=record["p10"], sensor_p90=record["p90"],
+        initial_budget=box.initial_budget_used, nominal_dose=record["nominal_dose"],
         gemini_stage=(gemini or {}).get("stage"), gemini_confidence=(gemini or {}).get("confidence"),
         gemini_note=(gemini or {}).get("note", "")[:200],
     )
@@ -206,6 +213,28 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     session.commit()
     session.refresh(check)
     return {"found": True, "check_id": check.id, "reading": asdict(reading), "witnesses": asdict(witnesses), "gemini": gemini}
+
+
+def _record_prediction(session: Session, box: Box) -> dict:
+    """What the temperature record predicts the label shows: the budget (with
+    its Monte Carlo range), plus the dose at the label's nominal speed, which a
+    confirmed photo turns into a lesson about the real speed."""
+    now = int(time.time())
+    segments = box_segments(session, box.id, now)
+    profile = learning.profile_for(session, box.product_id)
+    report = evaluate(profile, segments, now, box.initial_budget_used)
+    conf = verdict_confidence(
+        profile, segments, box.initial_budget_used, report.verdict, False, now=now,
+        rate_spread=learning.rate_posterior(session, box.product_id).sd_log,
+    )
+    nominal = evaluate(PRODUCTS_BY_ID[box.product_id], segments, now, box.initial_budget_used)
+    return {
+        "budget": report.budget_used,
+        "p10": conf.budget_p10,
+        "p90": conf.budget_p90,
+        # Demo-time boxes run on accelerated clocks: their labels teach nothing.
+        "nominal_dose": None if report.demo_time else round(nominal.budget_used - box.initial_budget_used, 5),
+    }
 
 
 @router.post("/{box_id}/vvm/{check_id}/confirm", dependencies=[Depends(require_operator)])
@@ -219,8 +248,22 @@ def confirm_vvm(box_id: str, check_id: int, body: VvmConfirmIn, session: Session
         check.stage = body.stage
         check.progress = STAGE_PROGRESS[body.stage]
         check.past_endpoint = body.stage >= 3
-        check.agreement = compare(check.progress, check.sensor_budget).code
+        w = cross_check(check.progress, check.stage, check.sensor_budget, check.sensor_p10, check.sensor_p90)
+        check.agreement, check.flagged, check.predicted_stage = w.code, w.flagged, w.predicted_stage
     check.confirmed = True
     session.add(check)
     session.commit()
-    return {"confirmed": True, "stage": check.stage, "past_endpoint": check.past_endpoint}
+    # Crowdsourced calibration: this photo is now evidence about the product's real speed.
+    product_id = session.get(Box, box_id).product_id
+    learning.invalidate(product_id)
+    learned = learning.rate_posterior(session, product_id)
+    return {
+        "confirmed": True, "stage": check.stage, "past_endpoint": check.past_endpoint,
+        "flagged": check.flagged, "learned_rate": asdict(learned),
+    }
+
+
+@router.get("/learning/summary")
+def learning_summary(session: Session = Depends(get_session)) -> dict:
+    """What confirmed VVM photos have taught the stability model so far."""
+    return learning.summary(session)

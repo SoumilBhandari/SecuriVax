@@ -82,9 +82,23 @@ def _label(check: VvmCheck | None) -> LabelCheck | None:
     return LabelCheck(check.ts, check.progress, check.past_endpoint) if check else None
 
 
+def _label_evidence(check: VvmCheck | None, budget_now: float) -> dict:
+    """A confirmed label that agreed with the record, brought forward to now by
+    the heat recorded since the photo: evidence for the confidence Monte Carlo."""
+    from app.engine.vvm import CALIBRATION
+
+    if check is None or not check.confirmed or check.flagged or check.past_endpoint:
+        return {}
+    since = max(0.0, budget_now - check.sensor_budget)
+    sigma = 0.15 if check.worker_stage is not None else CALIBRATION.progress_sigma  # by eye vs camera
+    return {"label_progress": check.progress + since, "label_sigma": sigma}
+
+
 def evaluate_box(session: Session, box: Box, now: int | None = None) -> Report:
+    from app.services.learning import profile_for
+
     now = int(time.time()) if now is None else now
-    profile = PRODUCTS_BY_ID[box.product_id]
+    profile = profile_for(session, box.product_id)
     label = _label(latest_label(session, box.id))
     return evaluate(profile, box_segments(session, box.id, now), now, box.initial_budget_used, label)
 
@@ -127,19 +141,25 @@ def cached_places(session: Session, points: list[tuple[float, float]]) -> dict[s
 
 def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     from app.engine.uncertainty import verdict_confidence
+    from app.services.learning import profile_for, rate_posterior
 
     now = int(time.time()) if now is None else now
-    profile = PRODUCTS_BY_ID[box.product_id]
+    profile = profile_for(session, box.product_id)
+    learned = rate_posterior(session, box.product_id)
     segments = box_segments(session, box.id, now)
     check = latest_label(session, box.id)
     report = evaluate(profile, segments, now, box.initial_budget_used, _label(check))
     data = asdict(report)
     forced = any(r.code in ("HISTORY_GAP", "NODE_OFFLINE", "VVM_NEAR_ENDPOINT") for r in report.reasons)
-    confidence = verdict_confidence(profile, segments, box.initial_budget_used, report.verdict, forced, now=now)
+    confidence = verdict_confidence(
+        profile, segments, box.initial_budget_used, report.verdict, forced, now=now, rate_spread=learned.sd_log,
+        **_label_evidence(check, report.budget_used),
+    )
     if check and check.past_endpoint:  # a person confirmed the label: no sensor doubt applies
         confidence.confidence, confidence.p_discard, confidence.borderline = 1.0, 1.0, False
     data["confidence"] = asdict(confidence)
     data["label_check"] = check.model_dump() if check else None
+    data["learned_rate"] = asdict(learned)
     from app.services.climate import leg_environment  # avoids an import cycle
 
     carried = box.initial_budget_used  # budget already used when each leg starts
@@ -150,7 +170,6 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
             point["budget"] = round(carried + point["budget"], 5)  # box-level, for the scrubber
         carried += result.budget_used
         seg["series"] = _thin(seg["series"])
-    profile = PRODUCTS_BY_ID[box.product_id]
     open_seg = next((s for s in report.segments if s.end_ts is None), None)
     data["box"] = box.model_dump()
     data["product"] = asdict(profile)
@@ -164,12 +183,13 @@ def counterfactual(session: Session, box: Box, now: int | None = None) -> list[d
     """The same thermal history, run through every product profile: stability
     is product-specific, so the verdict changes with what's in the box."""
     from app.engine.profiles import PRODUCTS
+    from app.services.learning import profile_for
 
     now = int(time.time()) if now is None else now
     segments = box_segments(session, box.id, now)
     out = []
     for profile in PRODUCTS:
-        r = evaluate(profile, segments, now, 0.0)
+        r = evaluate(profile_for(session, profile.id), segments, now, 0.0)
         out.append({
             "product_id": profile.id, "name": profile.name, "stability_ref": profile.stability_ref,
             "budget_used": round(r.budget_used, 4), "verdict": r.verdict,

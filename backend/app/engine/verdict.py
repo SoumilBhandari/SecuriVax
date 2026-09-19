@@ -9,7 +9,6 @@ from dataclasses import dataclass, field
 
 import math
 
-from app.engine.arrhenius import t_life_hours
 from app.engine.history import MAX_GAP_S, SegmentResult, Segment, analyze_segment, integration_points
 from app.engine.profiles import (
     FREEZE_ALARM_MINUTES,
@@ -238,7 +237,7 @@ def evaluate(
     current_rh = source.last_rh if source else None
     hours_left = None
     if current_temp is not None:
-        hours_left = max(0.0, 1 - budget) * t_life_hours(profile.anchors, current_temp)
+        hours_left = max(0.0, 1 - budget) * profile.t_life(current_temp)
 
     scales = [rd.time_scale for s in segments for rd in s.readings]
     time_scale = max(scales, default=1.0)

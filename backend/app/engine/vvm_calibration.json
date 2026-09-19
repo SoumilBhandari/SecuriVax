@@ -1,0 +1,44 @@
+{
+  "stage12": 2.62,
+  "stage12_progress": 0.29,
+  "discard": 1.01,
+  "stage34": 0.62,
+  "rho_fresh": 3.024,
+  "rho_sigma": 0.067,
+  "progress_sigma": 0.042,
+  "progress_bias": 0.0487,
+  "source": "synthetic phone photos (500 fit, 254 held out)",
+  "photos": 500,
+  "held_out": {
+    "photos": 254,
+    "stage_accuracy": 0.866,
+    "spent_read_as_usable": 0.014,
+    "usable_read_as_spent": 0.018,
+    "confusion_true_by_read": [
+      [
+        55,
+        0,
+        0,
+        0
+      ],
+      [
+        3,
+        52,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        62,
+        7
+      ],
+      [
+        0,
+        2,
+        20,
+        51
+      ]
+    ]
+  }
+}

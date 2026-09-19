@@ -9,7 +9,7 @@ from PIL import Image, ImageDraw
 from app.engine.history import Reading, Segment
 from app.engine.profiles import PRODUCTS_BY_ID
 from app.engine.verdict import LabelCheck, evaluate
-from app.engine.vvm import compare, read_vvm
+from app.engine.vvm import CALIBRATION, cross_check, read_vvm
 
 PAPER = np.array([236, 231, 220])
 CIRCLE = np.array([72, 52, 112])
@@ -60,10 +60,36 @@ def test_no_vvm_in_the_picture():
     assert not read_vvm(blank).found
 
 
-def test_two_witnesses():
-    assert compare(0.55, 0.5).code == "AGREE"
-    assert compare(0.9, 0.3).code == "LABEL_AHEAD"
-    assert compare(0.1, 0.7).code == "SENSOR_AHEAD"
+def test_rho_is_square_over_ring_and_one_is_the_discard_point():
+    fresh, near, spent, beyond = (read_vvm(vvm_photo(p)) for p in (0.1, 0.9, 1.0, 1.2))
+    assert fresh.rho > near.rho > CALIBRATION.discard >= spent.rho > beyond.rho
+    assert 1.0 <= CALIBRATION.discard < 1.1  # calibrated, never looser than the physical end point
+    assert not near.past_endpoint and spent.past_endpoint and beyond.stage == 4
+
+
+@pytest.mark.parametrize("progress", [0.2, 0.6, 0.95, 1.1])
+def test_rho_cancels_the_light(progress):
+    """Same label, bright and dim: the ratio (and the call) stays put."""
+    def lit(scale):
+        img = np.asarray(vvm_photo(progress, glare=0.0), dtype=float) * scale
+        return read_vvm(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
+
+    bright, dim = lit(1.0), lit(0.45)
+    assert bright.found and dim.found
+    assert dim.rho == pytest.approx(bright.rho, rel=0.06)
+    assert dim.past_endpoint == bright.past_endpoint
+
+
+def test_cross_check_predicts_the_stage_and_flags_disagreement():
+    agree = cross_check(0.55, 2, 0.5, 0.45, 0.58)
+    assert agree.code == "AGREE" and not agree.flagged and agree.predicted_stage == 2
+    ahead = cross_check(1.05, 3, 0.3, 0.25, 0.36)
+    assert ahead.code == "LABEL_AHEAD" and ahead.flagged and ahead.predicted_stage == 2
+    behind = cross_check(0.1, 1, 0.7, 0.62, 0.8)
+    assert behind.code == "SENSOR_AHEAD" and behind.flagged
+    # A wide record range (uncertain sensor) absorbs a gap a narrow one would flag.
+    assert not cross_check(0.75, 2, 0.5, 0.35, 0.7).flagged
+    assert cross_check(0.75, 2, 0.5, 0.48, 0.52).flagged
 
 
 def test_label_at_discard_point_overrides_a_clean_sensor_record():
@@ -94,6 +120,14 @@ def test_camera_check_then_confirm_changes_the_verdict(client, session):
     report = client.get("/api/boxes/BOX-0004/report").json()
     assert report["verdict"] == "DISCARD" and report["label_check"]["confirmed"]
     assert report["confidence"]["confidence"] == 1.0
+
+
+def test_check_reports_rho_prediction_and_flag(client):
+    res = client.post("/api/boxes/BOX-0004/vvm", json=photo_payload(1.05)).json()
+    assert res["reading"]["rho"] <= 1.01
+    w = res["witnesses"]
+    assert w["flagged"] and w["predicted_stage"] <= 2 and w["camera_stage"] >= 3
+    assert w["sensor_range"][0] <= w["sensor"] <= w["sensor_range"][1]
 
 
 def test_worker_can_correct_the_camera(client):
