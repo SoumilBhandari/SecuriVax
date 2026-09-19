@@ -44,3 +44,17 @@ def plan(body: PlanIn, session: Session = Depends(get_session)) -> dict:
     if body.carrier_id and session.get(Node, body.carrier_id) is None:
         raise HTTPException(404, f"no node {body.carrier_id}")
     return climate.plan_trips(session, **body.model_dump())
+
+
+_impact: dict | None = None
+
+
+@router.get("/impact")
+def impact() -> dict:
+    """The 90-day backtest on real ERA5 weather: today vs alarm logger vs Vialtality."""
+    global _impact
+    if _impact is None:
+        from app.backtest.simulate import load_results
+
+        _impact = load_results()
+    return _impact
