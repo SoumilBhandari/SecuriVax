@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useCanTapTags } from "../lib/device";
-import { embedTrip, type TripCloud, type TripGroup } from "../lib/embed";
+import { embedTrip, scale, type TripAxis, type TripCloud, type TripGroup } from "../lib/embed";
 import { time } from "../lib/format";
 import type { Report } from "../types";
 import { SectionTitle } from "./Layout";
@@ -35,9 +35,8 @@ export function TripConditions({ report }: { report: Report }) {
         ))}
       </div>
       <p className="ui-caption m-0 mt-3">
-        Each dot is one reading, placed by what the box was going through: the temperature inside and outside, humidity, how
-        fast it was changing, and whether it was on the move. Similar readings sit together, and the groups are found from those
-        numbers alone. Tap a group to pick out its dots.
+        Each dot is one reading: across is the temperature inside the box, up is the temperature outside, and back is when on
+        the trip it was taken. Colours are groups of readings taken in similar conditions. Tap a group to pick out its dots.
       </p>
     </>
   );
@@ -52,7 +51,8 @@ interface Camera {
   panX: number;
   panY: number;
 }
-const HOME: Camera = { yaw: 0.7, pitch: -0.35, zoom: 1, panX: 0, panY: 0 };
+// A little from above and the left: across and up face you, time recedes to the upper right.
+const HOME: Camera = { yaw: -0.36, pitch: 0.32, zoom: 1, panX: 0, panY: 0 };
 
 function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -89,22 +89,103 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
     ctx.clearRect(0, 0, w, h);
     const css = getComputedStyle(el);
     const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+    const frame = fitFrame(w, h);
+    const at = (x: number, y: number, z: number) => project([x, y, z], cam.current, frame);
+    const line = (a: [number, number, number], b: [number, number, number]) => {
+      const p = at(...a);
+      const q = at(...b);
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(q.x, q.y);
+      ctx.stroke();
+    };
+    const [ax, ay, az] = c.axes;
+    const zOf = (t: number) => -scale(az, t); // time runs back: hour 0 at the front
+    const muted = token("--text-muted", "#5b6b7b");
+    const hair = token("--border", "#e4ecf1");
+    const mono = "500 10px 'Geist Mono', ui-monospace, monospace";
 
-    // A soft pool of light behind the cloud.
-    const glow = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.6);
-    glow.addColorStop(0, token("--quiet", "#f5f8fa"));
-    glow.addColorStop(1, "transparent");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, w, h);
+    // The floor (the bottom of the box of axes): a grid, the product's safe
+    // range shaded, and the freeze line.
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = hair;
+    for (const t of ax.ticks) line([scale(ax, t), -1, -1], [scale(ax, t), -1, 1]);
+    for (const t of az.ticks) line([-1, -1, zOf(t)], [1, -1, zOf(t)]);
+    const lo = Math.max(-1, scale(ax, c.safe[0]));
+    const hi = Math.min(1, scale(ax, c.safe[1]));
+    if (hi > lo) {
+      const corners = [at(lo, -1, -1), at(hi, -1, -1), at(hi, -1, 1), at(lo, -1, 1)];
+      ctx.fillStyle = token("--band", "#e3f8f6");
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      corners.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      const mid = at((lo + hi) / 2, -1, -1);
+      ctx.font = mono;
+      ctx.fillStyle = token("--text-accent", "#0b7a73");
+      ctx.textAlign = "center";
+      ctx.fillText(`SAFE ${c.safe[0]}–${c.safe[1]} °C`, mid.x, mid.y - 8);
+    }
+    if (c.freezeSensitive && c.freezeLine >= ax.min && c.freezeLine <= ax.max) {
+      const fx = scale(ax, c.freezeLine);
+      ctx.strokeStyle = "#7c3aed";
+      ctx.setLineDash([4, 4]);
+      line([fx, -1, -1], [fx, -1, 1]);
+      ctx.setLineDash([]);
+      const top = at(fx, -1, -1);
+      ctx.font = mono;
+      ctx.fillStyle = "#7c3aed";
+      ctx.textAlign = "center";
+      ctx.fillText("FREEZE", top.x, top.y - 8);
+    }
 
-    const pts = c.xyz.map((p) => project(p, cam.current, w, h));
+    // Three axes from the near bottom corner, with round ticks and a title each.
+    ctx.strokeStyle = muted;
+    ctx.globalAlpha = 0.7;
+    line([-1, -1, 1], [1, -1, 1]);
+    if (ay.ticks.length) line([-1, -1, 1], [-1, 1, 1]);
+    line([-1, -1, 1], [-1, -1, -1]);
+    ctx.globalAlpha = 1;
+    ctx.font = mono;
+    ctx.fillStyle = muted;
+    const tickLabel = (t: number) => `${Number.isInteger(t) ? t : t.toFixed(1)}`;
+    ctx.textAlign = "center";
+    for (const t of ax.ticks) {
+      const p = at(scale(ax, t), -1, 1);
+      ctx.fillText(tickLabel(t), p.x, p.y + 14);
+    }
+    ctx.textAlign = "right";
+    for (const t of ay.ticks) {
+      const p = at(-1, scale(ay, t), 1);
+      ctx.fillText(tickLabel(t), p.x - 6, p.y + 3);
+    }
+    for (const t of az.ticks) {
+      const p = at(-1, -1, zOf(t));
+      ctx.fillText(tickLabel(t), p.x - 6, p.y + 12);
+    }
+    ctx.font = "600 10px 'Geist Mono', ui-monospace, monospace";
+    ctx.fillStyle = token("--text", "#0b2545");
+    const title = (a: TripAxis, x: number, y: number, z: number, dx: number, dy: number, align: CanvasTextAlign) => {
+      if (!a.title) return;
+      const p = at(x, y, z);
+      ctx.textAlign = align;
+      ctx.fillText(`${a.title.toUpperCase()} ${a.unit}`, p.x + dx, p.y + dy);
+    };
+    title(ax, 1, -1, 1, 0, 30, "right");
+    title(ay, -1, 1, 1, 0, -10, "center");
+    title(az, -1, -1, -1, 0, -10, "center");
+
+    // The readings, back to front.
+    const pts = c.xyz.map((p) => project(p, cam.current, frame));
     screen.current = pts;
     const order = pts.map((_, i) => i).sort((a, b) => pts[a].z - pts[b].z);
     for (const i of order) {
       const p = pts[i];
       const g = gOf[i];
       const depth = (p.z + 1.8) / 3.6; // 0 at the back, 1 at the front
-      ctx.globalAlpha = f == null ? 0.35 + 0.55 * depth : g.id === f ? 0.95 : 0.07;
+      ctx.globalAlpha = f == null ? 0.45 + 0.5 * depth : g.id === f ? 0.95 : 0.07;
       ctx.fillStyle = g.color;
       ctx.beginPath();
       ctx.arc(p.x, p.y, Math.max(1.6, 3.1 * p.f), 0, Math.PI * 2);
@@ -120,31 +201,41 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
       ctx.stroke();
     }
 
-    // "GROUP n" tags at each group's centre, like the points they name.
+    // Each group named at its centre; labels that would overlap step aside.
     ctx.font = "600 11px 'DM Sans', system-ui, sans-serif";
     ctx.textBaseline = "middle";
-    for (const g of c.groups) {
-      if (f != null && g.id !== f) continue;
-      const p = project(g.centre, cam.current, w, h);
-      const label = `GROUP ${g.id}`;
-      const tw = ctx.measureText(label).width;
-      const bw = tw + 30;
-      const x = p.x - bw / 2;
-      const y = p.y - 13;
+    ctx.textAlign = "left";
+    const placed: { x: number; y: number; w: number }[] = [];
+    const tags = c.groups
+      .filter((g) => f == null || g.id === f)
+      .map((g) => ({ g, p: project(g.centre, cam.current, frame), text: `${g.id} · ${g.name}` }))
+      .sort((a, b) => a.p.y - b.p.y);
+    for (const { g, p, text } of tags) {
+      const bw = ctx.measureText(text).width + 28;
+      const x = Math.min(Math.max(p.x - bw / 2, 6), w - bw - 6);
+      let y = p.y - 12;
+      for (let tries = 0; tries < 8; tries++) {
+        const hit = placed.find((o) => x < o.x + o.w + 4 && o.x < x + bw + 4 && Math.abs(o.y - y) < 28);
+        if (!hit) break;
+        y = hit.y + 28;
+      }
+      y = Math.min(y, h - 30);
+      placed.push({ x, y, w: bw });
       ctx.fillStyle = token("--surface", "#ffffff");
-      ctx.strokeStyle = token("--line", "#d5dde5");
-      ctx.lineWidth = 1;
+      ctx.strokeStyle = g.color;
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.roundRect(x, y, bw, 26, 13);
+      ctx.roundRect(x, y, bw, 24, 12);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = g.color;
       ctx.beginPath();
-      ctx.arc(x + 12, p.y, 4, 0, Math.PI * 2);
+      ctx.arc(x + 12, y + 12, 4, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = token("--text", "#0b2545");
-      ctx.fillText(label, x + 21, p.y + 0.5);
+      ctx.fillText(text, x + 21, y + 12.5);
     }
+    ctx.textBaseline = "alphabetic";
   };
 
   // Redraw when the data, the focus or the hover changes; keep drawing while it spins.
@@ -154,9 +245,11 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
     if (!el) return;
     let frame = 0;
     let visible = true;
+    let swayT = 0;
     const tick = () => {
       if (spinning.current && visible) {
-        cam.current.yaw += 0.0025;
+        swayT += 1 / 60;
+        cam.current.yaw = HOME.yaw + 0.22 * Math.sin(swayT * 0.35);
         draw();
       }
       frame = requestAnimationFrame(tick);
@@ -202,7 +295,7 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
 
   const p = tip ? cloud.points[tip.i] : null;
   return (
-    <div className="relative h-[320px] overflow-hidden rounded-2xl border border-line bg-surface lg:h-[400px]">
+    <div className="relative h-[340px] overflow-hidden rounded-2xl border border-line bg-surface lg:h-[440px]">
       <canvas
         ref={canvas}
         className="absolute inset-0 h-full w-full cursor-grab active:cursor-grabbing"
@@ -244,7 +337,7 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
       <p className="pointer-events-none absolute left-4 top-3 m-0 font-mono text-[11px] uppercase tracking-[0.08em] text-neutral-500">
         {canTap ? "Swipe sideways to rotate" : "Drag to rotate · Shift+drag to pan"}
       </p>
-      <div className="absolute bottom-3 left-3 flex gap-2">
+      <div className="absolute right-3 top-3 flex gap-2">
         <button onClick={() => zoomBy(1.25)} aria-label="Zoom in" className="pill !min-h-9 !min-w-9 bg-surface">
           +
         </button>
@@ -280,19 +373,41 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
   );
 }
 
-function project(p: [number, number, number], cam: Camera, w: number, h: number) {
-  const [x, y, z] = p;
-  const cy = Math.cos(cam.yaw);
-  const sy = Math.sin(cam.yaw);
-  const x1 = x * cy + z * sy;
-  const z1 = -x * sy + z * cy;
-  const cp = Math.cos(cam.pitch);
-  const sp = Math.sin(cam.pitch);
-  const y2 = y * cp - z1 * sp;
-  const z2 = y * sp + z1 * cp;
-  const f = 3 / (3 - z2); // a little perspective: nearer dots are bigger
-  const s = Math.min(w, h) * 0.4 * cam.zoom;
-  return { x: w / 2 + cam.panX + x1 * f * s, y: h / 2 + cam.panY - y2 * f * s, z: z2, f };
+/** Rotate a point by the camera and add a little perspective (nearer is bigger). */
+function turn([x, y, z]: [number, number, number], yaw: number, pitch: number) {
+  const x1 = x * Math.cos(yaw) + z * Math.sin(yaw);
+  const z1 = -x * Math.sin(yaw) + z * Math.cos(yaw);
+  const y2 = y * Math.cos(pitch) - z1 * Math.sin(pitch);
+  const z2 = y * Math.sin(pitch) + z1 * Math.cos(pitch);
+  const f = 3 / (3 - z2);
+  return { x: x1 * f, y: y2 * f, z: z2, f };
+}
+
+interface Frame {
+  s: number; // pixels per unit
+  midX: number; // centre of the box of axes, in turned units
+  midY: number;
+  cx: number; // where that centre sits on the canvas
+  cy: number;
+}
+
+// Room around the box of axes for tick labels, titles and the controls.
+const PAD = { l: 52, r: 30, t: 64, b: 46 };
+
+/** Fit the whole box of axes (seen from the home angle) inside the canvas. */
+function fitFrame(w: number, h: number): Frame {
+  const corners = [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => turn([x, y, z], HOME.yaw, HOME.pitch))));
+  const xs = corners.map((c) => c.x);
+  const ys = corners.map((c) => c.y);
+  const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  const s = Math.max(10, Math.min((w - PAD.l - PAD.r) / (maxX - minX), (h - PAD.t - PAD.b) / (maxY - minY)));
+  return { s, midX: (minX + maxX) / 2, midY: (minY + maxY) / 2, cx: PAD.l + (w - PAD.l - PAD.r) / 2, cy: PAD.t + (h - PAD.t - PAD.b) / 2 };
+}
+
+function project(p: [number, number, number], cam: Camera, frame: Frame) {
+  const t = turn(p, cam.yaw, cam.pitch);
+  const k = frame.s * cam.zoom;
+  return { x: frame.cx + cam.panX + (t.x - frame.midX) * k, y: frame.cy + cam.panY - (t.y - frame.midY) * k, z: t.z, f: t.f };
 }
 
 // ---- One card per group: what it was, for how long, and what it cost.

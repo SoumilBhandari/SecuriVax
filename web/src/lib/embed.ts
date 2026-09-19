@@ -1,8 +1,10 @@
-// A box's trip as a point cloud: every reading becomes a vector of what the
-// box was going through (inside and outside temperature, humidity, how fast
-// the temperature moved, whether it was on the move), PCA flattens
-// the vectors to 3-D for the picture, and k-means finds the groups. All of it
-// runs on the report's own numbers: no model is asked anything.
+// A box's trip as a point cloud. Each reading sits on three real axes: the
+// temperature inside the box (across), outside (up), and hours into the trip
+// (back), so where a dot is means something you can read off the axes. The
+// groups come from k-means over what the box was going through (inside and
+// outside temperature, humidity, how fast the temperature moved, whether it
+// was on the move). All of it runs on the report's own numbers: no model is
+// asked anything.
 
 import type { PointStatus, Report } from "../types";
 
@@ -45,11 +47,23 @@ export interface TripGroup {
   examples: number[];
 }
 
+/** One axis of the picture, in real units; the picture spans -1..1 along it. */
+export interface TripAxis {
+  title: string;
+  unit: string;
+  min: number;
+  max: number;
+  ticks: number[];
+}
+
 export interface TripCloud {
   points: TripPoint[];
   xyz: [number, number, number][];
   groups: TripGroup[];
   freezeLine: number;
+  axes: [TripAxis, TripAxis, TripAxis]; // inside, outside, hours
+  safe: [number, number]; // the product's storage range, °C
+  freezeSensitive: boolean;
 }
 
 const FEATURES: { key: string; weight: number }[] = [
@@ -95,10 +109,51 @@ export function embedTrip(report: Report): TripCloud | null {
   if (cols.length === 0) return null;
   const X = points.map((_, i) => cols.map((c) => c[i]));
 
-  const xyz = pca3(X);
   const labels = mergeAlike(points, bestKMeans(X));
+
+  // The picture: real axes, each scaled to -1..1.
+  const freezeLine = freezeLineOf(report);
+  const safe: [number, number] = [report.product.storage_min_c, report.product.storage_max_c];
+  const freezeSensitive = report.product.freeze_sensitive;
+  const t0 = Math.min(...points.map((p) => p.ts));
+  const hours = points.map((p) => (p.ts - t0) / 3600);
+  const inside = axis("Inside", "°C", [...points.map((p) => p.temp), safe[0] - 1, safe[1] + 1, ...(freezeSensitive ? [freezeLine - 1] : [])]);
+  const outsideKnown = points.filter((p) => p.outside != null).length >= points.length / 2;
+  const rhKnown = points.filter((p) => p.rh != null).length >= points.length / 2;
+  const upValue = (p: TripPoint) => (outsideKnown ? p.outside : rhKnown ? p.rh : null);
+  const upValues = points.map(upValue).filter((v): v is number => v != null);
+  const up = outsideKnown
+    ? axis("Outside", "°C", upValues)
+    : rhKnown
+      ? axis("Humidity", "%", upValues)
+      : { title: "", unit: "", min: -1, max: 1, ticks: [] };
+  const upMean = upValues.length ? upValues.reduce((a, b) => a + b, 0) / upValues.length : 0;
+  const time = axis("Hours into the trip", "h", hours, 0);
+  // Time runs back into the picture: the start at the front, the latest at the back.
+  const xyz = points.map((p, i) => [scale(inside, p.temp), scale(up, upValue(p) ?? upMean), -scale(time, hours[i])] as [number, number, number]);
+
   const groups = describe(points, xyz, X, labels, report.budget_used - report.initial_budget_used);
-  return { points, xyz, groups, freezeLine: freezeLineOf(report) };
+  return { points, xyz, groups, freezeLine, axes: [inside, up, time], safe, freezeSensitive };
+}
+
+/** An axis around these values, padded a little, with round tick marks. */
+function axis(title: string, unit: string, values: number[], floor?: number): TripAxis {
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+  if (max - min < 1) [min, max] = [min - 0.5, max + 0.5];
+  const pad = (max - min) * 0.06;
+  min = floor ?? min - pad;
+  max += pad;
+  const raw = (max - min) / 4;
+  const mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw) ?? raw;
+  const ticks: number[] = [];
+  for (let t = Math.ceil(min / step) * step; t <= max + 1e-9; t += step) ticks.push(+t.toFixed(6));
+  return { title, unit, min, max, ticks };
+}
+
+export function scale(a: TripAxis, v: number): number {
+  return a.max === a.min ? 0 : ((v - a.min) / (a.max - a.min)) * 2 - 1;
 }
 
 function freezeLineOf(report: Report): number {
@@ -169,65 +224,6 @@ function nearest(series: [number, number][], ts: number): number | null {
   }
   const best = lo > 0 && Math.abs(series[lo - 1][0] - ts) < Math.abs(series[lo][0] - ts) ? lo - 1 : lo;
   return Math.abs(series[best][0] - ts) <= 3 * 3600 ? series[best][1] : null;
-}
-
-// ---- PCA: the three directions the readings differ along most.
-
-function pca3(X: number[][]): [number, number, number][] {
-  const d = X[0].length;
-  const n = X.length;
-  const C = Array.from({ length: d }, () => new Array<number>(d).fill(0));
-  for (const row of X) for (let a = 0; a < d; a++) for (let b = a; b < d; b++) C[a][b] += row[a] * row[b];
-  for (let a = 0; a < d; a++) for (let b = a; b < d; b++) C[b][a] = C[a][b] /= n;
-  const { values, vectors } = jacobi(C);
-  const order = values.map((v, i) => [v, i] as const).sort((a, b) => b[0] - a[0]).map(([, i]) => i);
-  const axes = [0, 1, 2].map((k) => (k < d ? vectors.map((row) => row[order[k]]) : null));
-  const out = X.map((row) => axes.map((ax) => (ax ? row.reduce((s, v, j) => s + v * ax[j], 0) : 0)) as [number, number, number]);
-  // Scale so most readings fill the view; the few beyond ease in at the edge
-  // instead of squeezing everyone else into the middle.
-  const mags = out.flat().map(Math.abs).sort((a, b) => a - b);
-  const scale = Math.max(mags[Math.floor(mags.length * 0.98)] ?? 0, 1e-9);
-  const ease = (v: number) => (Math.abs(v) <= 1 ? v : Math.sign(v) * (1 + Math.tanh(Math.abs(v) - 1) * 0.35));
-  return out.map((p) => p.map((v) => ease(v / scale)) as [number, number, number]);
-}
-
-/** Eigen-decomposition of a small symmetric matrix (cyclic Jacobi). */
-function jacobi(A: number[][]): { values: number[]; vectors: number[][] } {
-  const n = A.length;
-  const a = A.map((r) => r.slice());
-  const v: number[][] = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
-  for (let sweep = 0; sweep < 60; sweep++) {
-    let off = 0;
-    for (let p = 0; p < n; p++) for (let q = p + 1; q < n; q++) off += a[p][q] ** 2;
-    if (off < 1e-12) break;
-    for (let p = 0; p < n; p++)
-      for (let q = p + 1; q < n; q++) {
-        if (Math.abs(a[p][q]) < 1e-15) continue;
-        const theta = (a[q][q] - a[p][p]) / (2 * a[p][q]);
-        const t = Math.sign(theta || 1) / (Math.abs(theta) + Math.sqrt(theta * theta + 1));
-        const c = 1 / Math.sqrt(t * t + 1);
-        const s = t * c;
-        for (let k = 0; k < n; k++) {
-          const akp = a[k][p];
-          const akq = a[k][q];
-          a[k][p] = c * akp - s * akq;
-          a[k][q] = s * akp + c * akq;
-        }
-        for (let k = 0; k < n; k++) {
-          const apk = a[p][k];
-          const aqk = a[q][k];
-          a[p][k] = c * apk - s * aqk;
-          a[q][k] = s * apk + c * aqk;
-        }
-        for (let k = 0; k < n; k++) {
-          const vkp = v[k][p];
-          const vkq = v[k][q];
-          v[k][p] = c * vkp - s * vkq;
-          v[k][q] = s * vkp + c * vkq;
-        }
-      }
-  }
-  return { values: a.map((r, i) => r[i]), vectors: v };
 }
 
 // ---- k-means, with k picked by silhouette: the most groups (up to four) that
