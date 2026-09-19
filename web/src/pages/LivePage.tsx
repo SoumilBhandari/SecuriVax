@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
-import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner } from "../components/Layout";
+import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split } from "../components/Layout";
 import { humidity } from "../lib/format";
 import { useLive, type LiveStatus } from "../lib/useLive";
 import { clock, LiveChart } from "../components/LiveChart";
@@ -79,31 +79,41 @@ export default function LivePage() {
       {!band && !error && <Spinner label="Tuning in" />}
       {band && readings.length === 0 && <Empty />}
 
-      {band && hero && <Hero readings={byNode.get(hero)!} band={band} now={now} live={status === "live"} />}
+      <Split
+        wide="left"
+        left={
+          <>
+            {band && hero && <Hero readings={byNode.get(hero)!} band={band} now={now} live={status === "live"} />}
 
-      {nodes.length > 1 && (
-        <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
-          <NodeChip active={!focus} onClick={() => setFocus(null)} label="All" />
-          {nodes.map((r) => (
-            <NodeChip key={r.node_id} active={focus === r.node_id} onClick={() => setFocus(focus === r.node_id ? null : r.node_id)} label={r.node_id} value={`${r.temp_c.toFixed(1)}°`} />
-          ))}
-        </div>
-      )}
-
-      {feed.length > 0 && (
-        <>
-          <SectionTitle aside={focus ?? `${nodes.length} ${nodes.length === 1 ? "node" : "nodes"}`}>Feed</SectionTitle>
-          <ol className="panel m-0 list-none p-0">
-            {feed.map((r) => (
-              <Row key={r.id} r={r} now={now} fresh={firstNewId != null && r.id >= firstNewId} />
-            ))}
-          </ol>
-          <p className="ui-caption m-0 mt-3">
-            From nodes over WiFi, the USB bridge and the simulated lanes. Verdicts read each box's full history, not
-            this feed.
-          </p>
-        </>
-      )}
+            {nodes.length > 1 && (
+              <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
+                <NodeChip active={!focus} onClick={() => setFocus(null)} label="All" />
+                {nodes.map((r) => (
+                  <NodeChip key={r.node_id} active={focus === r.node_id} onClick={() => setFocus(focus === r.node_id ? null : r.node_id)} label={r.node_id} value={`${r.temp_c.toFixed(1)}°`} />
+                ))}
+              </div>
+            )}
+          </>
+        }
+        right={
+          <>
+            {feed.length > 0 && (
+              <>
+                <SectionTitle aside={focus ?? `${nodes.length} ${nodes.length === 1 ? "node" : "nodes"}`}>Feed</SectionTitle>
+                <ol className="panel m-0 list-none p-0">
+                  {feed.map((r) => (
+                    <Row key={r.id} r={r} now={now} fresh={firstNewId != null && r.id >= firstNewId} />
+                  ))}
+                </ol>
+                <p className="ui-caption m-0 mt-3">
+                  From nodes over WiFi, the USB bridge and the simulated lanes. Verdicts read each box's full history, not
+                  this feed.
+                </p>
+              </>
+            )}
+          </>
+        }
+      />
     </Layout>
   );
 }

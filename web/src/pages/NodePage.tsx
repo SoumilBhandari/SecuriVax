@@ -6,7 +6,7 @@ import { Dispatch } from "../components/Dispatch";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { ForecastCard } from "../components/Forecast";
 import { NfcIcon } from "../components/Icons";
-import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Toast } from "../components/Layout";
+import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { api } from "../lib/api";
 import { ago, demoRate } from "../lib/format";
 import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
@@ -112,50 +112,59 @@ export default function NodePage() {
       )}
       {node.time_scale !== 1 && <p className="ui-caption m-0 mb-4 -mt-3">Demo node: {demoRate(node.time_scale)}.</p>}
 
-      <div className="grid grid-cols-2 gap-3">
-        <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit=" °C" />
-        <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}%` : "–"} />
-      </div>
+      <Split
+        left={
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <BigNumber label="Inside" value={latest ? latest.temp_c.toFixed(1) : "–"} unit=" °C" />
+              <BigNumber label="Humidity" value={latest?.rh != null ? `${Math.round(latest.rh)}%` : "–"} />
+            </div>
 
-      {forecastable && (
-        <div className="mt-3">
-          <ErrorBoundary label="The forecast">
-            <ForecastCard nodeId={node.id} />
-          </ErrorBoundary>
-        </div>
-      )}
+            {forecastable && (
+              <div className="mt-3">
+                <ErrorBoundary label="The forecast">
+                  <ForecastCard nodeId={node.id} />
+                </ErrorBoundary>
+              </div>
+            )}
+          </>
+        }
+        right={
+          <>
+            {forecastable && node.box_ids.length > 0 && (
+              <>
+                <SectionTitle>What should I do?</SectionTitle>
+                <ErrorBoundary label="The dispatch agent">
+                  <Dispatch nodeId={node.id} />
+                </ErrorBoundary>
+              </>
+            )}
 
-      {forecastable && node.box_ids.length > 0 && (
-        <>
-          <SectionTitle>What should I do?</SectionTitle>
-          <ErrorBoundary label="The dispatch agent">
-            <Dispatch nodeId={node.id} />
-          </ErrorBoundary>
-        </>
-      )}
+            <SectionTitle>Boxes · {boxes.length}</SectionTitle>
+            <div className="flex flex-col gap-3">
+              {boxes.map((b) => (
+                <BoxCard key={b.id} box={b} compact />
+              ))}
+              {boxes.length === 0 && <p className="m-0 text-neutral-500">Empty.</p>}
+              <button onClick={() => setArm("node", id)} className="btn-secondary w-full">
+                <NfcIcon size={20} />
+                Load a box: tap its tag
+              </button>
+            </div>
 
-      <SectionTitle>Boxes · {boxes.length}</SectionTitle>
-      <div className="flex flex-col gap-3">
-        {boxes.map((b) => (
-          <BoxCard key={b.id} box={b} compact />
-        ))}
-        {boxes.length === 0 && <p className="m-0 text-neutral-500">Empty.</p>}
-        <button onClick={() => setArm("node", id)} className="btn-secondary w-full">
-          <NfcIcon size={20} />
-          Load a box: tap its tag
-        </button>
-      </div>
-
-      <div className="mt-6">
-        <Details>
-          <Detail first title="Recent readings">
-            <Sparkline values={node.recent.map((r) => r.temp_c)} />
-          </Detail>
-          <Detail title={`Uploads · ${node.uploads.length}`}>
-            <Uploads node={node} />
-          </Detail>
-        </Details>
-      </div>
+            <div className="mt-6">
+              <Details>
+                <Detail first title="Recent readings">
+                  <Sparkline values={node.recent.map((r) => r.temp_c)} />
+                </Detail>
+                <Detail title={`Uploads · ${node.uploads.length}`}>
+                  <Uploads node={node} />
+                </Detail>
+              </Details>
+            </div>
+          </>
+        }
+      />
       <Toast message={toast} onDone={hideToast} />
     </Layout>
   );

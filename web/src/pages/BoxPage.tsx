@@ -6,7 +6,7 @@ import { Custody } from "../components/Custody";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { forecastLine } from "../components/Forecast";
 import { ChevronRightIcon, ScanIcon, SparkIcon, XIcon } from "../components/Icons";
-import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Toast } from "../components/Layout";
+import { BackHeader, Detail, Details, ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split, Toast } from "../components/Layout";
 import { LoggerCompare } from "../components/LoggerCompare";
 import { StageReset } from "../components/StageReset";
 import { TripChart } from "../components/TripChart";
@@ -132,76 +132,85 @@ export default function BoxPage() {
         }
       />
 
-      <VerdictHero report={report} stale={stale} />
+      <Split
+        left={
+          <>
+            <VerdictHero report={report} stale={stale} />
 
-      <div className="mt-6 flex flex-col gap-3">
-        {hasVvm && (
-          <button onClick={() => setScanning(true)} className="btn-primary">
-            <ScanIcon size={22} />
-            Scan the VVM label
-          </button>
-        )}
-        {hasVvm && label && (
-          <p className="ui-caption m-0 text-center">
-            Last label confirmed {time(label.ts)}: stage {label.stage}
-            {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
-          </p>
-        )}
-        <button onClick={() => setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
-          Move this box
-        </button>
-        {moving && <MoveBox report={report} onMoved={changed} />}
-      </div>
+            <div className="mt-6 flex flex-col gap-3">
+              {hasVvm && (
+                <button onClick={() => setScanning(true)} className="btn-primary">
+                  <ScanIcon size={22} />
+                  Scan the VVM label
+                </button>
+              )}
+              {hasVvm && label && (
+                <p className="ui-caption m-0 text-center">
+                  Last label confirmed {time(label.ts)}: stage {label.stage}
+                  {label.flagged ? ", flagged: it disagreed with the record" : ", agreed with the record"}
+                </p>
+              )}
+              <button onClick={() => setMoving(!moving)} aria-expanded={moving} className="btn-secondary w-full">
+                Move this box
+              </button>
+              {moving && <MoveBox report={report} onMoved={changed} />}
+            </div>
+          </>
+        }
+        right={
+          <>
+            <SectionTitle>Why</SectionTitle>
+            <Reasons reasons={report.reasons} />
 
-      <SectionTitle>Why</SectionTitle>
-      <Reasons reasons={report.reasons} />
+            {fc && inside && (
+              <Link
+                to={`/node/${inside.node_id}`}
+                className="mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline hover:border-line-strong"
+              >
+                <span className="flex flex-col gap-1">
+                  <span className="eyebrow">Carrier · {inside.node_label}</span>
+                  <span>{forecastLine(fc)}</span>
+                </span>
+                <ChevronRightIcon size={22} />
+              </Link>
+            )}
 
-      {fc && inside && (
-        <Link
-          to={`/node/${inside.node_id}`}
-          className="mt-6 grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left text-text no-underline hover:border-line-strong"
-        >
-          <span className="flex flex-col gap-1">
-            <span className="eyebrow">Carrier · {inside.node_label}</span>
-            <span>{forecastLine(fc)}</span>
-          </span>
-          <ChevronRightIcon size={22} />
-        </Link>
-      )}
-
-      <SectionTitle>More detail</SectionTitle>
-      <Details>
-        <Detail first title="Temperature over the trip">
-          <ErrorBoundary label="The chart">
-            <TripChart segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
-          </ErrorBoundary>
-        </Detail>
-        <Detail title="Where it has been">
-          <Custody segments={report.segments} places={report.places} />
-        </Detail>
-        <Detail title="What a threshold logger would say">
-          <LoggerCompare report={report} />
-        </Detail>
-        <Detail title="The numbers">
-          <Numbers report={report} />
-        </Detail>
-        <Detail title="Same trip, other products">
-          <ErrorBoundary label="The comparison">
-            <Counterfactual boxId={report.box.id} />
-          </ErrorBoundary>
-        </Detail>
-        <Detail title="Written report">
-          <ErrorBoundary label="The report">
-            <WorkerReport boxId={report.box.id} verdict={report.verdict} />
-          </ErrorBoundary>
-        </Detail>
-        {report.box.id.startsWith("BOX-9") && (
-          <Detail title="Stage demo">
-            <StageReset onDone={changed} />
-          </Detail>
-        )}
-      </Details>
-      <p className="ui-caption m-0 mt-6 text-center">Decision support with a human in the loop. Not a clinical determination.</p>
+            <SectionTitle>More detail</SectionTitle>
+            <Details>
+              <Detail first title="Temperature over the trip">
+                <ErrorBoundary label="The chart">
+                  <TripChart segments={report.segments} product={report.product} budgetUsed={report.budget_used} />
+                </ErrorBoundary>
+              </Detail>
+              <Detail title="Where it has been">
+                <Custody segments={report.segments} places={report.places} />
+              </Detail>
+              <Detail title="What a threshold logger would say">
+                <LoggerCompare report={report} />
+              </Detail>
+              <Detail title="The numbers">
+                <Numbers report={report} />
+              </Detail>
+              <Detail title="Same trip, other products">
+                <ErrorBoundary label="The comparison">
+                  <Counterfactual boxId={report.box.id} />
+                </ErrorBoundary>
+              </Detail>
+              <Detail title="Written report">
+                <ErrorBoundary label="The report">
+                  <WorkerReport boxId={report.box.id} verdict={report.verdict} />
+                </ErrorBoundary>
+              </Detail>
+              {report.box.id.startsWith("BOX-9") && (
+                <Detail title="Stage demo">
+                  <StageReset onDone={changed} />
+                </Detail>
+              )}
+            </Details>
+            <p className="ui-caption m-0 mt-6 text-center">Decision support with a human in the loop. Not a clinical determination.</p>
+          </>
+        }
+      />
 
       {scanning && (
         <Sheet title="Check the VVM label" onClose={() => setScanning(false)}>
@@ -234,13 +243,13 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
     };
   }, [onClose]);
   return (
-    <div className="fixed inset-0 z-[1300] flex items-end justify-center" style={{ background: "color-mix(in srgb, var(--ink-900) 55%, transparent)" }} onClick={onClose}>
+    <div className="fixed inset-0 z-[1300] flex items-end justify-center lg:items-center lg:p-8" style={{ background: "color-mix(in srgb, var(--ink-900) 55%, transparent)" }} onClick={onClose}>
       <section
         role="dialog"
         aria-modal="true"
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4"
+        className="max-h-[92dvh] w-full max-w-[480px] overflow-y-auto rounded-t-3xl border border-line bg-surface px-4 pt-4 lg:max-w-lg lg:rounded-3xl lg:px-6 lg:pt-6"
         style={{ paddingBottom: "max(24px, env(safe-area-inset-bottom, 0px))" }}
       >
         <div className="mb-3 flex items-center justify-between gap-3">

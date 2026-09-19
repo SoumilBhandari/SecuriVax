@@ -3,24 +3,86 @@ import { Link, useLocation, useNavigate } from "react-router";
 
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
-import { Logo } from "./Brand";
+import { Logo, ThemeToggle } from "./Brand";
 import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, XIcon } from "./Icons";
 
-/** The phone-width column, the bottom tab bar, and the banners every page shares. */
+/**
+ * The page frame: on a phone, one column with the tab bar at the bottom; from
+ * laptop width up, a sidebar on the left and the page using the width.
+ */
 export function Layout({ children }: { back?: boolean; children: ReactNode }) {
   return (
-    <div className="shell">
-      {SNAPSHOT && (
-        <p className="ui-caption mb-2 mt-4 rounded-2xl border border-line bg-surface px-4 py-3">
-          Snapshot of the app from{" "}
-          {new Date(SNAPSHOT.taken_at * 1000).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.
-          Every page opens; loading boxes, reading a VVM photo or asking the agent needs the live app.
-        </p>
-      )}
-      <ArmBanner />
-      {children}
-      <TabBar />
+    <>
+      <Sidebar />
+      <div className="lg:pl-[248px]">
+        <div className="shell">
+          {SNAPSHOT && (
+            <p className="ui-caption mb-2 mt-4 rounded-2xl border border-line bg-surface px-4 py-3">
+              Snapshot of the app from{" "}
+              {new Date(SNAPSHOT.taken_at * 1000).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.
+              Every page opens; loading boxes, reading a VVM photo or asking the agent needs the live app.
+            </p>
+          )}
+          <ArmBanner />
+          {children}
+          <TabBar />
+        </div>
+      </div>
+    </>
+  );
+}
+
+/**
+ * Two columns from laptop width up: the left one stays in view while the right
+ * scrolls. On a phone they stack, left first, exactly as before. The narrow
+ * column keeps a phone's width, so the verdict card still fits "QUARANTINE".
+ */
+export function Split({ left, right, wide = "right" }: { left: ReactNode; right: ReactNode; wide?: "left" | "right" }) {
+  const cols = wide === "right" ? "lg:grid-cols-[minmax(380px,5fr)_minmax(0,7fr)]" : "lg:grid-cols-[minmax(0,7fr)_minmax(380px,5fr)]";
+  return (
+    <div className={`lg:grid lg:items-start lg:gap-10 ${cols}`}>
+      <div className={`lg:sticky lg:top-8 lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto lg:pb-2 [scrollbar-width:thin] ${TOP}`}>{left}</div>
+      <div className={TOP}>{right}</div>
     </div>
+  );
+}
+
+/** Side by side, a column's opening section title lines up with the other column's top. */
+const TOP = "lg:[&>.section-title:first-child]:mt-0";
+
+/** The desktop navigation: the logo, the five sections and the theme. */
+function Sidebar() {
+  const { pathname } = useLocation();
+  return (
+    <aside className="fixed inset-y-0 left-0 z-[1100] hidden w-[248px] flex-col border-r border-line bg-surface px-4 py-7 lg:flex">
+      <Link to="/" className="mb-9 px-3" aria-label="SecuriVax home">
+        <Logo height={32} />
+      </Link>
+      <nav aria-label="Main" className="flex flex-col gap-1">
+        {TABS.map(({ to, label, Icon, match }) => {
+          const current = match(pathname);
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={current ? "page" : undefined}
+              className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] no-underline hover:bg-neutral-900"
+              style={{
+                background: current ? "var(--quiet)" : undefined,
+                color: current ? "var(--text)" : "var(--text-muted)",
+                fontWeight: current ? 700 : 500,
+              }}
+            >
+              <Icon size={22} />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="mt-auto px-3">
+        <ThemeToggle />
+      </div>
+    </aside>
   );
 }
 
@@ -37,7 +99,7 @@ function TabBar() {
   return (
     <nav
       aria-label="Main"
-      className="fixed bottom-0 left-1/2 z-[1100] grid w-full max-w-[480px] -translate-x-1/2 grid-cols-5 gap-1 border-t border-line bg-surface px-3 pt-1.5"
+      className="fixed bottom-0 left-1/2 z-[1100] grid w-full max-w-[480px] -translate-x-1/2 grid-cols-5 gap-1 border-t border-line bg-surface px-3 pt-1.5 lg:hidden"
       style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom, 0px))" }}
     >
       {TABS.map(({ to, label, Icon, match }) => {
@@ -72,7 +134,9 @@ export function BackHeader() {
       <button onClick={back} aria-label="Back" className="back-btn">
         <BackIcon size={22} />
       </button>
-      <Logo height={26} />
+      <span className="flex lg:hidden">
+        <Logo height={26} />
+      </span>
     </div>
   );
 }
@@ -195,7 +259,7 @@ export function Toast({ message, onDone }: { message: string | null; onDone: () 
     <div
       role={failed ? "alert" : "status"}
       onClick={onDone}
-      className="fixed bottom-[100px] left-1/2 z-[1200] w-[min(420px,calc(100%-48px))] -translate-x-1/2 cursor-pointer rounded-xl px-4 py-3 text-center text-[15px]"
+      className="fixed bottom-[100px] left-1/2 z-[1200] w-[min(420px,calc(100%-48px))] -translate-x-1/2 cursor-pointer rounded-xl px-4 py-3 text-center text-[15px] lg:bottom-8 lg:left-[calc(50%+124px)]"
       style={{ background: "var(--toast)", color: "var(--white)" }}
     >
       {message}

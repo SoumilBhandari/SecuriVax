@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { StageIcon } from "../components/Icons";
-import { BackHeader, Layout, PageTitle, SectionTitle } from "../components/Layout";
+import { BackHeader, Layout, PageTitle, SectionTitle, Split } from "../components/Layout";
 import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
 import { asset } from "../lib/snapshot";
@@ -23,47 +23,56 @@ export default function TagsPage() {
     <Layout>
       <BackHeader />
       <PageTitle eyebrow="Setup" title="NFC tags" />
-      <p className="m-0 -mt-3 text-neutral-300">
+      <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
         Write each URL to an NTAG213/215 sticker as a URL record (NFC Tools works on iPhone and Android). Tapping a sticker
         opens that page in the phone's browser. Tap a carrier, then a box, to load the box into it. Print the same URL as a
         QR code for phones without NFC.
       </p>
 
-      <SectionTitle aside="DEMO-01 · BOX-9001/9002">Stage demo</SectionTitle>
-      <section className="panel flex flex-col gap-3 p-4">
-        <p className="m-0">
-          Put the stage screen on the projector: the carrier's live temperature and both stage boxes, updating with every
-          reading.
-        </p>
-        <Link to="/stage" className="btn-primary">
-          <StageIcon size={22} />
-          Open the stage screen
-        </Link>
-        <p className="ui-caption m-0">
-          Between rehearsals: clear the stage carrier's readings and put both stage boxes back to fresh. The other lanes are
-          not touched.
-        </p>
-        <StageReset />
-      </section>
+      <Split
+        left={
+          <>
+            <SectionTitle aside="DEMO-01 · BOX-9001/9002">Stage demo</SectionTitle>
+            <section className="panel flex flex-col gap-3 p-4">
+              <p className="m-0">
+                Put the stage screen on the projector: the carrier's live temperature and both stage boxes, updating with every
+                reading.
+              </p>
+              <Link to="/stage" className="btn-primary">
+                <StageIcon size={22} />
+                Open the stage screen
+              </Link>
+              <p className="ui-caption m-0">
+                Between rehearsals: clear the stage carrier's readings and put both stage boxes back to fresh. The other lanes are
+                not touched.
+              </p>
+              <StageReset />
+            </section>
 
-      <SectionTitle>VVM test card</SectionTitle>
-      <section className="panel p-4">
-        <p className="m-0 mb-3">
-          Print this and stick one VVM on the demo bottle to try the camera check. Or open the{" "}
-          <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
-            single-VVM test target
-          </a>{" "}
-          on a laptop and point the phone at it: pick a stage, or slide through every shade.
-        </p>
-        <a href={asset("/vvm-card.svg")} target="_blank" rel="noreferrer">
-          <img src={asset("/vvm-card.svg")} alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-xl border border-line" />
-        </a>
-      </section>
-
-      <SectionTitle>Carriers and storage</SectionTitle>
-      <TagList items={nodes.map((n) => ({ id: n.id, label: n.label, url: `${origin}/node/${n.id}?tap=1` }))} />
-      <SectionTitle>Boxes</SectionTitle>
-      <TagList items={boxes.map((b) => ({ id: b.id, label: b.product_name, url: `${origin}/box/${b.id}?tap=1` }))} />
+            <SectionTitle>VVM test card</SectionTitle>
+            <section className="panel p-4">
+              <p className="m-0 mb-3">
+                Print this and stick one VVM on the demo bottle to try the camera check. Or open the{" "}
+                <a href={asset("/vvm-target.html")} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+                  single-VVM test target
+                </a>{" "}
+                on a laptop and point the phone at it: pick a stage, or slide through every shade.
+              </p>
+              <a href={asset("/vvm-card.svg")} target="_blank" rel="noreferrer">
+                <img src={asset("/vvm-card.svg")} alt="Four VVM stages, from fresh to beyond the discard point" className="w-full rounded-xl border border-line" />
+              </a>
+            </section>
+          </>
+        }
+        right={
+          <>
+            <SectionTitle>Carriers and storage</SectionTitle>
+            <TagList items={nodes.map((n) => ({ id: n.id, label: n.label, url: `${origin}/node/${n.id}?tap=1` }))} />
+            <SectionTitle>Boxes</SectionTitle>
+            <TagList items={boxes.map((b) => ({ id: b.id, label: b.product_name, url: `${origin}/box/${b.id}?tap=1` }))} />
+          </>
+        }
+      />
     </Layout>
   );
 }

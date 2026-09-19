@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 
-import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner } from "../components/Layout";
+import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split } from "../components/Layout";
 import { api } from "../lib/api";
 import { time, weatherSource } from "../lib/format";
 import type { Facility, NodeSummary, Product, TripOption, TripPlan } from "../types";
@@ -66,52 +66,61 @@ export default function PlanPage() {
         sub="The weather forecast and a carrier's real cold life, run for every daylight departure over the next two days to every clinic."
       />
 
-      <section className="panel grid grid-cols-2 gap-3 p-4">
-        <Field label="Product" wide>
-          <select className="select-pill w-full" value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })}>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.stability_ref})
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="From">
-          <select className="select-pill w-full" value={form.origin_id} onChange={(e) => setForm({ ...form, origin_id: e.target.value })}>
-            {stores.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Hours at the site">
-          <select className="select-pill w-full" value={form.session_h} onChange={(e) => setForm({ ...form, session_h: Number(e.target.value) })}>
-            {[2, 4, 6, 8].map((h) => (
-              <option key={h} value={h}>
-                {h} h
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Carrier" wide>
-          <select className="select-pill w-full" value={form.carrier_id} onChange={(e) => setForm({ ...form, carrier_id: e.target.value })}>
-            <option value="">A carrier performing as rated (20 h)</option>
-            {carriers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.label} (its measured cold life)
-              </option>
-            ))}
-          </select>
-        </Field>
-        <button onClick={run} disabled={busy} className="btn-primary col-span-2 mt-1">
-          {busy ? "Forecasting…" : "Plan trips"}
-        </button>
-      </section>
-
-      {error && <ErrorNote error={error} />}
-      {busy && !plan && <Spinner label="Running the forecast" />}
-      {plan && <PlanResult plan={plan} />}
+      <Split
+        left={
+          <>
+            <section className="panel grid grid-cols-2 gap-3 p-4">
+              <Field label="Product" wide>
+                <select className="select-pill w-full" value={form.product_id} onChange={(e) => setForm({ ...form, product_id: e.target.value })}>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.stability_ref})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="From">
+                <select className="select-pill w-full" value={form.origin_id} onChange={(e) => setForm({ ...form, origin_id: e.target.value })}>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Hours at the site">
+                <select className="select-pill w-full" value={form.session_h} onChange={(e) => setForm({ ...form, session_h: Number(e.target.value) })}>
+                  {[2, 4, 6, 8].map((h) => (
+                    <option key={h} value={h}>
+                      {h} h
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Carrier" wide>
+                <select className="select-pill w-full" value={form.carrier_id} onChange={(e) => setForm({ ...form, carrier_id: e.target.value })}>
+                  <option value="">A carrier performing as rated (20 h)</option>
+                  {carriers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label} (its measured cold life)
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <button onClick={run} disabled={busy} className="btn-primary col-span-2 mt-1">
+                {busy ? "Forecasting…" : "Plan trips"}
+              </button>
+            </section>
+          </>
+        }
+        right={
+          <>
+            {error && <ErrorNote error={error} />}
+            {busy && !plan && <Spinner label="Running the forecast" />}
+            {plan && <PlanResult plan={plan} />}
+          </>
+        }
+      />
     </Layout>
   );
 }

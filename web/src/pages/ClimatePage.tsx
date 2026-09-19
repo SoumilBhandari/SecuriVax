@@ -6,7 +6,7 @@ import { CircleMarker, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import { Link } from "react-router";
 
 import { ChevronRightIcon } from "../components/Icons";
-import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner } from "../components/Layout";
+import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split } from "../components/Layout";
 import { VerdictChip } from "../components/Verdict";
 import { api } from "../lib/api";
 import { ago, RISK_COLOR, time, weatherSource } from "../lib/format";
@@ -33,39 +33,53 @@ export default function ClimatePage() {
       {error && <ErrorNote error={error} />}
       {!stores && !error && <Spinner label="Fetching the forecast" />}
 
-      {stores && (
-        <>
-          <section className="card-soft p-4">
-            <p className="ui-heading m-0">{stores.summary}</p>
-            <p className="ui-caption m-0 mt-2">None of this changes a box's verdict: it's what to do before the heat arrives.</p>
-          </section>
-          <div className="mt-3">
-            <RiskMap sites={stores.facilities} />
-          </div>
-          <SectionTitle>Stores and clinics · next 72 h</SectionTitle>
-          <ul className="m-0 flex list-none flex-col gap-3 p-0">
-            {stores.facilities.map((f) => (
-              <Site key={f.id} site={f} />
-            ))}
-          </ul>
-        </>
-      )}
+      {/* On a laptop the map stays in view on the left while the lists scroll. */}
+      <Split
+        wide="left"
+        left={
+          stores && (
+            <>
+              <section className="card-soft p-4">
+                <p className="ui-heading m-0">{stores.summary}</p>
+                <p className="ui-caption m-0 mt-2">None of this changes a box's verdict: it's what to do before the heat arrives.</p>
+              </section>
+              <div className="mt-3">
+                <RiskMap sites={stores.facilities} />
+              </div>
+            </>
+          )
+        }
+        right={
+          <>
+            {stores && (
+              <>
+                <SectionTitle>Stores and clinics · next 72 h</SectionTitle>
+                <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                  {stores.facilities.map((f) => (
+                    <Site key={f.id} site={f} />
+                  ))}
+                </ul>
+              </>
+            )}
 
-      <SectionTitle aside="cold life from real trips">Carriers: model vs reality</SectionTitle>
-      {!carriers ? (
-        <Spinner />
-      ) : (
-        <ul className="m-0 flex list-none flex-col gap-3 p-0">
-          {carriers.map((c) => (
-            <CarrierRow key={c.node_id} carrier={c} />
-          ))}
-        </ul>
-      )}
+            <SectionTitle aside="cold life from real trips">Carriers: model vs reality</SectionTitle>
+            {!carriers ? (
+              <Spinner />
+            ) : (
+              <ul className="m-0 flex list-none flex-col gap-3 p-0">
+                {carriers.map((c) => (
+                  <CarrierRow key={c.node_id} carrier={c} />
+                ))}
+              </ul>
+            )}
 
-      <Link to="/plan" className="btn-primary mt-6">
-        Plan a trip from the forecast
-        <ChevronRightIcon size={18} />
-      </Link>
+            <Link to="/plan" className="btn-primary mt-6">
+              Plan a trip from the forecast
+              <ChevronRightIcon size={18} />
+            </Link>
+          </>
+        }
+      />
     </Layout>
   );
 }
@@ -76,7 +90,7 @@ function RiskMap({ sites }: { sites: StoreRisk[] }) {
   const bounds = latLngBounds(sites.map((s) => [s.lat, s.lon] as [number, number])).pad(0.2);
   return (
     <div>
-      <div className="h-56 overflow-hidden rounded-2xl border border-line">
+      <div className="h-56 overflow-hidden rounded-2xl border border-line lg:h-[min(600px,calc(100dvh-250px))]">
         <MapContainer bounds={bounds} scrollWheelZoom={false} className="h-full w-full">
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

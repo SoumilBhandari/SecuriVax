@@ -287,13 +287,20 @@
 }
 
 @layer components {
-  /* The phone-width column. Flat: no gradients, no shadows. */
+  /* The phone-width column. Flat: no gradients, no shadows. From laptop
+     width up the page uses the room, beside the sidebar (Layout). */
   .shell {
     position: relative;
     max-width: 480px;
     min-height: 100dvh;
     margin: 0 auto;
     padding: 0 16px calc(112px + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width: 1024px) {
+    .shell {
+      max-width: 1200px;
+      padding: 0 40px 64px;
+    }
   }
 
   /* Eyebrow labels: DM Sans 700 in capitals, +14% tracking. */
