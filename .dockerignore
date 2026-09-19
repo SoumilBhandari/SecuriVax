@@ -1,0 +1,9 @@
+.git
+**/node_modules
+**/.venv
+**/dist
+**/__pycache__
+**/*.db
+**/.env
+firmware
+docs
