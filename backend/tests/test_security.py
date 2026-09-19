@@ -57,3 +57,20 @@ def test_ai_endpoints_are_rate_limited(client):
 def test_responses_are_compressed(client):
     res = client.get("/api/boxes", headers={"Accept-Encoding": "gzip"})
     assert res.headers.get("content-encoding") == "gzip"
+
+
+def test_admin_reset_refuses_without_a_configured_token(client):
+    assert client.post("/api/admin/reset-demo").status_code == 403
+
+
+def test_admin_reset_needs_the_right_code(client, monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "operator_token", "s3cret")
+    assert client.post("/api/admin/reset-demo", headers={"X-Operator-Token": "nope"}).status_code == 401
+
+
+def test_health_reports_configuration_not_secrets(client):
+    body = client.get("/api/health").json()
+    assert body["status"] == "ok" and body["database"] == "ok"
+    assert set(body["ai"]) == {"grok", "gemini"} and all(isinstance(v, bool) for v in body["ai"].values())

@@ -11,7 +11,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine, init_db
-from app.routers import boxes, climate, ingest, nodes, products
+from app.routers import admin, boxes, climate, ingest, nodes, products
 from app.seed import seed
 
 settings = get_settings()
@@ -49,7 +49,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for router in (ingest.router, boxes.router, nodes.router, products.router, climate.router):
+for router in (ingest.router, boxes.router, nodes.router, products.router, climate.router, admin.router):
     app.include_router(router)
 
 
@@ -70,7 +70,27 @@ async def validation_error(_: Request, exc: RequestValidationError):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok"}
+    """Liveness for the platform's health check, plus what is configured (never
+    the values): enough to see at a glance why a deploy behaves as it does."""
+    from sqlalchemy import text
+
+    from app.engine.vvm import CALIBRATION
+
+    try:
+        with Session(engine) as session:
+            session.exec(text("SELECT 1"))
+        database = "ok"
+    except Exception:  # noqa: BLE001  (report, don't crash the health check)
+        database = "unreachable"
+    return {
+        "status": "ok" if database == "ok" else "degraded",
+        "database": database,
+        "ai": {"grok": bool(settings.xai_api_key), "gemini": bool(settings.gemini_api_key)},
+        "weather": "offline model" if settings.weather_offline else "open-meteo",
+        "writes": "operator code" if settings.operator_token else "open (set OPERATOR_TOKEN)",
+        "vvm_calibration": CALIBRATION.source,
+        "version": settings.version,
+    }
 
 
 # In production the built web app is served from here, so NFC tags, the API

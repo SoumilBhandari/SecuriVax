@@ -1,0 +1,51 @@
+# DigitalOcean App Platform spec.
+#   doctl apps create --spec .do/app.yaml        (first time)
+#   doctl apps update <app-id> --spec .do/app.yaml
+# Secrets (OPERATOR_TOKEN, NODE_KEY, GEMINI_API_KEY, XAI_API_KEY) are set in the
+# App Platform console (Settings -> App-Level Environment Variables), never in
+# this file. Without OPERATOR_TOKEN every write is open and /api/admin is off.
+# The demo seeds itself on first start; refresh it before a demo with
+#   curl -X POST https://<app>/api/admin/reset-demo -H "X-Operator-Token: ..."
+name: vialtality
+region: nyc
+services:
+  - name: web
+    github:
+      repo: SoumilBhandari/hophacks
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    source_dir: /
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 20
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: DEMO_HISTORY
+        scope: RUN_TIME
+        value: "true"
+      - key: VERSION
+        scope: RUN_TIME
+        value: ${_self.COMMIT_HASH}
+      - key: OPERATOR_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: NODE_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: GEMINI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: XAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false
