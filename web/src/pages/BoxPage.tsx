@@ -91,7 +91,22 @@ export default function BoxPage() {
       <Layout>
         <BackHeader />
         <PageTitle eyebrow="Product" title={id} />
-        {error ? <ErrorNote error={error} onRetry={refresh} /> : <Spinner label="Checking this box" />}
+        {error && /^no box/i.test(error) ? (
+          // A retry won't help a box that doesn't exist: say so, and where to go.
+          <div role="alert" className="panel p-4">
+            <p className="ui-heading m-0">Box not found</p>
+            <p className="m-0 mt-2 text-neutral-300">
+              No box has the ID {id}. Check the sticker, or pick the box from the list.
+            </p>
+            <Link to="/" className="btn-secondary mt-4">
+              See all boxes
+            </Link>
+          </div>
+        ) : error ? (
+          <ErrorNote error={error} onRetry={refresh} />
+        ) : (
+          <Spinner label="Checking this box" />
+        )}
       </Layout>
     );
   }
@@ -279,7 +294,7 @@ function WorkerReport({ boxId, verdict }: { boxId: string; verdict: Report["verd
       <p className="m-0 text-sm text-neutral-400">Report unavailable right now.</p>
     );
   }
-  const source = data.source === "grok" ? "Written by Grok" : "Template (add XAI_API_KEY for Grok)";
+  const source = data.source === "grok" ? "Written by Grok" : "Written from a template (Grok didn't answer)";
   const places = data.places_source === "gemini" ? "places named by Gemini" : "places shown as coordinates";
   return (
     <div className={loading ? "opacity-60" : ""}>

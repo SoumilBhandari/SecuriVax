@@ -70,26 +70,43 @@ export default function ClimatePage() {
   );
 }
 
+// Risk isn't a verdict, so no signal colours: hotter sites are bigger and darker.
+const RISK_RADIUS: Record<string, number> = { extreme: 12, high: 9, moderate: 7, low: 5 };
+const RISK_LEVELS = ["extreme", "high", "moderate", "low"] as const;
+
 function RiskMap({ sites }: { sites: StoreRisk[] }) {
   if (sites.length === 0) return null;
   const bounds = latLngBounds(sites.map((s) => [s.lat, s.lon] as [number, number])).pad(0.2);
   return (
-    <div className="h-56 overflow-hidden rounded-2xl border border-line">
-      <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full">
-        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
-        {sites.map((s) => (
-          <CircleMarker
-            key={s.id}
-            center={[s.lat, s.lon]}
-            radius={s.kind === "store" ? 10 : 7}
-            pathOptions={{ className: `risk-marker risk-${s.risk}` }}
-          >
-            <Tooltip>
-              {s.name}: {s.risk}, peak {s.peak_c.toFixed(0)} °C {time(s.peak_ts)}
-            </Tooltip>
-          </CircleMarker>
+    <div>
+      <div className="h-56 overflow-hidden rounded-2xl border border-line">
+        <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full">
+          <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
+          {sites.map((s) => (
+            <CircleMarker
+              key={s.id}
+              center={[s.lat, s.lon]}
+              radius={RISK_RADIUS[s.risk] ?? 6}
+              pathOptions={{ className: `risk-marker risk-${s.risk}` }}
+            >
+              <Tooltip>
+                {s.name}: {s.risk}, peak {s.peak_c.toFixed(0)} °C {time(s.peak_ts, s.tz)}
+              </Tooltip>
+            </CircleMarker>
+          ))}
+        </MapContainer>
+      </div>
+      <div className="ui-caption mt-2 flex flex-wrap items-center gap-x-3 gap-y-1" aria-label="Heat risk key">
+        {RISK_LEVELS.map((r) => (
+          <span key={r} className="inline-flex items-center gap-1.5 capitalize">
+            <svg width={26} height={26} viewBox="-13 -13 26 26" aria-hidden="true">
+              <circle r={RISK_RADIUS[r]} className={`risk-marker risk-${r}`} />
+            </svg>
+            {r}
+          </span>
         ))}
-      </MapContainer>
+        <span>· bigger and darker is hotter</span>
+      </div>
     </div>
   );
 }
@@ -102,7 +119,7 @@ function Site({ site }: { site: StoreRisk }) {
         <span className="pill">{site.risk}</span>
       </div>
       <span className="ui-caption">
-        Peak {site.peak_c.toFixed(0)} °C {time(site.peak_ts)} · {site.hours_above_30_next_72h} h above 30 °C ahead
+        Peak {site.peak_c.toFixed(0)} °C {time(site.peak_ts, site.tz)} · {site.hours_above_30_next_72h} h above 30 °C ahead
       </span>
       <Forecast points={site.forecast} />
       {site.actions.map((a) => (

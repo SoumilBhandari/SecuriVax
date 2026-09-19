@@ -69,7 +69,7 @@ export function VerdictHero({ report, stale }: { report: Report; stale: string |
         ? "Borderline. Check the label."
         : "Borderline. A supervisor should decide."
       : null,
-    !stale && report.provisional ? `Carrier quiet since ${time(report.data_through)}, so this may change.` : null,
+    !stale && report.provisional ? `Carrier quiet since ${time(report.data_through, report.segments.find((s) => !s.end_ts)?.tz)}, so this may change.` : null,
     report.demo_time ? `Demo time: ${demoRate(report.time_scale)}.` : null,
   ].filter(Boolean);
 
@@ -104,7 +104,9 @@ export function Reasons({ reasons }: { reasons: Reason[] }) {
   return (
     <ul className="m-0 flex list-none flex-col gap-3 p-0">
       {reasons.map((r, i) => {
-        const decides = r.severity === "discard" || r.severity === "quarantine";
+        // The use-first reason is advisory in severity but it's what decides that verdict.
+        const decides = r.severity === "discard" || r.severity === "quarantine" || r.code === "BUDGET_USE_FIRST";
+        const tag = decides ? "Decides the verdict" : TAG[r.severity];
         return (
           <li key={i} className="grid grid-cols-[16px_minmax(0,1fr)] items-start gap-3">
             <span className="grid h-6 w-4 place-items-center">
@@ -112,7 +114,7 @@ export function Reasons({ reasons }: { reasons: Reason[] }) {
             </span>
             <span className="flex flex-col gap-0.5">
               <span className="[text-wrap:pretty]">{r.text}</span>
-              {TAG[r.severity] && <span className="ui-caption">{TAG[r.severity]}</span>}
+              {tag && <span className="ui-caption">{tag}</span>}
             </span>
           </li>
         );

@@ -98,7 +98,7 @@ export default function StagePage() {
 
         <section aria-label="Boxes" className="flex flex-col gap-6">
           {!loaded && reports.length > 0 && (
-            <p className="ui-caption m-0">Not loaded yet: tap a box's tag, then {node}'s. Showing the stage boxes as they stand.</p>
+            <p className="ui-caption m-0">Not loaded yet: tap {node}'s tag, then each box's. Showing the stage boxes as they stand.</p>
           )}
           {reports.map((r) => (
             <StageBox key={r.box.id} report={r} />
@@ -135,7 +135,9 @@ function StageBox({ report: r }: { report: Report }) {
         <p className="sv-verdict__eyebrow">
           {r.box.id} · {r.product.name}
         </p>
-        <p className="m-0 mt-1 font-display text-[clamp(40px,5vw,72px)] font-bold uppercase leading-none tracking-[-0.03em]">{key}</p>
+        <p className="m-0 mt-1 font-display text-[clamp(40px,5vw,72px)] font-bold uppercase leading-none tracking-[-0.03em]">
+          {r.verdict === "USE_FIRST" ? "Use first" : key}
+        </p>
         <p className="m-0 mt-3 text-xl">{verdictNote(r)}</p>
         <p className="m-0 mt-2 text-lg opacity-90">
           <b className="tabular-nums">{pct(r.budget_used)}</b> of the heat budget used{left && ` · ${left} at this temperature`}

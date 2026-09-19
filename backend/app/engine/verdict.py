@@ -295,6 +295,12 @@ def evaluate(
         verdict = USE_FIRST
         action = ("Use this box first: bring it to the front and use it at the next session. "
                   "Don't re-dispatch it or keep it in reserve.")
+        # The reason for the verdict, first in the list: nothing else says it.
+        reasons.insert(0, Reason(
+            "BUDGET_USE_FIRST", "advisory",
+            f"{_pct(budget)} of the heat budget is used, so it has less left than a fresh box: "
+            "use it before boxes that have more.",
+        ))
     else:
         verdict = USE
         action = "Safe to use."

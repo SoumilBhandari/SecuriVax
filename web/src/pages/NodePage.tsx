@@ -66,7 +66,19 @@ export default function NodePage() {
       <Layout>
         <BackHeader />
         <PageTitle eyebrow="Carrier" title={id} />
-        {error ? <ErrorNote error={error} onRetry={refresh} /> : <Spinner />}
+        {error && /^no node/i.test(error) ? (
+          <div role="alert" className="panel p-4">
+            <p className="ui-heading m-0">Carrier not found</p>
+            <p className="m-0 mt-2 text-neutral-300">No carrier or cold room has the ID {id}. Check the sticker.</p>
+            <Link to="/" className="btn-secondary mt-4">
+              See all boxes
+            </Link>
+          </div>
+        ) : error ? (
+          <ErrorNote error={error} onRetry={refresh} />
+        ) : (
+          <Spinner />
+        )}
       </Layout>
     );
   }

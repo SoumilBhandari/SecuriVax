@@ -706,13 +706,15 @@
   fill: var(--text);
 }
 .risk-high {
-  fill: var(--text-2);
-}
-.risk-moderate {
   fill: var(--ink-500);
 }
-.risk-low {
+.risk-moderate {
   fill: var(--ink-300);
+}
+.risk-low {
+  fill: var(--surface);
+  stroke: var(--ink-500);
+  stroke-width: 1.5;
 }
 /* A trip's route: Ink throughout, with the state in the line's weight and dash. */
 .route-line {

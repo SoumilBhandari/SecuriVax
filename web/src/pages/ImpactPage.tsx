@@ -14,12 +14,21 @@ const POLICY: Record<PolicyId, { name: string; color: string }> = {
 };
 const ORDER: PolicyId[] = ["status_quo", "alarm_logger", "vialtality", "vialtality_planned"];
 
-const METRICS: { key: string; title: string; kind: string; fmt?: (v: number) => string }[] = [
+const METRICS: { key: string; title: string; kind: string; fmt?: (v: number) => string; note?: string }[] = [
   { key: "trips_breached", title: "Trips that left 2–8 °C", kind: "Prevention" },
   { key: "damaged_freeze", title: "Doses freeze-exposed (at or below −0.5 °C for an hour or more)", kind: "Prevention" },
   { key: "unsafe_used", title: "Heat-spent or freeze-exposed doses given at the next session", kind: "Patient safety" },
   { key: "good_discarded", title: "Good doses thrown away (if an alarm means discard)", kind: "Waste" },
-  { key: "value_lost_usd", title: "Value of doses lost", kind: "Cost", fmt: (v) => `$${Math.round(v).toLocaleString()}` },
+  {
+    key: "value_lost_usd",
+    title: "Value of doses lost",
+    kind: "Cost",
+    fmt: (v) => `$${Math.round(v).toLocaleString()}`,
+    note:
+      "Spotting damage can't undo it: a dose that froze or overheated is lost either way, so today and SecuriVax lose the same. " +
+      "What detection changes is who gets those doses (patient safety, above) and not throwing good ones away, which is why the " +
+      "alarm-only logger loses the most. Planning is what saves value: the damage never happens.",
+  },
 ];
 
 export default function ImpactPage() {
@@ -103,6 +112,7 @@ function Backtest({ data }: { data: Impact }) {
           <SectionTitle aside={m.kind}>{m.title}</SectionTitle>
           <div className="panel p-4">
             <Bars stats={ORDER.map((p) => [p, s[p][m.key]])} fmt={m.fmt ?? ((v) => Math.round(v).toLocaleString())} />
+            {m.note && <p className="ui-caption m-0 mt-3">{m.note}</p>}
           </div>
         </div>
       ))}
