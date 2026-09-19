@@ -27,14 +27,52 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
+const CODE_KEY = "vialtality.operator";
+
+function operatorCode(): string {
+  try {
+    return localStorage.getItem(CODE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/** FastAPI errors: a string, a list of validation errors, or an HTML proxy page. */
+function describe(status: number, body: unknown): string {
+  const detail = (body as { detail?: unknown } | null)?.detail;
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) return detail.map((d) => (d as { msg?: string }).msg ?? "invalid input").join("; ");
+  if (status === 429) return "Too many requests, try again in a minute.";
+  if (status >= 500) return `Server error (${status}). Try again shortly.`;
+  return `Request failed (${status}).`;
+}
+
+async function request<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+  const headers: Record<string, string> = { ...(init?.headers as Record<string, string>) };
+  if (init?.body) headers["Content-Type"] = "application/json"; // no preflight for plain GETs
+  const code = operatorCode();
+  if (code && init?.method && init.method !== "GET") headers["X-Operator-Token"] = code;
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...init, headers, signal: init?.signal ?? AbortSignal.timeout(20000) });
+  } catch (e) {
+    const timeout = e instanceof DOMException && e.name === "TimeoutError";
+    throw new ApiError(0, timeout ? "The server took too long. Check your signal and try again." : "Can't reach Vialtality. Check your signal.");
+  }
+  if (res.status === 401 && !retried) {
+    const entered = window.prompt("Enter this site's operator code");
+    if (entered) {
+      try {
+        localStorage.setItem(CODE_KEY, entered.trim());
+      } catch {
+        /* private mode: the code lasts for this request only */
+      }
+      return request<T>(path, init, true);
+    }
+  }
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new ApiError(res.status, body.detail ?? res.statusText);
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, describe(res.status, body));
   }
   return res.json();
 }

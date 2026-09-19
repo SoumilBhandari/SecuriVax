@@ -5,6 +5,7 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.engine.profiles import PRODUCTS_BY_ID
 from app.models import Facility, Node
+from app.security import plan_limit
 from app.services import climate
 
 router = APIRouter(prefix="/api", tags=["climate"])
@@ -35,7 +36,7 @@ def carriers(session: Session = Depends(get_session)) -> list[dict]:
     return climate.carrier_performance(session)
 
 
-@router.post("/climate/plan")
+@router.post("/climate/plan", dependencies=[Depends(plan_limit)])
 def plan(body: PlanIn, session: Session = Depends(get_session)) -> dict:
     if body.product_id not in PRODUCTS_BY_ID:
         raise HTTPException(404, f"no product {body.product_id}")

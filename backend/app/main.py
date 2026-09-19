@@ -2,9 +2,11 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from sqlmodel import Session
 
 from app.config import get_settings
@@ -28,6 +30,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="Vialtality API", version="0.1.0", lifespan=lifespan)
 
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -37,6 +40,21 @@ app.add_middleware(
 
 for router in (ingest.router, boxes.router, nodes.router, products.router, climate.router):
     app.include_router(router)
+
+
+@app.middleware("http")
+async def limit_body_size(request: Request, call_next):
+    size = request.headers.get("content-length")
+    if size and size.isdigit() and int(size) > settings.max_body_bytes:
+        return JSONResponse({"detail": "request too large"}, status_code=413)
+    return await call_next(request)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(_: Request, exc: RequestValidationError):
+    """422 without echoing the (possibly huge) input back."""
+    errors = [{"loc": e.get("loc"), "msg": e.get("msg"), "type": e.get("type")} for e in exc.errors()]
+    return JSONResponse({"detail": errors}, status_code=422)
 
 
 @app.get("/api/health")

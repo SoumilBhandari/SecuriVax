@@ -8,6 +8,10 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite:///./vialtality.db"
     node_key: str = "dev-node-key"
+    # When set, custody changes, VVM checks and dispatch decisions need this
+    # code (the web app asks for it once per device). Empty: open, for dev.
+    operator_token: str = ""
+    max_body_bytes: int = 8 * 1024 * 1024
     # Gemini names places along the route (Google Maps grounding).
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"

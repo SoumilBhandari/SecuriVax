@@ -18,6 +18,9 @@ import numpy as np
 from PIL import Image, ImageOps
 
 MAX_SIDE = 400
+# Refuse anything bigger than a very large phone photo before decoding it.
+MAX_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = MAX_PIXELS
 # Measurement noise near "matches": treat anything this close as at the end point.
 ENDPOINT_AT = 0.92
 MIN_CONTRAST = 35.0  # grey levels between label paper and circle
@@ -61,9 +64,25 @@ def _otsu(values: np.ndarray) -> float:
     return float(centers[np.argmax(between)])
 
 
+def open_photo(data: bytes) -> Image.Image:
+    """Decode an uploaded photo safely: known formats only, size checked from
+    the header before any pixels are decoded, shrunk while decoding."""
+    import io
+
+    image = Image.open(io.BytesIO(data), formats=["JPEG", "PNG", "WEBP"])
+    w, h = image.size
+    if w * h > MAX_PIXELS or max(w, h) > 12_000:
+        raise ValueError("photo too large")
+    if image.format == "JPEG":
+        image.draft("RGB", (MAX_SIDE * 2, MAX_SIDE * 2))
+    image.load()
+    return image
+
+
 def read_vvm(image: Image.Image) -> VvmReading:
-    img = ImageOps.exif_transpose(image).convert("RGB")
+    img = image.convert("RGB")
     img.thumbnail((MAX_SIDE, MAX_SIDE))
+    img = ImageOps.exif_transpose(img)
     rgb = np.asarray(img, dtype=float)
     lum = rgb @ np.array([0.299, 0.587, 0.114])
     h, w = lum.shape

@@ -4,7 +4,7 @@ MAX_BATCH = 1000
 
 
 class ReadingIn(BaseModel):
-    seq: int = Field(ge=0, description="Per-boot counter, strictly increasing")
+    seq: int = Field(ge=0, le=2**31 - 1, description="Per-boot counter, strictly increasing")
     ts: int | None = Field(None, description="UTC epoch seconds, if the node's clock is set")
     uptime_ms: int | None = Field(None, ge=0, description="ms since boot when sampled")
     temp_c: float
@@ -15,8 +15,8 @@ class ReadingIn(BaseModel):
 
 
 class IngestBatch(BaseModel):
-    node_id: str
-    boot_id: int = Field(ge=0, description="Changes every reboot; persisted in NVS")
+    node_id: str = Field(max_length=40)
+    boot_id: int = Field(ge=0, le=2**31 - 1, description="Changes every reboot; persisted in NVS")
     uptime_ms: int | None = Field(None, ge=0, description="ms since boot when the batch was sent")
     fw_version: str | None = None
     battery_v: float | None = None
@@ -46,7 +46,7 @@ class LocationIn(BaseModel):
 
 
 class LocationBatch(BaseModel):
-    node_id: str
+    node_id: str = Field(max_length=40)
     source: str = Field("smarttag", max_length=32)
     points: list[LocationIn] = Field(max_length=MAX_BATCH)
 

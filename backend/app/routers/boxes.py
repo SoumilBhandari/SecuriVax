@@ -1,5 +1,5 @@
 import base64
-import io
+import binascii
 import time
 from dataclasses import asdict
 
@@ -12,22 +12,23 @@ from app.db import get_session
 from app.engine.profiles import PRODUCTS_BY_ID
 from sqlalchemy.exc import IntegrityError
 
-from app.engine.vvm import compare, read_vvm
+from app.engine.vvm import compare, open_photo, read_vvm
 from app.models import Box, Custody, Node, Scan, VvmCheck
 from app.services.narrative import build_facts, write_report
 from app.services.places import resolve_places
 from app.services.report import evaluate_box, key_points, report_json
+from app.security import explain_limit, require_operator, vvm_limit
 from app.services.vvm_vision import gemini_vvm
 
 router = APIRouter(prefix="/api/boxes", tags=["boxes"])
 
 
 class LoadIn(BaseModel):
-    node_id: str
+    node_id: str = Field(max_length=40)
 
 
 class UnloadIn(BaseModel):
-    note: str = ""
+    note: str = Field("", max_length=200)
 
 
 class VvmPhotoIn(BaseModel):
@@ -80,7 +81,7 @@ def box_report(box_id: str, session: Session = Depends(get_session)) -> dict:
     return report_json(session, _box(session, box_id))
 
 
-@router.post("/{box_id}/explain")
+@router.post("/{box_id}/explain", dependencies=[Depends(explain_limit)])
 async def explain_box(box_id: str, session: Session = Depends(get_session)) -> dict:
     """Gemini names the places, then Grok writes the worker-facing report."""
     box = _box(session, box_id)
@@ -97,7 +98,7 @@ async def explain_box(box_id: str, session: Session = Depends(get_session)) -> d
     }
 
 
-@router.post("/{box_id}/load")
+@router.post("/{box_id}/load", dependencies=[Depends(require_operator)])
 def load_box(box_id: str, body: LoadIn, session: Session = Depends(get_session)) -> dict:
     """Put a box into a node. Loading into a different node is a transfer."""
     _box(session, box_id)
@@ -130,7 +131,7 @@ def load_box(box_id: str, body: LoadIn, session: Session = Depends(get_session))
     return {"status": "loaded", "action": action, "node_id": body.node_id}
 
 
-@router.post("/{box_id}/unload")
+@router.post("/{box_id}/unload", dependencies=[Depends(require_operator)])
 def unload_box(box_id: str, body: UnloadIn, session: Session = Depends(get_session)) -> dict:
     _box(session, box_id)
     current = _open_custody(session, box_id)
@@ -145,17 +146,16 @@ def unload_box(box_id: str, body: UnloadIn, session: Session = Depends(get_sessi
     return {"status": "unloaded", "node_id": current.node_id}
 
 
-@router.post("/{box_id}/vvm")
+@router.post("/{box_id}/vvm", dependencies=[Depends(require_operator), Depends(vvm_limit)])
 async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(get_session)) -> dict:
     """Read the vial's VVM from a photo and compare it with our sensor record."""
     box = _box(session, box_id)
     raw = body.image.split(",", 1)[1] if body.image.startswith("data:") else body.image
     try:
         jpeg = base64.b64decode(raw, validate=True)
-        image = Image.open(io.BytesIO(jpeg))
-        image.load()
-    except (ValueError, UnidentifiedImageError) as exc:
-        raise HTTPException(400, "not an image") from exc
+        image = open_photo(jpeg)
+    except (ValueError, binascii.Error, UnidentifiedImageError, Image.DecompressionBombError, OSError) as exc:
+        raise HTTPException(400, "not a usable photo (JPEG, PNG or WebP, under 40 megapixels)") from exc
 
     reading = read_vvm(image)
     gemini = await gemini_vvm(jpeg)
@@ -176,7 +176,7 @@ async def check_vvm(box_id: str, body: VvmPhotoIn, session: Session = Depends(ge
     return {"found": True, "check_id": check.id, "reading": asdict(reading), "witnesses": asdict(witnesses), "gemini": gemini}
 
 
-@router.post("/{box_id}/vvm/{check_id}/confirm")
+@router.post("/{box_id}/vvm/{check_id}/confirm", dependencies=[Depends(require_operator)])
 def confirm_vvm(box_id: str, check_id: int, body: VvmConfirmIn, session: Session = Depends(get_session)) -> dict:
     """A person confirms (or corrects) the reading; only then does it count."""
     check = session.get(VvmCheck, check_id)

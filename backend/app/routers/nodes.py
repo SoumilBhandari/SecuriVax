@@ -1,8 +1,12 @@
 import time
 
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlmodel import Session, select
+
+from app.security import agent_limit, require_operator
 
 from app.db import get_session
 from app.models import Custody, Facility, IngestLog, Node, Reading, Scan
@@ -68,17 +72,17 @@ def node_forecast(node_id: str, session: Session = Depends(get_session)) -> dict
 
 
 class AgentIn(BaseModel):
-    destination_id: str | None = None
-    question: str = "What should this carrier do now?"
+    destination_id: str | None = Field(None, max_length=40)
+    question: str = Field("What should this carrier do now?", max_length=500)
 
 
 class DecisionIn(BaseModel):
-    action: str
-    facility_id: str | None = None
-    note: str = ""
+    action: Literal["CONTINUE", "DIVERT", "HOLD", "UNKNOWN"]
+    facility_id: str | None = Field(None, max_length=40)
+    note: str = Field("", max_length=200)
 
 
-@router.post("/{node_id}/agent")
+@router.post("/{node_id}/agent", dependencies=[Depends(require_operator), Depends(agent_limit)])
 async def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
     """Gemini dispatch agent (rules fallback): continue, divert or hold."""
     from app.services.location_agent import recommend
@@ -90,9 +94,11 @@ async def location_agent(node_id: str, body: AgentIn, session: Session = Depends
     return await recommend(session, node_id, body.destination_id, body.question[:500])
 
 
-@router.post("/{node_id}/decisions")
+@router.post("/{node_id}/decisions", dependencies=[Depends(require_operator)])
 def record_decision(node_id: str, body: DecisionIn, session: Session = Depends(get_session)) -> dict:
     """The supervisor accepted a recommendation: log it against every box inside."""
+    if session.get(Node, node_id) is None:
+        raise HTTPException(404, f"no node {node_id}")
     boxes = session.exec(select(Custody.box_id).where(Custody.node_id == node_id, Custody.end_ts.is_(None))).all()
     for box_id in boxes:
         session.add(Scan(box_id=box_id, node_id=node_id, action=f"dispatch:{body.action.lower()}",
