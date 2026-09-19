@@ -4,11 +4,13 @@
 
 HopHacks 2026 · Healthcare track
 
-> Today's cold chain goes blind on the last mile and doesn't monitor rapid tests at all.
-> We cover both, and tell the health worker whether this box is still good.
+> On outreach, the vaccine vial monitor is often the only monitor, and it can't see freezing.
+> Rapid tests have no monitor at all. We tell the health worker whether this box is still good.
 
-Two stretches of the chain have no monitoring today: the district-store-to-clinic
-trip, and outreach carriers. Rapid tests aren't monitored anywhere.
+The weakest stretch is the outreach carrier. UNICEF recommends electronic freeze
+indicators for cold boxes and fridges have 30-day loggers, but a freeze indicator
+gives one pass/fail for the whole trip, and a VVM shows heat but not freezing.
+We say when and where it happened, and give a verdict for the product in each box.
 
 Vialtality puts a cheap, battery-powered ESP32 node (temperature + humidity)
 inside the carrier, plus a Samsung SmartTag for location. Every box gets an
@@ -25,13 +27,18 @@ What makes it more than a logger:
 - **Two witnesses.** The phone camera measures the vial's own VVM label and
   cross-checks it against the sensor record. A worker confirms before it counts.
 - **Honest confidence.** Every verdict is re-run 400 times over sensor bias and
-  batch-to-batch variation. Borderline ones send the worker to the label.
+  batch-to-batch variation: "holds in 90% of scenarios", not a calibrated
+  probability. Borderline ones send the worker to the label.
+- **It learns.** Every confirmed VVM photo is a real-world check of how fast a
+  product degrades; the model speeds up a product that proves faster at once,
+  and relaxes only on strong evidence.
 - **A dispatch agent.** Gemini calls our own tools (carrier status, nearby
   fridges, chance of breaching before arrival) and recommends continue, divert
   or hold. A supervisor accepts it.
-- **Measured impact.** A 90-day backtest on real ERA5 weather cuts damaged
-  doses reaching patients by 98% versus today, without the ~1,100 good doses an
-  alarm-only logger throws away.
+- **Measured impact.** A 90-day backtest on real ERA5 weather: planning trips
+  from the forecast cuts trips that leave 2–8 °C from 144 to 12. Heat-spent or
+  freeze-exposed doses given fall 98% versus today (freeze-exposed, not proven
+  damaged: chilled vaccine often supercools).
 
 ![Phone web app: box list, a discarded OPV box, a rapid-test box](docs/img/overview.png)
 
@@ -178,7 +185,7 @@ different question, for a different person:
 | Answer | "Temperature left range" | USE / QUARANTINE / DISCARD for this product, from WHO VVM kinetics |
 | Prediction | Trend alerts | Physics twin with hidden-state estimation and calibrated P10–P90 |
 | Ground truth | Sensors only | Sensor record cross-checked against the vial's own VVM label |
-| Where | Warehouses and trucks | The unmonitored last mile and outreach carriers, plus rapid tests |
+| Where | Warehouses and trucks | Outreach carriers, where the VVM is often the only monitor, plus rapid tests |
 | Setting | Connected, enterprise | Offline-first $10 nodes, SmartTag location, no app install |
 
 ## Environmental intelligence
