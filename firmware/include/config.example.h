@@ -4,7 +4,7 @@
 // --- Identity: must match a node registered on the server -------------------
 #define NODE_ID   "DEMO-01"                // second ESP32 in the same carrier: "DEMO-01B"
 #define NODE_KEY  "dev-node-key"          // X-Node-Key; NODE_KEY env on the server
-#define API_BASE  "https://vialtality.onrender.com"
+#define API_BASE  "https://your-app.ondigitalocean.app"   // or your own domain; no trailing slash
 
 // --- WiFi (ESP32 is 2.4 GHz only; on iPhone hotspots enable Maximize Compatibility)
 #define WIFI_SSID "your-hotspot"
@@ -15,6 +15,18 @@
 // No GPS module? Set 0: position then comes from a Samsung SmartTag in the
 // same carrier (see docs/smarttag.md) and the clock from the server.
 #define HAS_GPS 0
+
+// DS18B20 probe for the product temperature: put it in a water-filled vial
+// among the vaccines. When that water really freezes the reading drops, then
+// sits at 0 °C while it turns to ice: proof of a freeze, which neither a VVM
+// nor a freeze indicator can give. The SHT31 still gives the air humidity.
+#define HAS_DS18B20 0
+#define DS18B20_PIN 4                     // data line, with a 4.7k pull-up to 3.3V
+
+// Status LED showing the worst verdict among the boxes in this carrier
+// (demo build only; the battery build sleeps). -1 = no LED.
+//   solid: USE · slow blink: USE FIRST · fast blink: QUARANTINE · double flash: DISCARD
+#define VERDICT_LED_PIN -1                // e.g. 2 for the DevKit's blue LED
 
 // --- Pins -------------------------------------------------------------------
 #define I2C_SDA 21                        // SHT31

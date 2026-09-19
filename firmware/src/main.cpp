@@ -25,6 +25,17 @@
 #include "config.example.h"
 #endif
 
+#ifndef HAS_DS18B20
+#define HAS_DS18B20 0
+#endif
+#ifndef VERDICT_LED_PIN
+#define VERDICT_LED_PIN -1
+#endif
+#if HAS_DS18B20
+#include <DallasTemperature.h>
+#include <OneWire.h>
+#endif
+
 static const char *FW_VERSION = "0.1.0";
 static const char *QUEUE_PATH = "/queue.bin";
 static const char *QUEUE_TMP = "/queue.tmp";
@@ -54,6 +65,14 @@ RTC_DATA_ATTR bool clock_offset_known = false;
 
 uint32_t boot_id = 0;
 Adafruit_SHT31 sht31;
+#if HAS_DS18B20
+OneWire oneWire(DS18B20_PIN);
+DallasTemperature probe(&oneWire);
+#endif
+
+// Worst verdict in the carrier, from the last ack: 0 none, 1 USE, 2 USE FIRST,
+// 3 QUARANTINE, 4 DISCARD.
+RTC_DATA_ATTR uint8_t worst_verdict = 0;
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2);
 
@@ -113,10 +132,18 @@ void updateGps() {
 }
 
 bool sample(Record &r) {
+#if HAS_DS18B20
+  probe.requestTemperatures();  // ~750 ms at 12-bit
+  float t = probe.getTempCByIndex(0);
+  // -127: probe disconnected; 85: power-on value before the first conversion.
+  if (t == DEVICE_DISCONNECTED_C || t == 85.0f) t = NAN;
+  float h = sht31.readHumidity();  // air humidity, if the SHT31 is fitted
+#else
   float t = sht31.readTemperature();
   float h = sht31.readHumidity();
+#endif
   if (isnan(t)) {
-    Serial.println("SHT31 read failed; skipping this sample");
+    Serial.println("temperature read failed; skipping this sample");
     return false;
   }
   bool fresh_fix = !isnan(last_lat) && wake_count - last_fix_wake <= GPS_EVERY * 2;
@@ -236,6 +263,9 @@ bool sendBatch(const Record *records, size_t n) {
 
   if (!res["server_time"].isNull() && !clockSynced()) setClock(res["server_time"].as<time_t>());
   if (!res["ack_seq"].isNull()) dropAcked(res["ack_seq"].as<uint32_t>());
+  const char *worst = res["worst_verdict"] | "";
+  worst_verdict = !strcmp(worst, "DISCARD") ? 4 : !strcmp(worst, "QUARANTINE") ? 3
+                : !strcmp(worst, "USE_FIRST") ? 2 : !strcmp(worst, "USE") ? 1 : 0;
   Serial.printf("uploaded %u: %d new, %d dup, %d rejected\n", (unsigned)n,
                 res["accepted"].as<int>(), res["duplicates"].as<int>(), (int)res["rejected"].size());
   return true;
@@ -286,6 +316,13 @@ void setup() {
   tzset();
   Wire.begin(I2C_SDA, I2C_SCL);
   if (!sht31.begin(0x44)) Serial.println("SHT31 not found");
+#if HAS_DS18B20
+  probe.begin();
+  if (probe.getDeviceCount() == 0) Serial.println("DS18B20 not found");
+#endif
+#if VERDICT_LED_PIN >= 0
+  pinMode(VERDICT_LED_PIN, OUTPUT);
+#endif
   if (!LittleFS.begin(true)) Serial.println("LittleFS mount failed");
   loadBootId();
 
@@ -298,11 +335,28 @@ void setup() {
 #endif
 }
 
+// The LED's pattern for the worst verdict, at time t (ms).
+bool ledOn(uint32_t t) {
+  switch (worst_verdict) {
+    case 1: return true;                          // USE: solid
+    case 2: return (t / 500) % 2 == 0;            // USE FIRST: slow blink
+    case 3: return (t / 125) % 2 == 0;            // QUARANTINE: fast blink
+    case 4: { uint32_t p = t % 1200;              // DISCARD: double flash
+              return p < 120 || (p > 240 && p < 360); }
+    default: return false;                        // nothing loaded
+  }
+}
+
 void loop() {
 #if DEMO_MODE
   uint32_t start = millis();
   cycle();
-  uint32_t spent = millis() - start;
-  if (spent < SAMPLE_INTERVAL_S * 1000) delay(SAMPLE_INTERVAL_S * 1000 - spent);
+  // Wait out the interval, driving the LED instead of sleeping.
+  while (millis() - start < SAMPLE_INTERVAL_S * 1000UL) {
+#if VERDICT_LED_PIN >= 0
+    digitalWrite(VERDICT_LED_PIN, ledOn(millis()) ? HIGH : LOW);
+#endif
+    delay(20);
+  }
 #endif
 }

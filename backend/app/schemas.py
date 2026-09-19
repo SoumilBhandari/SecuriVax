@@ -36,6 +36,8 @@ class IngestResult(BaseModel):
     ack_seq: int | None
     # Lets a node without GPS or NTP set its clock.
     server_time: int
+    # Worst verdict among the boxes in this carrier now, for the node's LED.
+    worst_verdict: str | None = None
 
 
 class LocationIn(BaseModel):

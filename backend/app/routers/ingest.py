@@ -6,6 +6,7 @@ One bad reading is rejected on its own; it never sinks the rest of the batch.
 """
 
 import hmac
+import logging
 import time
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -17,6 +18,7 @@ from app.models import IngestLog, LocationPoint, Node, Reading
 from app.schemas import IngestBatch, IngestResult, LocationBatch, LocationResult, ReadingIn, Rejected
 
 router = APIRouter(prefix="/api/ingest", tags=["ingest"])
+log = logging.getLogger(__name__)
 
 EARLIEST_TS = 1_704_067_200  # 2024-01-01; anything older is an unset clock
 MAX_FUTURE_S = 5 * 60
@@ -133,8 +135,25 @@ def ingest_readings(
 
     return IngestResult(
         accepted=len(rows), duplicates=duplicates, rejected=rejected,
-        ack_seq=ack_seq, server_time=now,
+        ack_seq=ack_seq, server_time=now, worst_verdict=_worst_verdict(session, node, now),
     )
+
+
+def _worst_verdict(session: Session, node: Node, now: int) -> str | None:
+    """For the node's status LED. Computed after the readings are stored and
+    never allowed to fail the upload: the ack is what matters."""
+    from app.engine.verdict import VERDICT_ORDER
+    from app.models import Box, Custody
+    from app.services.report import evaluate_box
+
+    try:
+        carrier = node.backup_for or node.id
+        open_custody = session.exec(select(Custody).where(Custody.node_id == carrier, Custody.end_ts.is_(None))).all()
+        verdicts = [evaluate_box(session, session.get(Box, c.box_id), now).verdict for c in open_custody]
+        return min(verdicts, key=VERDICT_ORDER.__getitem__) if verdicts else None
+    except Exception:  # noqa: BLE001
+        log.exception("worst verdict for %s failed", node.id)
+        return None
 
 
 @router.post("/locations", response_model=LocationResult)

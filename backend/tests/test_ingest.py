@@ -98,3 +98,16 @@ def test_every_upload_is_logged(client, session):
     post(client, batch([reading(2)]))
     logs = session.exec(select(IngestLog).order_by(IngestLog.id)).all()
     assert [(log.accepted, log.duplicates) for log in logs] == [(2, 0), (0, 1)]
+
+
+def test_ack_carries_the_worst_verdict_in_the_carrier(client):
+    from app.config import get_settings
+
+    key = get_settings().node_key
+    empty = client.post("/api/ingest/readings", headers={"X-Node-Key": key},
+                        json={"node_id": "DEMO-01", "boot_id": 7, "readings": [{"seq": 1, "temp_c": 5.0, "ts": int(__import__("time").time())}]})
+    assert empty.json()["worst_verdict"] is None  # nothing loaded yet
+    client.post("/api/boxes/BOX-9001/load", json={"node_id": "DEMO-01"})
+    res = client.post("/api/ingest/readings", headers={"X-Node-Key": key},
+                      json={"node_id": "DEMO-01", "boot_id": 7, "readings": [{"seq": 2, "temp_c": 5.0, "ts": int(__import__("time").time())}]})
+    assert res.json()["worst_verdict"] in ("USE", "USE_FIRST", "QUARANTINE", "DISCARD")

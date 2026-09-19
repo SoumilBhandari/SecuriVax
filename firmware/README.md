@@ -27,6 +27,20 @@ Dating readings without an RTC module:
 - Readings taken before the clock is set are dated from the offset learnt at the first sync.
 - If the clock has never been set, the node sends `uptime_ms` and the server rebuilds the timestamp.
 
+## Flash in the morning (five minutes)
+
+Both builds compile (checked with `pio run -e demo -e node`, with and without
+the probe and LED), so the morning is only config and upload:
+
+1. Use a **data** USB cable: charge-only cables power the board but can't flash it.
+2. `cp include/config.example.h include/config.h`, then set `NODE_ID` (`DEMO-01`),
+   `NODE_KEY` (the server's `NODE_KEY`), `API_BASE` (the deployed URL, no trailing
+   slash) and the WiFi. On an iPhone hotspot turn on *Maximize Compatibility*.
+3. `pio run -e demo -t upload && pio device monitor`. You should see
+   `uploaded 1: 1 new` every 5 s, and the `DEMO-01` page says **Online**.
+4. Only then add the extras: `HAS_DS18B20 1` (probe in a water vial) and
+   `VERDICT_LED_PIN 2`.
+
 ## Build
 
 ```bash
@@ -46,6 +60,16 @@ pio run -e demo -t upload                         # stage build: awake, 5 s read
 | NEO-6M TX / RX (optional) | GPIO 16 / 17 |
 | NEO-6M VCC (optional) | through a P-MOSFET or load switch on GPIO 25 (LOW = on) |
 | Battery + | 100k/100k divider into GPIO 35 |
+| DS18B20 data (optional) | GPIO 4, 4.7k pull-up to 3V3; red to 3V3, black to GND |
+| Status LED (optional) | GPIO 2 is the DevKit's own blue LED; an external LED needs a 220 Ω resistor |
+
+With `HAS_DS18B20 1` the temperature comes from the probe (in a water-filled
+vial among the vaccines) and humidity from the SHT31. A real freeze shows as a
+drop, then a flat line at 0 °C while the water turns to ice.
+
+The LED shows the worst verdict among the boxes in the carrier, from each
+upload's reply: solid USE, slow blink USE FIRST, fast blink QUARANTINE,
+double flash DISCARD, off when nothing is loaded.
 
 ## Power notes
 
