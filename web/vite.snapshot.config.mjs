@@ -2,7 +2,7 @@
 // relative asset paths, one JS bundle (no lazy chunks), assets inlined.
 import { defineConfig, mergeConfig } from "vite";
 
-import base from "./vite.config";
+import base from "./vite.config.ts";
 
 export default mergeConfig(
   base,
