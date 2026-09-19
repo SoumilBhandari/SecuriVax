@@ -50,13 +50,13 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
                     <span className="ui-caption whitespace-nowrap leading-6">{pct(s.budget_used)} of budget</span>
                   </span>
                   <span className="ui-caption">
-                    {time(s.start_ts)} · {span} · {range}
+                    {time(s.start_ts, s.tz)} · {span} · {range}
                   </span>
                   {s.environment && <span className="mt-0.5 text-[15px] leading-[22px]">{s.environment.text}</span>}
                   {s.gaps.map((g) => (
                     <span key={g.start_ts} className="flex items-center gap-1.5 text-sm font-bold">
                       <OfflineIcon size={13} />
-                      {g.ongoing ? `No data since ${time(g.start_ts)}` : `No data ${time(g.start_ts)} to ${time(g.end_ts)}`}
+                      {g.ongoing ? `No data since ${time(g.start_ts, s.tz)}` : `No data ${time(g.start_ts, s.tz)} to ${time(g.end_ts, s.tz)}`}
                     </span>
                   ))}
                   {s.backup_label && s.backup_filled > 0 && (
@@ -71,7 +71,7 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
         })}
       </ol>
       {last.end_ts != null && now - last.end_ts > UNMONITORED_S && (
-        <Unmonitored text={`Not in a monitored carrier since ${time(last.end_ts)} (${hours((now - last.end_ts) / 3600)})`} />
+        <Unmonitored text={`Not in a monitored carrier since ${time(last.end_ts, last.tz)} (${hours((now - last.end_ts) / 3600)})`} />
       )}
       {hasRoute &&
         (map ? (

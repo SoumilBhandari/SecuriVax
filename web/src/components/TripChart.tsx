@@ -56,8 +56,8 @@ export function TripChart({ segments, product, budgetUsed }: { segments: Segment
         <path d={budgetPath} fill="var(--glacier-300)" fillOpacity={0.7} stroke="var(--line)" strokeWidth="1.75" />
       </svg>
       <div className="ui-caption mt-1 flex justify-between">
-        <span>{time(t0)}</span>
-        <span>{time(t1)}</span>
+        <span>{time(t0, segments[0].tz)}</span>
+        <span>{time(t1, segments[segments.length - 1].tz)}</span>
       </div>
       <figcaption className="ui-caption mt-3">
         The pale band is the labelled safe range. Dotted lines mark a change of hands. Heat adds damage; cold can't buy it back.

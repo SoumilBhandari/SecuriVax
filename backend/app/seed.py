@@ -70,6 +70,29 @@ def stage_boxes() -> list[Box]:
     return [b for b in demo_boxes() if b.id.startswith("BOX-9")]
 
 
+KENYA = "Africa/Nairobi"
+# The Kisumu district dataset (tests, backtest); the stage nodes are left out on
+# purpose: they're wherever the demo is, so their times show in the viewer's zone.
+KISUMU_TZ = {i: KENYA for i in ("CAR-01", "CAR-02", "RDT-01", "KSM-STORE", "SIA-STORE", "KOMBEWA", "MASENO", "AHERO", "BONDO", "KENDU")}
+
+
+def sync_timezones(session: Session) -> int:
+    """Give every known facility and node its time zone where it has none: new
+    databases, and ones seeded before sites knew their zone. Returns rows set."""
+    from simulator import lanes
+
+    zones = {**KISUMU_TZ, **lanes.timezones()}
+    changed = 0
+    for model in (Facility, Node):
+        for row in session.exec(select(model).where(model.timezone.is_(None))).all():
+            if row.id in zones:
+                row.timezone = zones[row.id]
+                session.add(row)
+                changed += 1
+    session.commit()
+    return changed
+
+
 def sync_node_keys(session: Session) -> int:
     """Every node uses the configured NODE_KEY. Keys are stored when the demo is
     seeded, so without this a secret set after the first deploy would never
@@ -101,6 +124,7 @@ def seed(session: Session, dataset: str = "kisumu") -> bool:
         session.add_all(demo_boxes())
         session.add_all(demo_facilities())
     session.commit()
+    sync_timezones(session)
     return True
 
 

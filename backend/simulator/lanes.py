@@ -65,6 +65,31 @@ class Lane:
     frozen_packs: bool = False
 
 
+# Local time at every site: the planner's daylight departures and each time
+# shown for a site use it. A lane is in one zone unless a stop crosses a border
+# (Maputo) or a zone line (Kananga is on Central Africa Time, Kinshasa on West).
+LANE_TZ = {
+    "GH": "Africa/Accra", "KE": "Africa/Nairobi", "NG": "Africa/Lagos", "TZ": "Africa/Dar_es_Salaam",
+    "ET": "Africa/Addis_Ababa", "ZA": "Africa/Johannesburg", "CD": "Africa/Kinshasa", "SN": "Africa/Dakar",
+    "KO": "Africa/Nairobi",
+}
+STOP_TZ = {"MPM-CMS": "Africa/Maputo", "KGA-HGR": "Africa/Lubumbashi"}
+
+
+def stop_tz(lane: "Lane", stop: "Stop") -> str:
+    return STOP_TZ.get(stop.id, LANE_TZ[lane.code])
+
+
+def timezones() -> dict[str, str]:
+    """Facility and node id -> IANA zone, for every site in the dataset."""
+    out = {}
+    for lane in LANES:
+        out[carrier_id(lane)] = stop_tz(lane, lane.stops[0])
+        for s in lane.stops:
+            out[s.id] = out[f"{s.id}-CR"] = stop_tz(lane, s)
+    return out
+
+
 def carrier_id(lane: "Lane") -> str:
     return f"{lane.code}-TRK" if lane.vehicle == "truck" else f"{lane.code}-VC"
 
@@ -150,7 +175,7 @@ def facilities() -> list[Facility]:
             if s.id not in seen:
                 seen.add(s.id)
                 out.append(Facility(id=s.id, name=f"{s.city} · {s.name}", kind="store" if s.kind != "clinic" else "clinic",
-                                    lat=s.lat, lon=s.lon, has_fridge=s.fridge))
+                                    lat=s.lat, lon=s.lon, has_fridge=s.fridge, timezone=stop_tz(lane, s)))
     return out
 
 
@@ -158,10 +183,10 @@ def nodes(key: str) -> list[Node]:
     out = []
     for lane in LANES:
         out.append(Node(id=carrier_id(lane), label=carrier_label(lane), kind="cold_box" if lane.vehicle == "truck" else "carrier",
-                        facility=lane.stops[0].city, key=key))
+                        facility=lane.stops[0].city, key=key, timezone=stop_tz(lane, lane.stops[0])))
         for s in lane.stops[:-1] if not lane.delivered else lane.stops:
             out.append(Node(id=f"{s.id}-CR", label=f"{s.city} {_lower_first(s.name)}", kind="cold_room",
-                            facility=f"{s.city} · {s.name}", key=key))
+                            facility=f"{s.city} · {s.name}", key=key, timezone=stop_tz(lane, s)))
     return out
 
 

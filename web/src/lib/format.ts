@@ -11,8 +11,9 @@ export const humidity = (rh: number | null | undefined) => (rh == null ? "–" :
  * date once it's more than a day away (a supervisor in Baltimore and a nurse
  * in Kano both read their own clock, and know which one it is).
  */
-export function time(ts: number | null | undefined): string {
+export function time(ts: number | null | undefined, tz?: string | null): string {
   if (!ts) return "–";
+  if (tz) return siteTime(ts, tz);
   const d = new Date(ts * 1000);
   const far = Math.abs(Date.now() - d.getTime()) > 86400e3;
   return d.toLocaleString(undefined, {
@@ -86,4 +87,30 @@ export function fromNow(ts: number | null | undefined): string {
   const h = (ts - Date.now() / 1000) / 3600;
   if (h < 0) return "now";
   return h < 1 ? `in ${Math.round(h * 60)} min` : `in ${h.toFixed(1)} h`;
+}
+
+/**
+ * A time at a site, on the site's own clock: "Sun 06:00 local (GMT+1)". Heat at
+ * a clinic in Kinshasa peaks at its local hour, not the viewer's; the planner
+ * writes departures the same way, so one departure is never shown two ways.
+ */
+export function siteTime(ts: number, tz: string): string {
+  const d = new Date(ts * 1000);
+  const far = Math.abs(Date.now() - d.getTime()) > 86400e3;
+  try {
+    const clock = d.toLocaleString("en-GB", {
+      timeZone: tz,
+      ...(far ? { day: "numeric", month: "short" } : { weekday: "short" }),
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const offset = new Intl.DateTimeFormat("en-US", { timeZone: tz, timeZoneName: "shortOffset" })
+      .formatToParts(d)
+      .find((p) => p.type === "timeZoneName")
+      ?.value.replace(/^GMT\+0$/, "GMT"); // as the server writes it
+    return `${clock.replace(",", "")} local${offset ? ` (${offset})` : ""}`;
+  } catch {
+    return time(ts); // an unknown zone: fall back to the viewer's clock
+  }
 }

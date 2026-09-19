@@ -159,10 +159,10 @@ function PlanResult({ plan }: { plan: TripPlan }) {
                 {d.km} km · {d.travel_h} h drive
               </p>
             </div>
-            <Strip options={d.options} best={d.best} />
+            <Strip options={d.options} best={d.best} tz={plan.origin.timezone} />
             <p className="m-0 mt-2 text-[15px]">
-              Best: leave {time(d.best.depart_ts)}, max {d.best.max_inside_c.toFixed(1)} °C inside, +{(d.best.budget_used * 100).toFixed(1)}% budget
-              {d.best.breach_ts ? `, above ${plan.product.storage_max_c} °C from ${time(d.best.breach_ts)}` : ""}
+              Best: leave {time(d.best.depart_ts, plan.origin.timezone)}, max {d.best.max_inside_c.toFixed(1)} °C inside, +{(d.best.budget_used * 100).toFixed(1)}% budget
+              {d.best.breach_ts ? `, above ${plan.product.storage_max_c} °C from ${time(d.best.breach_ts, plan.origin.timezone)}` : ""}
             </p>
             {d.rated_best && d.best.breach_ts && !d.rated_best.breach_ts && (
               <p className="ui-caption m-0 mt-1">
@@ -177,7 +177,7 @@ function PlanResult({ plan }: { plan: TripPlan }) {
 }
 
 /** Every departure as one block: pale Glacier stays in range, then darker Ink for more heat. */
-function Strip({ options, best }: { options: TripOption[]; best: TripOption }) {
+function Strip({ options, best, tz }: { options: TripOption[]; best: TripOption; tz?: string | null }) {
   const worst = Math.max(...options.map((o) => o.budget_used), 1e-6);
   return (
     <div className="mt-2 flex gap-[3px]" role="list" aria-label="Departure options">
@@ -189,8 +189,8 @@ function Strip({ options, best }: { options: TripOption[]; best: TripOption }) {
           <div
             key={o.depart_ts}
             role="listitem"
-            aria-label={`${time(o.depart_ts)}: +${(o.budget_used * 100).toFixed(1)}% budget, max ${o.max_inside_c} °C${isBest ? ", best" : ""}`}
-            title={`${time(o.depart_ts)}: +${(o.budget_used * 100).toFixed(1)}%, max ${o.max_inside_c} °C`}
+            aria-label={`${time(o.depart_ts, tz)}: +${(o.budget_used * 100).toFixed(1)}% budget, max ${o.max_inside_c} °C${isBest ? ", best" : ""}`}
+            title={`${time(o.depart_ts, tz)}: +${(o.budget_used * 100).toFixed(1)}%, max ${o.max_inside_c} °C`}
             className="h-6 flex-1 rounded-[4px]"
             style={{ background: color, outline: isBest ? "2px solid var(--text)" : undefined, outlineOffset: 2 }}
           />

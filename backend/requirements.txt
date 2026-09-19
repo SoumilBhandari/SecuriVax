@@ -7,4 +7,5 @@ psycopg[binary]>=3.2
 google-genai>=2.24,<3
 httpx>=0.28
 numpy>=2.1
+tzdata>=2024.1  # time zones for zoneinfo in the slim image
 pillow>=11.0

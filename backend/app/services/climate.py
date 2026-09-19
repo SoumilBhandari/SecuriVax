@@ -12,6 +12,8 @@ import bisect
 import math
 import time
 from dataclasses import asdict
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select
 
@@ -29,9 +31,22 @@ HOUR, DAY = 3600, 86400
 DEFAULT_SITE = (-0.0917, 34.7680)
 ROAD_FACTOR = 1.3  # roads are longer than straight lines
 RATED = cm.CarrierSpec()
-LOCAL_UTC_OFFSET_H = 3  # East Africa Time
-# Health workers travel in daylight: departures between these local hours.
+# Health workers travel in daylight: departures between these hours, in the
+# origin's own time zone (a site without one is taken to be on East Africa Time).
 FIRST_DEPARTURE_H, LAST_DEPARTURE_H = 5, 15
+DEFAULT_TZ = "Africa/Nairobi"
+
+
+def local(ts: int, tz: str | None) -> datetime:
+    return datetime.fromtimestamp(ts, ZoneInfo(tz or DEFAULT_TZ))
+
+
+def local_label(ts: int, tz: str | None) -> str:
+    """'Sun 06:00 local (GMT+1)': the site's own clock, with its offset, the same
+    way the app writes it, so one departure is never shown two ways."""
+    dt = local(ts, tz)
+    hours = int(dt.utcoffset().total_seconds() // 3600)
+    return f"{dt:%a %H:%M} local (GMT{'' if hours == 0 else f'{hours:+d}'})"
 
 
 def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -138,7 +153,7 @@ def _stores_at_risk(session: Session, now: int) -> dict:
             what = f"{len(rdts)} rapid-test boxes here" if rdts else "rapid tests in store"
             actions.append(f"Humidity up to {humid:.0f}% with {what}: keep pouches sealed until use.")
         rows.append({
-            "id": f.id, "name": f.name, "kind": f.kind, "lat": f.lat, "lon": f.lon,
+            "id": f.id, "name": f.name, "kind": f.kind, "lat": f.lat, "lon": f.lon, "tz": f.timezone,
             "risk": level, "peak_c": peak_c, "peak_ts": peak_ts,
             "hours_above_30_next_72h": sum(1 for r in ahead if r[1] >= 30),
             "hours_above_30_past_7d": sum(1 for r in past if r[1] >= 30),
@@ -280,7 +295,7 @@ def plan_trips(
     first = (now // HOUR + 1) * HOUR
     departures = [
         t for t in range(first, first + hours_ahead * HOUR, every_h * HOUR)
-        if FIRST_DEPARTURE_H <= (t // HOUR + LOCAL_UTC_OFFSET_H) % 24 <= LAST_DEPARTURE_H
+        if FIRST_DEPARTURE_H <= local(t, origin.timezone).hour <= LAST_DEPARTURE_H
     ]
     rows = []
     for d in dests:
@@ -323,10 +338,10 @@ def plan_trips(
     lines = []
     for r in rows:
         b, w = r["best"], r["worst"]
-        line = f"{r['name']}: leave {_hhmm(b['depart_ts'])}, +{b['budget_used'] * 100:.1f}% budget"
-        line += ", stays in range" if b["breach_ts"] is None else f", above {profile.storage_max_c:g} °C from {_hhmm(b['breach_ts'])}"
+        line = f"{r['name']}: leave {local_label(b['depart_ts'], origin.timezone)}, +{b['budget_used'] * 100:.1f}% budget"
+        line += ", stays in range" if b["breach_ts"] is None else f", above {profile.storage_max_c:g} °C from {local_label(b['breach_ts'], origin.timezone)}"
         if w["budget_used"] > b["budget_used"] * 1.5 and w["budget_used"] - b["budget_used"] > 0.005:
-            line += f". Worst slot {_hhmm(w['depart_ts'])}: +{w['budget_used'] * 100:.1f}%"
+            line += f". Worst slot {local_label(w['depart_ts'], origin.timezone)}: +{w['budget_used'] * 100:.1f}%"
         lines.append(line + ".")
     fixable = [r for r in rows if r["best"]["breach_ts"] and r["rated_best"] and not r["rated_best"]["breach_ts"]]
     if fixable:
@@ -343,11 +358,11 @@ def plan_trips(
         "source": _source(weather.values()),
         "destinations": rows,
         "recommendations": lines,
-        "stock_advice": _stock_advice(session, profile, rows, now),
+        "stock_advice": _stock_advice(session, profile, rows, now, origin.timezone),
     }
 
 
-def _stock_advice(session: Session, profile: ProductProfile, rows: list[dict], now: int) -> list[str]:
+def _stock_advice(session: Session, profile: ProductProfile, rows: list[dict], now: int, tz: str | None) -> list[str]:
     """Boxes with the least budget left should ride the gentlest trips."""
     if not rows:
         return []
@@ -361,11 +376,7 @@ def _stock_advice(session: Session, profile: ProductProfile, rows: list[dict], n
         if left < 0.6:
             advice.append(
                 f"{box.id} has {left * 100:.0f}% budget left: send it on the gentlest run "
-                f"({gentlest['name']}, {_hhmm(gentlest['best']['depart_ts'])}) or use it locally first."
+                f"({gentlest['name']}, {local_label(gentlest['best']['depart_ts'], tz)}) or use it locally first."
             )
     return advice
 
-
-def _hhmm(ts: int) -> str:
-    # East Africa Time for the district's schedule.
-    return time.strftime("%a %H:%M", time.gmtime(ts + 3 * HOUR))

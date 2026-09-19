@@ -165,7 +165,9 @@ def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     from app.services.climate import leg_environment  # avoids an import cycle
 
     carried = box.initial_budget_used  # budget already used when each leg starts
+    zones = {n.id: n.timezone for n in session.exec(select(Node)).all()}
     for seg, result in zip(data["segments"], report.segments):
+        seg["tz"] = zones.get(seg["node_id"])
         seg["environment"] = asdict(leg_environment(result, PRODUCTS_BY_ID[box.product_id]))
         seg["route"] = _thin(seg["route"], lambda p: p["status"] != "ok")
         for point in seg["series"]:

@@ -129,3 +129,23 @@ def test_planning_a_long_lane_trip_never_runs_out_of_weather():
         backfill(session, int(time.time()), "lanes")
         plan = plan_trips(session, product_id="opv", origin_id="ACC-CMS", carrier_id="GH-TRK", session_h=8)
     assert plan["destinations"]
+
+
+def test_planner_departs_in_daylight_on_the_origins_own_clock(session):
+    # An origin on Accra time (GMT): daylight is 05:00-15:00 there, not in Kenya.
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from app.models import Facility
+    from app.services.climate import FIRST_DEPARTURE_H, LAST_DEPARTURE_H, plan_trips
+
+    store = session.get(Facility, "KSM-STORE")
+    store.timezone = "Africa/Accra"
+    session.add(store)
+    session.commit()
+    plan = plan_trips(session, product_id="opv", origin_id="KSM-STORE", carrier_id=None, session_h=6)
+    hours = {datetime.fromtimestamp(o["depart_ts"], ZoneInfo("Africa/Accra")).hour
+             for d in plan["destinations"] for o in d["options"]}
+    assert hours and all(FIRST_DEPARTURE_H <= h <= LAST_DEPARTURE_H for h in hours)
+    assert all("local (GMT)" in line for line in plan["recommendations"] if "leave" in line)
+    assert plan["origin"]["timezone"] == "Africa/Accra"

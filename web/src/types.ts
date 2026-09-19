@@ -88,6 +88,7 @@ export interface Segment {
   sensor: string;
   sensor_accuracy_c: number;
   freeze_guard_c: number;
+  tz?: string | null; // the carrier or cold room's zone
   environment?: LegEnvironment;
 }
 
@@ -357,11 +358,14 @@ export interface Facility {
   id: string;
   name: string;
   kind: "store" | "clinic";
+  has_fridge?: boolean;
+  timezone?: string | null; // IANA; times at the site use it
   lat: number;
   lon: number;
 }
 
 export interface StoreRisk extends Facility {
+  tz?: string | null;
   risk: Risk;
   peak_c: number;
   peak_ts: number;

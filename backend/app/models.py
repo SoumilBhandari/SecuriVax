@@ -26,6 +26,8 @@ class Node(SQLModel, table=True):
     # The temperature sensor the node reports reading with (e.g. "dht11"), which
     # sets how much calibration error the verdict allows for. None: the design's SHT31.
     sensor: str | None = None
+    # Where the node works (IANA). None: show times in the viewer's own zone.
+    timezone: str | None = None
 
 
 class Facility(SQLModel, table=True):
@@ -39,6 +41,7 @@ class Facility(SQLModel, table=True):
     # An outreach session (a school, a market) is a destination with no fridge:
     # the dispatch agent must never send a carrier there to cool its boxes.
     has_fridge: bool = True
+    timezone: str | None = None  # IANA, e.g. Africa/Accra; times at the site use it
 
 
 class Box(SQLModel, table=True):
