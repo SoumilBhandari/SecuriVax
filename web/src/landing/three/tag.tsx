@@ -20,8 +20,14 @@ const MM = 1000;
 const BOX = { w: 86 / MM, h: 45 / MM, d: 36 / MM };
 /** Where the SecuriVax label sits on the front panel, from the sheet: 35 x 27 mm. */
 const LABEL = { w: 35 / MM, h: 27 / MM, x: 18.5 / MM, y: 0 };
-/** A phone, near enough to the one in a health worker's hand. */
-const PHONE = { w: 71 / MM, h: 146 / MM, t: 8 / MM };
+/** An iPhone, at its own size: 71.6 x 147.6 x 7.8 mm, corners 9.5 mm. */
+const PHONE = { w: 71.6 / MM, h: 147.6 / MM, t: 7.8 / MM, r: 9.5 / MM, bezel: 2.2 / MM };
+/**
+ * The carton is drawn half again as large as life beside the phone. A real
+ * 86 mm box next to a 148 mm phone disappears, and this chapter is about what
+ * is printed on the box.
+ */
+const CARTON_SCALE = 1.5;
 
 /** The scene is drawn at four times life size, to sit with the other chapters. */
 const SCALE = 4;
@@ -205,35 +211,115 @@ const top: Paint = (ctx, w, h) => {
   ctx.textAlign = "left";
 };
 
-/** The phone's screen: dark until the tag is read, then the verdict. */
+/**
+ * The phone's screen: black glass until the tag is read, then the box page as
+ * the app draws it — the verdict filling the top in its own colour, the budget
+ * ring, and the numbers under it. Corners are cut out so the body's own
+ * radius shows through, and the island sits where an iPhone's island sits.
+ */
 function screenPaint(lit: number): Paint {
   return (ctx, w, h) => {
-    ctx.fillStyle = "#0b0b0c";
+    const r = (PHONE.r - PHONE.bezel) * MM;
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, r);
+    ctx.clip();
+
+    ctx.fillStyle = "#08090a";
     ctx.fillRect(0, 0, w, h);
-    if (lit <= 0.01) return;
-    ctx.globalAlpha = Math.min(1, lit * 1.4);
-    ctx.fillStyle = GREEN;
-    ctx.fillRect(0, 0, w, h * 0.62);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = font(6, 600);
-    ctx.fillText("USE", w * 0.1, h * 0.3);
-    ctx.font = font(3, 500);
-    ctx.fillText("Safe to use", w * 0.1, h * 0.4);
-    ctx.font = font(2.4, 500, true);
-    ctx.globalAlpha = Math.min(1, lit * 1.4) * 0.85;
-    ctx.fillText("SVX-00147", w * 0.1, h * 0.14);
-    ctx.globalAlpha = Math.min(1, lit * 1.4);
-    ctx.fillStyle = "#e8e8ea";
-    ctx.font = font(2.6, 500);
-    ctx.fillText("Budget used", w * 0.1, h * 0.72);
-    ctx.fillText("Witnesses", w * 0.1, h * 0.8);
-    ctx.textAlign = "right";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = font(2.6, 700);
-    ctx.fillText("31%", w * 0.9, h * 0.72);
-    ctx.fillText("4 records", w * 0.9, h * 0.8);
-    ctx.textAlign = "left";
-    ctx.globalAlpha = 1;
+
+    const a = Math.min(1, lit * 1.5);
+    if (a > 0.01) {
+      const field = h * 0.56;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = GREEN;
+      ctx.fillRect(0, 0, w, field);
+
+      // The status line, as any phone has.
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.font = font(3.4, 600);
+      ctx.fillText("9:41", 6, 8.4);
+      for (let i = 0; i < 4; i++) {
+        const bh = 1.4 + i * 0.7;
+        ctx.fillRect(w - 17 + i * 2.1, 7.6 - bh, 1.5, bh);
+      }
+      ctx.beginPath();
+      ctx.roundRect(w - 8.2, 4.6, 5.6, 3, 0.9);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      ctx.font = font(2.6, 600, true);
+      ctx.fillText("SVX-00147", 6, 22);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = font(4.2, 600);
+      ctx.fillText("bOPV · 10 vials", 6, 29);
+
+      ctx.font = font(15, 700);
+      ctx.fillText("USE", 6, field - 16);
+      ctx.font = font(4.4, 500);
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillText("Safe to use", 6, field - 7);
+
+      // The budget ring, as on the box page.
+      const cx = w - 16;
+      const cy = field - 26;
+      const rr = 9.5;
+      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = "rgba(255,255,255,0.32)";
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * 0.31 * a);
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = font(4, 700);
+      ctx.textAlign = "center";
+      ctx.fillText("31%", cx, cy + 1.6);
+      ctx.textAlign = "left";
+
+      // The sheet under it.
+      const rows: [string, string][] = [
+        ["Budget used", "31% · 8 months left"],
+        ["Witnesses", "4 custody records"],
+        ["Confidence", "Holds in 97%"],
+      ];
+      rows.forEach(([label, value], i) => {
+        const y = field + 12 + i * 9;
+        ctx.fillStyle = "rgba(235,235,245,0.6)";
+        ctx.font = font(3.4, 500);
+        ctx.fillText(label, 6, y);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.font = font(3.4, 600);
+        ctx.fillText(value, w - 6, y);
+        ctx.textAlign = "left";
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.lineWidth = 0.25;
+        ctx.beginPath();
+        ctx.moveTo(6, y + 3.4);
+        ctx.lineTo(w - 6, y + 3.4);
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    // The island, and the home line.
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.roundRect(w / 2 - 12.5, 3.4, 25, 7.6, 3.8);
+    ctx.fill();
+    if (a > 0.01) {
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.beginPath();
+      ctx.roundRect(w / 2 - 17, h - 5, 34, 1.4, 0.7);
+      ctx.fill();
+    }
+    ctx.restore();
   };
 }
 
@@ -315,11 +401,14 @@ export function TagScene({ drive }: { drive: Drive }) {
     const settle = between(p, 0.72, 1);
     const g = phone.current;
     if (g) {
-      // It comes in high and to the right and ends with its back over the
-      // label, close enough to read the tag through the board.
-      // It ends leaning in from the right with its lower corner over the
-      // label, so the box and what the phone says are both in the picture.
-      const hold = { x: LABEL.x + PHONE.w * 0.52, y: BOX.h / 2 + PHONE.h * 0.3, z: BOX.d / 2 + 0.014 };
+      // It comes in high and to the right and ends leaning in with its lower
+      // corner over the label, close enough to read the tag through the board,
+      // and far enough over for the box and the screen to share the picture.
+      const hold = {
+        x: LABEL.x * CARTON_SCALE + PHONE.w * 0.54,
+        y: (BOX.h / 2) * CARTON_SCALE + PHONE.h * 0.3,
+        z: (BOX.d / 2) * CARTON_SCALE + 0.014,
+      };
       g.position.set(
         hold.x + (1 - approach) * 0.05,
         hold.y + (1 - approach) * 0.055 + settle * 0.012,
@@ -344,7 +433,7 @@ export function TagScene({ drive }: { drive: Drive }) {
 
   return (
     <group scale={SCALE}>
-      <group ref={carton} position={[0, BOX.h / 2, 0]}>
+      <group ref={carton} position={[0, (BOX.h / 2) * CARTON_SCALE, 0]} scale={CARTON_SCALE}>
         <mesh castShadow receiveShadow material={board}>
           <boxGeometry args={[BOX.w, BOX.h, BOX.d]} />
         </mesh>
@@ -352,14 +441,45 @@ export function TagScene({ drive }: { drive: Drive }) {
       </group>
 
       <group ref={phone}>
-        <RoundedBox args={[PHONE.w, PHONE.h, PHONE.t]} radius={0.007} smoothness={5} castShadow>
-          <meshStandardMaterial color="#1c1c1e" roughness={0.38} metalness={0.55} />
+        {/* The rail, in brushed titanium, and the glass front and back on it. */}
+        <RoundedBox args={[PHONE.w, PHONE.h, PHONE.t]} radius={PHONE.r} smoothness={7} castShadow receiveShadow>
+          <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
         </RoundedBox>
-        {/* The screen sits just proud of the body. */}
-        <mesh position={[0, 0, PHONE.t / 2 + 0.0004]}>
-          <planeGeometry args={[PHONE.w * 0.92, PHONE.h * 0.94]} />
-          <meshBasicMaterial map={screen.tex} toneMapped={false} />
+        <RoundedBox args={[PHONE.w - 0.0016, PHONE.h - 0.0016, PHONE.t + 0.0002]} radius={PHONE.r - 0.0008} smoothness={7}>
+          <meshPhysicalMaterial color="#111114" roughness={0.16} metalness={0.2} clearcoat={1} clearcoatRoughness={0.08} />
+        </RoundedBox>
+        {/* The screen, inside the bezel, lit by itself. */}
+        <mesh position={[0, 0, PHONE.t / 2 + 0.0002]}>
+          <planeGeometry args={[PHONE.w - PHONE.bezel * 2, PHONE.h - PHONE.bezel * 2]} />
+          <meshBasicMaterial map={screen.tex} transparent toneMapped={false} />
         </mesh>
+        {/* The buttons: volume and the action button on the left, wake on the right. */}
+        {[0.026, 0.008, -0.012].map((y, i) => (
+          <mesh key={i} position={[-PHONE.w / 2 - 0.0004, y, 0]}>
+            <boxGeometry args={[0.0012, i === 0 ? 0.006 : 0.011, 0.0042]} />
+            <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
+          </mesh>
+        ))}
+        <mesh position={[PHONE.w / 2 + 0.0004, 0.014, 0]}>
+          <boxGeometry args={[0.0012, 0.016, 0.0042]} />
+          <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
+        </mesh>
+        {/* The camera plateau on the back, which shows whenever it tilts. */}
+        <group position={[-PHONE.w / 2 + 0.019, PHONE.h / 2 - 0.019, -PHONE.t / 2 - 0.0012]}>
+          <RoundedBox args={[0.032, 0.032, 0.0024]} radius={0.008} smoothness={5}>
+            <meshPhysicalMaterial color="#17171a" roughness={0.22} metalness={0.35} clearcoat={0.8} />
+          </RoundedBox>
+          {[
+            [-0.0065, 0.0065],
+            [0.0065, 0.0065],
+            [0, -0.0075],
+          ].map(([x, y], i) => (
+            <mesh key={i} position={[x, y, -0.0016]} rotation={[Math.PI / 2, 0, 0]}>
+              <cylinderGeometry args={[0.0052, 0.0052, 0.0016, 24]} />
+              <meshPhysicalMaterial color="#0a0a0c" roughness={0.08} metalness={0.6} clearcoat={1} />
+            </mesh>
+          ))}
+        </group>
       </group>
     </group>
   );

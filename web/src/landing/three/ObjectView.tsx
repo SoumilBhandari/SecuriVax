@@ -32,16 +32,16 @@ const SHOTS: Record<string, Shot> = {
     radius: 0.38,
     centre: [0, 0.11, 0],
     orbit: [
-      [0.55, 0.26],
-      [0.34, 0.6],
+      [1.12, 0.42],
+      [0.88, 0.62],
     ],
     dolly: [1.02, 1.3],
     fov: 30,
     render: (d) => <Device drive={d} open={(p) => between(p, 0.14, 0.86)} />,
   },
   B: {
-    radius: 0.66,
-    centre: [0.1, 0.24, 0],
+    radius: 0.58,
+    centre: [0.08, 0.24, 0],
     orbit: [
       [0.34, 0.26],
       [0.06, 0.38],
@@ -54,8 +54,8 @@ const SHOTS: Record<string, Shot> = {
     radius: 0.58,
     centre: [0, 0.22, 0],
     orbit: [
-      [0.4, 0.38],
-      [0.95, 0.5],
+      [1.05, 0.3],
+      [1.34, 0.44],
     ],
     dolly: [1.05, 1.0],
     fov: 28,
@@ -65,8 +65,8 @@ const SHOTS: Record<string, Shot> = {
     radius: 0.33,
     centre: [0, 0.075, 0],
     orbit: [
-      [0.32, 0.22],
-      [0.14, 0.3],
+      [1.18, 0.34],
+      [0.96, 0.46],
     ],
     dolly: [1.0, 1.16],
     fov: 30,
