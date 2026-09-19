@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,7 +18,8 @@ class Settings(BaseSettings):
     # Dev only: save each VVM photo and what the reader made of it here, and a
     # stage-labelled copy once confirmed (input for evals.calibrate_vvm --photos).
     vvm_save_dir: str = ""
-    version: str = "dev"  # set to the commit on deploy (App Platform: ${_self.COMMIT_HASH})
+    # The deployed commit: VERSION if set, else the one Render provides on every deploy.
+    version: str = Field("dev", validation_alias=AliasChoices("VERSION", "RENDER_GIT_COMMIT"))
     max_body_bytes: int = 8 * 1024 * 1024
     # Gemini names places along the route (Google Maps grounding).
     gemini_api_key: str = ""

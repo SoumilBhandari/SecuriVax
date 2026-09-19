@@ -1,0 +1,43 @@
+# Render Blueprint: one web service (FastAPI serving the API and the built app)
+# and a Postgres database. Render → New → Blueprint → this repo; it asks for the
+# secrets marked `sync: false` and shows the price before anything is created.
+# Every push to main redeploys. Steps: docs/deploy.md.
+services:
+  - type: web
+    name: securivax
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Always on: a free service sleeps after 15 idle minutes and takes about a
+    # minute to wake, which is a sticker tap that hangs in front of the judges.
+    plan: 0.5c-512mb
+    region: virginia
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: securivax-db
+          property: connectionString
+      - key: DEMO_HISTORY
+        value: "true"
+      # Asked for when the Blueprint is created; never stored in this file.
+      - key: OPERATOR_TOKEN # the code a phone enters once to change anything
+        sync: false
+      - key: NODE_KEY # the ESP32's key; the same value goes in firmware/include/config.h
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+
+databases:
+  - name: securivax-db
+    # Free Postgres expires 30 days after creation: enough for the hackathon.
+    plan: free
+    region: virginia
+    databaseName: securivax
+    user: securivax
+    postgresMajorVersion: "16"
+    ipAllowList: [] # only Render services can connect

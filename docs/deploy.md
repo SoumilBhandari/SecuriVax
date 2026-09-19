@@ -1,51 +1,51 @@
-# Deploy: DigitalOcean App Platform, with your own domain
+# Deploy: Render, with your own domain
 
 One service does everything: FastAPI serves the API and the built phone app,
-so NFC stickers, nodes and phones all use one HTTPS address. The spec is
-[`.do/app.yaml`](../.do/app.yaml): a Docker web service (1 vCPU, 1 GB) and a
-Postgres 16 database.
+so NFC stickers, nodes and phones all use one HTTPS address. The Blueprint is
+[`render.yaml`](../render.yaml): a Docker web service (always on, 512 MB) and a
+Postgres 16 database, both in Render's Virginia region.
 
-## 1. Create the app (10 minutes)
+## 1. Create it (5 minutes, all in the browser)
 
-These steps need your accounts, so they're yours to run:
-
-```bash
-brew install doctl                     # if needed
-doctl auth init                        # paste a DigitalOcean API token
-doctl apps create --spec .do/app.yaml  # prints the app id
-```
-
-DigitalOcean also needs access to the private GitHub repo: the first create
-opens a link to install the DigitalOcean GitHub app. Give it this repo only.
-
-Then, in the DigitalOcean console under **Settings → App-Level Environment Variables**,
-set the secrets (never in the spec or the repo):
+1. Sign in at [render.com](https://render.com) with GitHub, and let Render see the
+   `SoumilBhandari/hophacks` repo (it's private: pick *Only select repositories*).
+2. Open **https://render.com/deploy?repo=https://github.com/SoumilBhandari/hophacks**
+   (or **New → Blueprint** and pick the repo). Render reads `render.yaml`.
+3. It asks for the four secrets. Type them in there; they never go in the repo:
 
 | Variable | What |
 | --- | --- |
-| `OPERATOR_TOKEN` | A code the team types once per phone to change things (load, unload, confirm a VVM). Without it, anyone with the URL can write, and `/api/admin` is off. |
-| `NODE_KEY` | Shared secret for the ESP32 nodes; the same value goes in `firmware/include/config.h`. |
+| `OPERATOR_TOKEN` | A code the team types once per phone to change things (load, unload, confirm a VVM). Pick something memorable. Without it, anyone with the URL can write, and `/api/admin` is off. |
+| `NODE_KEY` | The ESP32's key: make up a long random string. The same value goes in `firmware/include/config.h`. Until it's set, no node can upload. |
 | `GEMINI_API_KEY` | Location agent, place names and the VVM second opinion. |
 | `XAI_API_KEY` | Grok writes the report. |
+
+4. Check the plans and price it shows, then **Apply**. The first build takes a few
+   minutes, and the first start seeds the demo (about a minute more).
 
 Every push to `main` redeploys. Check it with:
 
 ```bash
-curl https://<app>.ondigitalocean.app/api/health
+curl https://securivax.onrender.com/api/health
 ```
 
+(Render adds a suffix to the name if `securivax` is taken; the dashboard shows the URL.)
 It should say `"status": "ok"`, `"database": "ok"`, both AI keys `true`,
-`"writes": "operator code"`, and `version` set to the deployed commit.
+`"writes": "operator code"`, `"node_key": "set"`, and `version` set to the deployed commit.
+
+Free instead? Switch the web service to *Free* in the dashboard. It then sleeps
+after 15 minutes without traffic and takes about a minute to wake, so wake it
+before a demo. The free database expires 30 days after it's created.
 
 ## 2. Your domain (GoDaddy)
 
 Buy the domain yourself. Then:
 
-1. In DigitalOcean: **App → Settings → Domains → Add domain**, e.g. `app.securivax.com`. Choose
-   *You manage your domain*. It shows a CNAME target like `securivax-xxxx.ondigitalocean.app`.
-2. In GoDaddy: **DNS → Add record**: type `CNAME`, name `app`, value the target from step 1, TTL 1 hour.
+1. In Render: **the service → Settings → Custom Domains → Add**, e.g. `app.securivax.com`.
+   It shows the target to point it at (the service's `onrender.com` address).
+2. In GoDaddy: **DNS → Add record**: type `CNAME`, name `app`, value that target, TTL 1 hour.
    (A bare apex domain can't be a CNAME at GoDaddy; use a subdomain such as `app.` or `www.`.)
-3. Wait for DigitalOcean to show the domain as *Active*: it issues the HTTPS certificate itself.
+3. Wait for Render to show the domain as verified: it issues the HTTPS certificate itself.
 4. Only now write the NFC stickers (the `/tags` page lists every URL) and set `API_BASE` in the firmware.
    A sticker can't be changed once it's locked, so the domain has to be final first.
 

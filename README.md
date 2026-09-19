@@ -296,9 +296,9 @@ cd backend && .venv/bin/python -m evals.run --quick vvm learning
 
 ## Deploy
 
-DigitalOcean App Platform, from [`.do/app.yaml`](.do/app.yaml): one Docker
-service (FastAPI serves the API and the built web app, so stickers, nodes and
-phones share one HTTPS domain) plus Postgres. Steps, secrets, a custom domain
+Render, from the Blueprint [`render.yaml`](render.yaml): one Docker service
+(FastAPI serves the API and the built web app, so stickers, nodes and phones
+share one HTTPS domain) plus Postgres. Steps, secrets, a custom domain
 and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
 `/api/health` shows what a deploy has configured (never the values).
 
