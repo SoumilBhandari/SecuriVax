@@ -60,7 +60,7 @@ def leg_environment(seg: SegmentResult, profile: ProductProfile) -> LegEnvironme
     env = analyze_leg(pairs, profile.storage_min_c, profile.storage_max_c, _source(weather.values()))
     # Hourly outside temperature for the chart.
     if pairs:
-        env.ambient = [(t, round(c, 1)) for t, c, _ in pairs][:: max(1, len(pairs) // 120)]
+        env.ambient = [(t, round(out, 1)) for t, _, out in pairs][:: max(1, len(pairs) // 120)]
     if not seg.route:
         env.text += " (No position for this leg; weather assumed for the district store.)"
     return env

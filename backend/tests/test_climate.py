@@ -101,8 +101,10 @@ def test_plan_validates_input(client):
 def test_box_report_explains_each_leg_with_the_weather(client, session):
     backfill(session, int(time.time()))
     seg = client.get("/api/boxes/BOX-0001/report").json()["segments"][0]
-    assert seg["environment"]["code"] == "FROZEN_PACKS"
-    assert seg["environment"]["ambient"]
+    env = seg["environment"]
+    assert env["code"] == "FROZEN_PACKS"
+    outside = [c for _, c in env["ambient"]]
+    assert outside and min(outside) >= env["ambient_min_c"] - 0.1  # outside air, not the frozen inside
     assert seg["environment"]["noise_c"] < 0.5
     hot_car = client.get("/api/boxes/BOX-0005/report").json()["segments"][0]["environment"]
     assert hot_car["code"] in ("HEAT_SOURCE", "TRACKING_AMBIENT")
