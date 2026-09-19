@@ -26,14 +26,6 @@ def facilities(session: Session = Depends(get_session)) -> list[dict]:
     return [f.model_dump() for f in session.exec(select(Facility).order_by(Facility.kind, Facility.name)).all()]
 
 
-@router.get("/climate/grid")
-def climate_grid(session: Session = Depends(get_session)) -> dict:
-    """The forecast heat field for the map: 2 m temperature on a grid, every 3 h."""
-    from app.services.heatgrid import grid
-
-    return grid(session)
-
-
 @router.get("/climate/stores")
 def stores_at_risk(session: Session = Depends(get_session)) -> dict:
     return climate.stores_at_risk(session)

@@ -41,17 +41,6 @@ async def lifespan(_: FastAPI):
             from app.services.weather import warm
 
             warm([(f.lat, f.lon) for f in session.exec(_select(Facility)).all()])
-            # The map's heat field takes a few seconds to fetch: start it now, off
-            # the startup path, so the first visitor to the Climate page doesn't wait.
-            import threading
-
-            from app.services import heatgrid
-
-            def _warm_grid() -> None:
-                with Session(engine) as s:
-                    heatgrid.grid(s)
-
-            threading.Thread(target=_warm_grid, daemon=True).start()
     live = None
     if settings.demo_live and settings.demo_history and settings.demo_dataset == "lanes":
         live = asyncio.create_task(_keep_lanes_live())

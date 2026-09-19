@@ -151,20 +151,4 @@ def test_planner_departs_in_daylight_on_the_origins_own_clock(session):
     assert plan["origin"]["timezone"] == "Africa/Accra"
 
 
-def test_heat_grid_covers_the_sites_every_three_hours(client):
-    from app.services import heatgrid
-
-    heatgrid.clear_cache()
-    g = client.get("/api/climate/grid").json()
-    assert g["available"] and g["source"] == "model"  # tests run offline
-    assert len(g["frames"]) == len(g["times"]) == heatgrid.HORIZON_H // heatgrid.FRAME_STEP_H + 1
-    assert all(len(f) == g["rows"] * g["cols"] for f in g["frames"])
-    assert g["frames"][0].count(None) == g["rows"] * g["cols"] - g["points"]
-    assert g["lats"][0] > g["lats"][-1]  # row 0 is the north
-    (south, west), (north, east) = g["bounds"]
-    for f in client.get("/api/facilities").json():  # every site is inside the field
-        assert south < f["lat"] < north and west < f["lon"] < east
-    assert all(b - a == 3 * 3600 for a, b in zip(g["times"], g["times"][1:]))
-    assert client.get("/api/climate/grid").json()["generated_at"] == g["generated_at"]  # cached
-
 

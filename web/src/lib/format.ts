@@ -71,9 +71,15 @@ export const SEVERITY_ORDER: Record<Verdict, number> = { DISCARD: 0, QUARANTINE:
 /** Kept for older call sites: same as time(). */
 export const eat = time;
 
-/** Heat risk isn't a verdict, so it gets no signal colour: an outlined word in lists,
- * Ink shades on the map (styled by class in index.css). */
 export const RISK_ORDER: Record<string, number> = { extreme: 0, high: 1, moderate: 2, low: 3 };
+
+/** Heat risk on the map: the original red, orange, amber and green. */
+export const RISK_COLOR: Record<string, string> = {
+  extreme: "#dc2626",
+  high: "#ea580c",
+  moderate: "#d97706",
+  low: "#059669",
+};
 
 export function weatherSource(source: string): string {
   if (source === "open-meteo") return "Weather: Open-Meteo";

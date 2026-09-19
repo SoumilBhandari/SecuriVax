@@ -7,7 +7,6 @@ import type {
   Explanation,
   Facility,
   FleetSummary,
-  HeatGrid,
   Impact,
   LearnedRate,
   LearningSummary,
@@ -149,8 +148,6 @@ export const api = {
   destinations: (nodeId: string) =>
     request<(Facility & { road_km: number | null })[]>(`/api/nodes/${encodeURIComponent(nodeId)}/destinations`),
   storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),
-  // The first build of the field fetches a few hundred forecasts; later ones are cached.
-  climateGrid: () => request<HeatGrid>("/api/climate/grid", { signal: AbortSignal.timeout(60000) }),
   carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
   liveRecent: (limit = 120, node?: string) =>
     request<LiveRecent>(`/api/live/recent?${new URLSearchParams({ limit: String(limit), ...(node && { node }) })}`),
