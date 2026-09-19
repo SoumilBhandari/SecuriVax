@@ -2,7 +2,7 @@
 #pragma once
 
 // --- Identity: must match a node registered on the server -------------------
-#define NODE_ID   "CAR-01"
+#define NODE_ID   "DEMO-01"                // second ESP32 in the same carrier: "DEMO-01B"
 #define NODE_KEY  "dev-node-key"          // X-Node-Key; NODE_KEY env on the server
 #define API_BASE  "https://coldtrace.onrender.com"
 
@@ -10,6 +10,11 @@
 #define WIFI_SSID "your-hotspot"
 #define WIFI_PASS "your-password"
 #define WIFI_TIMEOUT_MS 10000
+
+// --- Hardware present -----------------------------------------------------------
+// No GPS module? Set 0: position then comes from a Samsung SmartTag in the
+// same carrier (see docs/smarttag.md) and the clock from the server.
+#define HAS_GPS 0
 
 // --- Pins -------------------------------------------------------------------
 #define I2C_SDA 21                        // SHT31

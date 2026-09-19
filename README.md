@@ -8,10 +8,17 @@
 Two stretches of the chain have no monitoring today: the district-store-to-clinic
 trip, and outreach carriers. Rapid tests aren't monitored anywhere.
 
-ColdTrace puts a cheap, battery-powered ESP32 node (temperature, humidity, GPS)
-inside the carrier. Every box gets an NFC sticker. A health worker taps the box
-and gets **USE / QUARANTINE / DISCARD** for *that product*, worked out from
-everything the box has been through.
+ColdTrace puts a cheap, battery-powered ESP32 node (temperature + humidity)
+inside the carrier, plus a Samsung SmartTag for location. Every box gets an
+NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
+DISCARD** for *that product*, worked out from everything the box has been
+through.
+
+On top of that, **environmental intelligence** (our environmental track):
+- Weather forecasts show which stores and clinics the heat is about to hit.
+- Real trips are compared against a thermal model, which shows which carriers
+  underperform.
+- The forecast plans when to travel and where stock should go.
 
 ![Phone web app: box list, a discarded OPV box, a rapid-test box](docs/img/overview.png)
 
@@ -19,21 +26,24 @@ everything the box has been through.
 
 ```mermaid
 flowchart LR
-    subgraph field[In the field]
-        N["ESP32 node<br/>temp · humidity · GPS<br/>logs offline"]
+    subgraph field[In the carrier]
+        N["ESP32 node + backup<br/>temp · humidity<br/>logs offline"]
+        S["Samsung SmartTag<br/>location"]
         T["NFC sticker<br/>on every box"]
     end
     subgraph api[FastAPI backend]
         I["Ingest<br/>idempotent, acked"]
         E["Verdict engine<br/>deterministic"]
+        W["Environmental intelligence<br/>Open-Meteo + carrier model"]
         G["Gemini + Google Maps<br/>names places"]
         X["Grok<br/>writes the report"]
     end
-    P["Phone web app<br/>verdict · map · custody"]
+    P["Phone web app<br/>verdict · map · custody<br/>climate · planner"]
     N -- batched uploads --> I
+    S -- Home Assistant bridge --> I
     T -- tap opens URL --> P
-    P <--> E
-    I --> E
+    I --> E --> P
+    W --> P
     E --> G --> X --> P
 ```
 
@@ -79,6 +89,48 @@ Products seeded (`backend/app/engine/profiles.py`):
 - **HPV**: VVM30, freeze-sensitive
 - **Malaria and HIV rapid tests**: an illustrative curve anchored at the 24-month label shelf life at 30 °C and the WHO stress test of 60 days at 45 °C.
 
+## Environmental intelligence
+
+![Stores at risk, trip planner, weather vs carrier](docs/img/environment.png)
+
+Hourly weather from [Open-Meteo](https://open-meteo.com) (free, no key): the
+past 7 days and the next 3, for every store, clinic and carrier position.
+**Weather never changes a verdict.** The verdict comes from what the sensor
+measured. Weather tells you *why*, and *what's coming*:
+
+- **Weather vs carrier, for every leg.** Inside temperature against outside air
+  separates the environment from the equipment. Each leg is classed as
+  *protected* (in range through the heat), *followed the outside air* (ice
+  packs ran out), *hotter than outside* (sun, closed vehicle, tin roof),
+  *frozen by its own packs* (froze on a 22 °C day), or *mild*. A
+  second-difference estimate of sensor noise (typically ±0.2 °C) shows the
+  signal is clean data, not jitter.
+- **Stores and clinics at risk** (`/climate`). Each site gets a 72 h peak, hours
+  above 30 °C ahead and in the past week, a risk level, concrete actions, and
+  the boxes sitting there.
+- **Carriers: model vs reality.** A passive-carrier model (ice as a store of
+  degree-hours, WHO-style rating at +43 °C) is replayed against each real trip.
+  The fit gives the carrier's *effective* cold life. The demo data shows CAR-02
+  holding 3 h against a rated 20 h: "freeze packs fully, check the lid seal".
+- **Trip planner** (`/plan`). Every daylight departure over the next 48 h, for
+  every clinic, is predicted from the forecast and the carrier's measured cold
+  life. It gives the best slot, the time the carrier would leave the safe range,
+  whether a properly packed carrier would fix it, and which boxes (least budget
+  left) should go on the gentlest run.
+
+Offline, a built-in climate model stands in, labelled "model" everywhere it's
+used. It's never shown as observed weather.
+
+## Location and redundancy
+
+- **Samsung SmartTag** in the carrier gives location without a GPS module. It
+  reaches us through Home Assistant ([docs/smarttag.md](docs/smarttag.md)),
+  because Samsung has no official tag-location API. Positions are interpolated
+  onto readings by time. A node GPS, if fitted, takes priority.
+- **Two ESP32s per carrier.** The backup node's readings fill any silence from
+  the primary, and when both report, disagreements over 2 °C are flagged.
+- Hardware build for our parts: [docs/hardware.md](docs/hardware.md).
+
 ## The stage demo
 
 Two boxes go in the same demo carrier. On `DEMO-01`, one real minute counts as
@@ -98,8 +150,8 @@ verdicts, because the verdict is product-specific. Full script:
 | --- | --- |
 | [`backend/`](backend) | FastAPI API, verdict engine, Gemini/Grok services, node simulator, tests |
 | [`web/`](web) | Phone web app (React + Vite + Tailwind + Leaflet) |
-| [`firmware/`](firmware) | ESP32 node skeleton (PlatformIO): SHT31, GPS, deep sleep, flash queue |
-| [`docs/`](docs) | Demo script, screenshots |
+| [`firmware/`](firmware) | ESP32 node skeleton (PlatformIO): SHT31, optional GPS, deep sleep, flash queue |
+| [`docs/`](docs) | Demo script, hardware build, SmartTag bridge, screenshots |
 
 ## Run it locally
 
@@ -156,11 +208,19 @@ The starter instance is on purpose: free instances sleep and take about a minute
 | POST | `/api/boxes/{id}/load` / `unload` | Custody changes |
 | GET | `/api/nodes`, `/api/nodes/{id}` | Node status, readings, upload log |
 | GET | `/api/products` | Stability profiles |
+| POST | `/api/ingest/locations` | Tracker positions (SmartTag, phone, GPS) |
+| GET | `/api/climate/stores` | 72 h heat risk per store/clinic |
+| GET | `/api/climate/carriers` | Effective cold life per carrier (model vs reality) |
+| POST | `/api/climate/plan` | Departure × destination predictions from the forecast |
 
 ## Assumptions and limits
 
 - Time between custody segments (e.g. in a clinic fridge with its own logger)
   is treated as covered by existing monitoring.
 - Rapid-test stability curves are illustrative until we have manufacturer data.
+- The carrier model is deliberately simple (one ice store, one time constant).
+  It's for ranking options and spotting bad carriers, not for verdicts.
+- SmartTag positions depend on Galaxy phones passing by, so they're sparse in
+  rural areas. Add a GPS module for continuous routes.
 - The VVM category for pentavalent depends on the manufacturer (VVM7 or VVM14).
 - A clinic with no signal gets the verdict at the next sync. An on-node verdict LED is next.

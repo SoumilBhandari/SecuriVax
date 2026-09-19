@@ -269,7 +269,9 @@ void loadBootId() {
 
 void cycle() {
   wake_count++;
+#if HAS_GPS
   if (wake_count % GPS_EVERY == 1 || GPS_EVERY == 1) updateGps();
+#endif
   Record r;
   if (sample(r)) {
     enqueue(r);

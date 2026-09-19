@@ -26,9 +26,15 @@
    "froze on the Kisumu–Bondo road…". Show the map with the purple freeze segment and
    the chain of custody. "The AI explains; the verdict comes from WHO VVM curves
    and fixed rules."
-6. **Reliability (15 s).** Simulator `o` (offline) for 20 s, then `o` again. The node page
+6. **Environment (30 s).** Open `/climate`: "Ahero hits 35 °C on Monday. Here's who
+   should move stock into the fridge." Back on `BOX-0001`, the chart shows outside air
+   at 22 °C while the box froze at −3 °C: "The weather didn't do this; the ice packs
+   did." Open `/plan?product=opv&carrier=CAR-02`: "This carrier only holds 3 hours,
+   so every afternoon run breaks the cold chain. Frozen packs would fix 4 of 5."
+7. **Reliability (15 s).** Simulator `o` (offline) for 20 s, then `o` again. The node page
    upload log shows the buffered batch arriving, with no gaps and no duplicates.
-7. **Rapid tests (10 s).** Open `BOX-0101`: a hot, humid clinic store room, with a heat and
+   Unplug ESP32 #1: the backup node fills in, with no gap.
+8. **Rapid tests (10 s).** Open `BOX-0101`: a hot, humid clinic store room, with a heat and
    desiccant advisory.
 
 ## Reset

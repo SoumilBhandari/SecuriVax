@@ -1,7 +1,10 @@
 # ColdTrace node firmware (skeleton)
 
-ESP32 + SHT31 temperature/humidity sensor + NEO-6M GPS, running on a LiPo cell.
-It rides inside a vaccine carrier, cold box or rapid-test storage box.
+ESP32 + SHT31 temperature/humidity sensor, running on a LiPo cell or power
+bank. It rides inside a vaccine carrier, cold box or rapid-test storage box.
+A NEO-6M GPS is optional (`HAS_GPS`). Without one, position comes from a
+Samsung SmartTag in the carrier. See [../docs/hardware.md](../docs/hardware.md) for
+the build guide.
 
 ## What it does
 
@@ -40,8 +43,8 @@ pio run -e demo -t upload                         # stage build: awake, 5 s read
 | Part | ESP32 |
 | --- | --- |
 | SHT31 SDA / SCL | GPIO 21 / 22, 3V3, GND |
-| NEO-6M TX / RX | GPIO 16 / 17 |
-| NEO-6M VCC | through a P-MOSFET or load switch on GPIO 25 (LOW = on) |
+| NEO-6M TX / RX (optional) | GPIO 16 / 17 |
+| NEO-6M VCC (optional) | through a P-MOSFET or load switch on GPIO 25 (LOW = on) |
 | Battery + | 100k/100k divider into GPIO 35 |
 
 ## Power notes
