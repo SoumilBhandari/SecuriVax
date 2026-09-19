@@ -25,6 +25,16 @@ class Node(SQLModel, table=True):
     fw_version: str | None = None
 
 
+class Facility(SQLModel, table=True):
+    """A place in the supply chain: vaccine store or clinic."""
+
+    id: str = Field(primary_key=True)
+    name: str
+    kind: str  # store | clinic
+    lat: float
+    lon: float
+
+
 class Box(SQLModel, table=True):
     id: str = Field(primary_key=True)  # printed on the NFC sticker, e.g. "BOX-0042"
     product_id: str

@@ -4,9 +4,18 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel
 
+from app.config import get_settings
 from app.db import get_session, init_db, make_engine
 from app.main import app
 from app.seed import seed
+from app.services import weather
+
+
+@pytest.fixture(autouse=True)
+def offline_weather(monkeypatch):
+    """Tests never call Open-Meteo; the built-in climate model stands in."""
+    monkeypatch.setattr(get_settings(), "weather_offline", True)
+    weather.clear_cache()
 
 
 # Set TEST_DATABASE_URL=postgresql://... to run the suite against Postgres.

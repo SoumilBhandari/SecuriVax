@@ -6,7 +6,7 @@ from sqlmodel import Session, SQLModel, select
 
 from app.config import get_settings
 from app.db import engine, init_db
-from app.models import Box, Node
+from app.models import Box, Facility, Node
 
 # One real minute on the demo node counts as two days for the product, so
 # heating it for a minute on stage visibly spends the budget.
@@ -45,12 +45,26 @@ def demo_boxes() -> list[Box]:
     ]
 
 
+def demo_facilities() -> list[Facility]:
+    """Kisumu and Siaya area, approximate coordinates."""
+    return [
+        Facility(id="KSM-STORE", name="Kisumu district vaccine store", kind="store", lat=-0.0917, lon=34.7680),
+        Facility(id="SIA-STORE", name="Siaya county store", kind="store", lat=0.0607, lon=34.2881),
+        Facility(id="KOMBEWA", name="Kombewa health centre", kind="clinic", lat=-0.1037, lon=34.5170),
+        Facility(id="MASENO", name="Maseno sub-county hospital", kind="clinic", lat=-0.0045, lon=34.6003),
+        Facility(id="AHERO", name="Ahero health centre", kind="clinic", lat=-0.1745, lon=34.9190),
+        Facility(id="BONDO", name="Bondo sub-county hospital", kind="clinic", lat=-0.0987, lon=34.2741),
+        Facility(id="KENDU", name="Kendu Bay health centre", kind="clinic", lat=-0.3605, lon=34.6400),
+    ]
+
+
 def seed(session: Session) -> bool:
     """Insert demo data if the database is empty. Returns True if it did."""
     if session.exec(select(Node)).first() is not None:
         return False
     session.add_all(demo_nodes(get_settings().node_key))
     session.add_all(demo_boxes())
+    session.add_all(demo_facilities())
     session.commit()
     return True
 
