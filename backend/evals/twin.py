@@ -36,6 +36,91 @@ def make_carrier(rng, weather: Weather):
     return dict(cell=cell, ts=ts, outside=outside, temps=np.array(temps), measured=measured, life=life, step=step)
 
 
+def make_carrier_other_physics(rng, weather: Weather):
+    """A carrier from a different model than the twin's, to test it against
+    physics it doesn't assume: the ice plateau creeps from 3 to 6 °C as the ice
+    melts (not flat), heat comes in in proportion to (outside - inside) through
+    the walls, and the lid is opened every 40-120 minutes (a spike of a few
+    degrees that costs ice). After the ice, the inside lags the outside."""
+    cell = list(weather.cells)[rng.integers(len(weather.cells))]
+    times, _ = weather.cells[cell]
+    start = float(times[0] + 86400 * rng.integers(1, 80) + 3600 * rng.uniform(4, 12))
+    step = int(rng.choice([60, 180, 300]))
+    ts = start + np.arange(0, 30 * 3600, step)
+    outside = weather.at(cell, ts)
+    q0 = float(np.exp(rng.uniform(np.log(1.5), np.log(20)))) * 38  # degree-hours of ice
+    ua = float(rng.uniform(0.6, 1.6))  # wall conductance, relative
+    tau = float(rng.uniform(0.8, 3.0))
+    q, spike, inside = q0, 0.0, 4.0
+    next_open = start + rng.uniform(40, 120) * 60
+    temps = []
+    for t, out in zip(ts, outside):
+        dt = step / 3600
+        if t >= next_open:
+            jump = rng.uniform(2, 5)
+            spike += jump
+            q -= 2 * jump
+            next_open = t + rng.uniform(40, 120) * 60
+        spike *= np.exp(-dt / (10 / 60))
+        if q > 0:
+            plateau = 3.0 + 3.0 * (1 - q / q0) ** 2
+            q -= ua * max(out - plateau, 0) * dt
+            inside = plateau
+        else:
+            inside += (out - inside) * (1 - np.exp(-dt / tau))
+        temps.append(inside + spike)
+    noise = rng.uniform(0.1, 0.35)
+    measured = np.array(temps) + rng.normal(0, 0.2) + rng.normal(0, noise, len(temps))
+    return dict(cell=cell, ts=ts, outside=outside, temps=np.array(temps), measured=measured, step=step)
+
+
+def mismatch(rng, weather: Weather, n: int) -> list[Metric]:
+    """The unchanged twin (fleet prior, as for a new carrier) on carriers from
+    the other physics: are its 80% ranges still honest, and how far off is P50?"""
+    covered = cases = missed = breaches = 0
+    rmses, p50_err, p50_bias, pairs = [], [], [], []
+    for _ in range(n):
+        c = make_carrier_other_physics(rng, weather)
+        series = [(int(t), float(m), 1.0) for t, m in zip(c["ts"], c["measured"])]
+        breach_i = next((i for i, t in enumerate(c["temps"]) if t > STORAGE_MAX + 1.5), None)  # past a lid spike
+        seen = [x for x in series if x[0] <= c["ts"][0] + rng.uniform(1.0, 4.0) * 3600]
+        truth = c["ts"][breach_i] if breach_i is not None else None
+        if truth is not None and truth <= seen[-1][0]:
+            continue
+        cases += 1
+        in_window = truth is not None and truth <= seen[-1][0] + 12 * 3600
+        r = twin.run_filter(seen, outside_fn(c), n=600, known_cold_life_h=float(np.exp((np.log(1.5) + np.log(20)) / 2)), spread=1.0)
+        if r.one_step_rmse_c is not None:
+            rmses.append(r.one_step_rmse_c)
+        fc = twin.forecast(r, ensemble_for(c, rng), 12, STORAGE_MAX, samples=300)
+        if in_window:
+            breaches += 1
+            missed += fc.breach_prob < 0.5
+            covered += (fc.breach_p10 is not None and fc.breach_p10 <= truth) and (fc.breach_p90 is None or truth <= fc.breach_p90)
+            if fc.breach_p50:
+                p50_err.append(abs(fc.breach_p50 - truth) / 3600)
+                p50_bias.append((fc.breach_p50 - truth) / 3600)
+        else:
+            covered += fc.breach_p90 is None
+        pairs.append((fc.breach_prob, float(in_window)))
+    p, y = np.array(pairs).T if pairs else (np.array([0.0]), np.array([0.0]))
+    bins = np.minimum((p * 5).astype(int), 4)
+    ece = float(sum(abs(p[bins == k].mean() - y[bins == k].mean()) * (bins == k).mean() for k in range(5) if (bins == k).any()))
+    return [
+        Metric("other physics: breaches it didn't see coming", missed / max(breaches, 1), 0.1, higher_is_better=False,
+               unit="%", note="breach within 12 h, forecast under 50%: the safety question"),
+        Metric("other physics: 80% interval coverage", covered / max(cases, 1), None, unit="%",
+               note="creeping ice plateau, lid openings, wall-conduction heat: none of it in the twin"),
+        Metric("other physics: calibration error", ece, None, unit="%",
+               note="not calibrated on physics it doesn't model: it over-predicts breaches"),
+        Metric("other physics: P50 breach time minus truth (median)", float(np.median(p50_bias)) if p50_bias else 0.0,
+               None, unit="h", note="negative = warns early, the safe side"),
+        Metric("other physics: median one-step tracking error", float(np.median(rmses)) if rmses else 0.0, None, unit="°C",
+               note="lid spikes it can't predict"),
+        Metric("other physics: median P50 breach-time error", float(np.median(p50_err)) if p50_err else 0.0, None, unit="h"),
+    ]
+
+
 def outside_fn(c):
     return lambda t: float(np.interp(t, c["ts"], c["outside"]))
 
@@ -138,8 +223,10 @@ def run(quick: bool) -> SuiteResult:
         Metric("Brier skill vs base rate, known carrier", skill(brier_known), 0.5, note="learning a carrier's history pays"),
         Metric("Brier skill with no prior at all", skill(brier), None, note="why the priors matter"),
         Metric("median P50 breach-time error, known carrier", float(np.median(p50_err)) if p50_err else 0.0, 1.5, higher_is_better=False, unit="h"),
+        *mismatch(np.random.default_rng(71), weather, 20 if quick else 60),
     ]
     return SuiteResult(
-        "twin", "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration",
+        "twin", "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration, "
+        "then on carriers from different physics than it assumes",
         metrics, time.time() - started, {"carriers": n, "forecast_cases": cases},
     )

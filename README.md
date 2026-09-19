@@ -331,8 +331,10 @@ and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
   or a box left on a table) is flagged as "unmonitored for X h" in the reasons
   and the chain of custody. It isn't counted as cold, and it doesn't hold the
   box on its own.
-- The carrier twin has only been tested on simulated data from its own
-  physics. A real cooler run (predicted against actual breach time) is next.
+- The carrier twin has only been tested on simulated carriers. On physics it
+  doesn't model (ice that warms as it melts, lid openings) it still saw 97% of
+  breaches coming and warned early, but it overstates how likely a breach is.
+  A real cooler run (predicted against actual breach time) is next.
 - "Holds in N% of scenarios" is a robustness share over sensor bias, batch
   variation and the starting budget, not a calibrated probability.
 - Rapid-test stability curves are illustrative until we have manufacturer data.

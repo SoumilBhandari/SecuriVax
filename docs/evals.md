@@ -36,7 +36,7 @@ Monte Carlo verdict confidence: consistency with the engine and calibration
 
 ## twin ✅
 
-Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration
+Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration, then on carriers from different physics than it assumes
 
 | Metric | Value | Target | |
 | --- | --- | --- | --- |
@@ -52,6 +52,12 @@ Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and for
 | Brier skill vs base rate, known carrier · learning a carrier's history pays | 0.694 | ≥ 0.5 | ✅ |
 | Brier skill with no prior at all · why the priors matter | -0.119 | context |  |
 | median P50 breach-time error, known carrier | 1 h | ≤ 1.5 h | ✅ |
+| other physics: breaches it didn't see coming · breach within 12 h, forecast under 50%: the safety question | 2.8% | ≤ 10.0% | ✅ |
+| other physics: 80% interval coverage · creeping ice plateau, lid openings, wall-conduction heat: none of it in the twin | 58.5% | context |  |
+| other physics: calibration error · not calibrated on physics it doesn't model: it over-predicts breaches | 19.3% | context |  |
+| other physics: P50 breach time minus truth (median) · negative = warns early, the safe side | -0.833 h | context |  |
+| other physics: median one-step tracking error · lid spikes it can't predict | 0.612 °C | context |  |
+| other physics: median P50 breach-time error | 2.25 h | context |  |
 
 ## vvm ✅
 
@@ -122,11 +128,11 @@ API latency and payload size on the eight-lane demo with full history (in-proces
 
 | Metric | Value | Target | |
 | --- | --- | --- | --- |
-| box list, p95 (ms) | 60.1 | ≤ 250 | ✅ |
-| fleet summary, p95 (ms) | 58.9 | ≤ 250 | ✅ |
-| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 32.5 | ≤ 400 | ✅ |
-| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 29.8 | ≤ 3e+03 | ✅ |
-| carrier forecast, cached, p95 (ms) | 2.63 | ≤ 100 | ✅ |
-| stores at risk, p95 (ms) | 45.1 | ≤ 1.5e+03 | ✅ |
-| VVM photo read + cross-check, p95 (ms) · Gemini off | 23.6 | ≤ 1.5e+03 | ✅ |
-| largest box report, gzipped (KB) · 113 KB raw | 16.5 | ≤ 40 | ✅ |
+| box list, p95 (ms) | 61.9 | ≤ 250 | ✅ |
+| fleet summary, p95 (ms) | 59.9 | ≤ 250 | ✅ |
+| box report (verdict + Monte Carlo), p95 (ms) · what a sticker tap waits for | 32.7 | ≤ 400 | ✅ |
+| carrier forecast, first call (ms) · particle filter + 40-member ensemble | 31.1 | ≤ 3e+03 | ✅ |
+| carrier forecast, cached, p95 (ms) | 2.77 | ≤ 100 | ✅ |
+| stores at risk, p95 (ms) | 47.1 | ≤ 1.5e+03 | ✅ |
+| VVM photo read + cross-check, p95 (ms) · Gemini off | 48.2 | ≤ 1.5e+03 | ✅ |
+| largest box report, gzipped (KB) · 113 KB raw | 16.4 | ≤ 40 | ✅ |

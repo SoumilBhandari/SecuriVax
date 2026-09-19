@@ -56,8 +56,11 @@ in our backtest than heat, and it's the thing a VVM can't show.
   destroyed.
 - **"What about a box left on a table between carriers?"** It's flagged: "Unmonitored for 3 h
   between carriers", in the reasons and in the chain of custody. We don't count it as cold.
-- **"Has the twin seen real data?"** Only simulated data so far, from its own physics. Saturday's
-  real cooler run is the first test: predicted breach time against the actual one.
+- **"Has the twin seen real data?"** Not yet. We tested it on simulated carriers from its own
+  physics, and on carriers built with different physics it doesn't assume: ice that warms as it
+  melts, lid openings, heat through the walls. There it still saw 97% of breaches coming and warned
+  about 50 minutes early, but its percentages were too high: "94%" happened 71% of the time.
+  Saturday's real cooler run is the first real test: predicted breach time against the actual one.
 - **"Where does 'saved from needless discard' come from?"** It assumes an alarm means discard,
   which is common practice but not universal. The prevention number (144 → 12) doesn't need it.
 

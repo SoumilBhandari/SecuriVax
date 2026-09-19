@@ -1,5 +1,5 @@
 {
- "generated": 1789798373,
+ "generated": 1789798609,
  "suites": [
   {
    "name": "verdicts",
@@ -101,7 +101,7 @@
   {
    "name": "confidence",
    "description": "Monte Carlo verdict confidence: consistency with the engine and calibration",
-   "seconds": 12.0,
+   "seconds": 12.1,
    "passed": true,
    "metrics": [
     {
@@ -147,8 +147,8 @@
   },
   {
    "name": "twin",
-   "description": "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration",
-   "seconds": 3.4,
+   "description": "Carrier twin on synthetic carriers driven by real ERA5 weather: recovery and forecast calibration, then on carriers from different physics than it assumes",
+   "seconds": 3.9,
    "passed": true,
    "metrics": [
     {
@@ -258,6 +258,60 @@
      "unit": "h",
      "note": "",
      "passed": true
+    },
+    {
+     "name": "other physics: breaches it didn't see coming",
+     "value": 0.027777777777777776,
+     "target": 0.1,
+     "higher_is_better": false,
+     "unit": "%",
+     "note": "breach within 12 h, forecast under 50%: the safety question",
+     "passed": true
+    },
+    {
+     "name": "other physics: 80% interval coverage",
+     "value": 0.5849056603773585,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "creeping ice plateau, lid openings, wall-conduction heat: none of it in the twin",
+     "passed": true
+    },
+    {
+     "name": "other physics: calibration error",
+     "value": 0.1934150943396227,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "%",
+     "note": "not calibrated on physics it doesn't model: it over-predicts breaches",
+     "passed": true
+    },
+    {
+     "name": "other physics: P50 breach time minus truth (median)",
+     "value": -0.8334794213374456,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "h",
+     "note": "negative = warns early, the safe side",
+     "passed": true
+    },
+    {
+     "name": "other physics: median one-step tracking error",
+     "value": 0.6117374850000428,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "\u00b0C",
+     "note": "lid spikes it can't predict",
+     "passed": true
+    },
+    {
+     "name": "other physics: median P50 breach-time error",
+     "value": 2.2496982715527216,
+     "target": null,
+     "higher_is_better": true,
+     "unit": "h",
+     "note": "",
+     "passed": true
     }
    ],
    "details": {
@@ -268,7 +322,7 @@
   {
    "name": "vvm",
    "description": "Camera VVM reader on synthetic phone photos (rotation, perspective, blur, glare, shadow, colour cast, JPEG)",
-   "seconds": 20.5,
+   "seconds": 20.6,
    "passed": true,
    "metrics": [
     {
@@ -405,7 +459,7 @@
   {
    "name": "crosscheck",
    "description": "Camera vs temperature record: planted disagreements (unrecorded heat, wrong witness) against honest boxes",
-   "seconds": 21.7,
+   "seconds": 21.8,
    "passed": true,
    "metrics": [
     {
@@ -472,7 +526,7 @@
   {
    "name": "learning",
    "description": "Crowdsourced calibration: learning a product's real degradation speed from confirmed VVM photos",
-   "seconds": 21.3,
+   "seconds": 21.4,
    "passed": true,
    "metrics": [
     {
@@ -637,12 +691,12 @@
   {
    "name": "api",
    "description": "API latency and payload size on the eight-lane demo with full history (in-process, laptop)",
-   "seconds": 2.7,
+   "seconds": 2.8,
    "passed": true,
    "metrics": [
     {
      "name": "box list, p95 (ms)",
-     "value": 60.050621401751414,
+     "value": 61.85733760103176,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -651,7 +705,7 @@
     },
     {
      "name": "fleet summary, p95 (ms)",
-     "value": 58.93102120062394,
+     "value": 59.874529203079874,
      "target": 250.0,
      "higher_is_better": false,
      "unit": "",
@@ -660,7 +714,7 @@
     },
     {
      "name": "box report (verdict + Monte Carlo), p95 (ms)",
-     "value": 32.529620549939864,
+     "value": 32.655710697690665,
      "target": 400.0,
      "higher_is_better": false,
      "unit": "",
@@ -669,7 +723,7 @@
     },
     {
      "name": "carrier forecast, first call (ms)",
-     "value": 29.750665999017656,
+     "value": 31.067374999111053,
      "target": 3000.0,
      "higher_is_better": false,
      "unit": "",
@@ -678,7 +732,7 @@
     },
     {
      "name": "carrier forecast, cached, p95 (ms)",
-     "value": 2.632820700819138,
+     "value": 2.767808000135119,
      "target": 100.0,
      "higher_is_better": false,
      "unit": "",
@@ -687,7 +741,7 @@
     },
     {
      "name": "stores at risk, p95 (ms)",
-     "value": 45.07340625132201,
+     "value": 47.055768449718016,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -696,7 +750,7 @@
     },
     {
      "name": "VVM photo read + cross-check, p95 (ms)",
-     "value": 23.565641001187032,
+     "value": 48.206316999858245,
      "target": 1500.0,
      "higher_is_better": false,
      "unit": "",
@@ -705,7 +759,7 @@
     },
     {
      "name": "largest box report, gzipped (KB)",
-     "value": 16.47265625,
+     "value": 16.404296875,
      "target": 40.0,
      "higher_is_better": false,
      "unit": "",
