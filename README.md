@@ -4,16 +4,17 @@
 
 HopHacks 2026 · Healthcare track
 
-> On outreach, the vaccine vial monitor is often the only monitor, and it can't see freezing.
+> On outreach, the vaccine vial monitor (VVM) is often the only monitor. The color of the VVM is assessed by the human eye, and is subject to misinterpretation.
+
 > Rapid tests have no monitor at all. We tell the health worker whether this box is still good.
 
 The weakest stretch is the outreach carrier. UNICEF recommends electronic freeze
 indicators for cold boxes and fridges have 30-day loggers, but a freeze indicator
-gives one pass/fail for the whole trip, and a VVM shows heat but not freezing.
-We say when and where it happened, and give a verdict for the product in each box.
+gives one pass/fail for the whole trip, and a VVM shows heat exposure but not freezing.
+We say when and where it happened, and give a verdict for the product's viability in each box.
 
-SecuriVax puts a cheap, battery-powered ESP32 node (temperature + humidity)
-inside the carrier, plus a Samsung SmartTag for location. Every box gets an
+SecuriVax puts a economical, battery-powered ESP32 node (temperature + humidity)
+inside the carrier, plus a Samsung SmartTag for location. Every vaccine box gets an
 NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
 DISCARD** for *that product*, worked out from everything the box has been
 through.
