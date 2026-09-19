@@ -7,7 +7,9 @@ from sqlmodel import Session, select
 from app.db import get_session
 from app.engine.profiles import PRODUCTS_BY_ID
 from app.models import Box, Custody, Node, Scan
-from app.services.report import evaluate_box, report_json
+from app.services.narrative import build_facts, write_report
+from app.services.places import resolve_places
+from app.services.report import evaluate_box, key_points, report_json
 
 router = APIRouter(prefix="/api/boxes", tags=["boxes"])
 
@@ -53,6 +55,23 @@ def list_boxes(session: Session = Depends(get_session)) -> list[dict]:
 @router.get("/{box_id}/report")
 def box_report(box_id: str, session: Session = Depends(get_session)) -> dict:
     return report_json(session, _box(session, box_id))
+
+
+@router.post("/{box_id}/explain")
+async def explain_box(box_id: str, session: Session = Depends(get_session)) -> dict:
+    """Gemini names the places, then Grok writes the worker-facing report."""
+    box = _box(session, box_id)
+    report = evaluate_box(session, box)
+    places, places_source = await resolve_places(session, key_points(report))
+    facts = build_facts(box, PRODUCTS_BY_ID[box.product_id], report, places)
+    text, source = await write_report(session, facts)
+    return {
+        "verdict": report.verdict,
+        "text": text,
+        "source": source,
+        "places": places,
+        "places_source": places_source,
+    }
 
 
 @router.post("/{box_id}/load")
