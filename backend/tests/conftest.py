@@ -16,8 +16,12 @@ from app.services import weather
 
 @pytest.fixture(autouse=True)
 def offline_weather(monkeypatch):
-    """Tests never call Open-Meteo; the built-in climate model stands in."""
+    """Tests never call Open-Meteo; the built-in climate model stands in. Nor
+    Grok or Gemini: a key in backend/.env must not turn the suite into paid,
+    slow, non-deterministic calls (tests that need a model fake it)."""
     monkeypatch.setattr(get_settings(), "weather_offline", True)
+    monkeypatch.setattr(get_settings(), "xai_api_key", "")
+    monkeypatch.setattr(get_settings(), "gemini_api_key", "")
     weather.clear_cache()
     twin_service.clear_cache()
     climate_service.clear_cache()

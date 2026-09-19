@@ -18,8 +18,9 @@ from app.services import climate, learning, twin, weather
 @contextmanager
 def api(dataset: str = "kisumu", history: bool = False):
     settings = get_settings()
-    saved = settings.weather_offline, settings.operator_token
-    settings.weather_offline, settings.operator_token = True, ""
+    # No network: offline weather, and no Grok or Gemini even if backend/.env has keys.
+    saved = settings.weather_offline, settings.operator_token, settings.xai_api_key, settings.gemini_api_key
+    settings.weather_offline, settings.operator_token, settings.xai_api_key, settings.gemini_api_key = True, "", "", ""
     for clear in (weather.clear_cache, twin.clear_cache, climate.clear_cache, learning.invalidate):
         clear()
     for limit in ALL_LIMITS:
@@ -42,5 +43,5 @@ def api(dataset: str = "kisumu", history: bool = False):
         yield TestClient(app), eng
     finally:
         app.dependency_overrides.clear()
-        settings.weather_offline, settings.operator_token = saved
+        settings.weather_offline, settings.operator_token, settings.xai_api_key, settings.gemini_api_key = saved
         eng.dispose()
