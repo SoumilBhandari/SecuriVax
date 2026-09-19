@@ -295,7 +295,8 @@ def plan_trips(
                 f = 1.0 if ts >= arrive else (ts - dep) / max(arrive - dep, 1)
                 lat, lon = origin.lat + (d.lat - origin.lat) * f, origin.lon + (d.lon - origin.lon) * f
                 got = wx.ambient_at(weather, lat, lon, ts) or wx.ambient_at(weather, d.lat, d.lon, ts)
-                return got[0] if got else wx.model_weather(*wx.cell(d.lat, d.lon)).at(ts)[0]
+                # Past the forecast's end (a long trip planned two days out): the model.
+                return got[0] if got else wx.model_at(d.lat, d.lon, ts)[0]
 
             sim = cm.simulate(ambient, dep, end, carrier)
             return {

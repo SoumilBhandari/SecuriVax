@@ -108,3 +108,24 @@ def test_box_report_explains_each_leg_with_the_weather(client, session):
     assert seg["environment"]["noise_c"] < 0.5
     hot_car = client.get("/api/boxes/BOX-0005/report").json()["segments"][0]["environment"]
     assert hot_car["code"] in ("HEAT_SOURCE", "TRACKING_AMBIENT")
+
+
+def test_planning_a_long_lane_trip_never_runs_out_of_weather():
+    """Accra to Bolgatanga with a real truck, departures two days out: the
+    trip ends past the forecast window, which used to crash the planner."""
+    import time
+
+    from sqlmodel import Session
+
+    from app.db import init_db, make_engine
+    from app.seed import seed
+    from app.services.climate import plan_trips
+    from simulator.backfill import backfill
+
+    eng = make_engine("sqlite://")
+    init_db(eng)
+    with Session(eng) as session:
+        seed(session, "lanes")
+        backfill(session, int(time.time()), "lanes")
+        plan = plan_trips(session, product_id="opv", origin_id="ACC-CMS", carrier_id="GH-TRK", session_h=8)
+    assert plan["destinations"]

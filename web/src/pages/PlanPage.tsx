@@ -15,7 +15,7 @@ export default function PlanPage() {
   const [params] = useSearchParams();
   const [form, setForm] = useState({
     product_id: params.get("product") ?? "opv",
-    origin_id: params.get("from") ?? "KSM-STORE",
+    origin_id: params.get("from") ?? "",
     carrier_id: params.get("carrier") ?? "",
     session_h: Number(params.get("hours") ?? 6),
   });
@@ -23,10 +23,24 @@ export default function PlanPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
     api.products().then(setProducts).catch(() => {});
-    api.facilities().then((f) => setStores(f.filter((x) => x.kind === "store"))).catch(() => {});
-    api.nodes().then((n) => setCarriers(n.filter((x) => x.kind === "carrier" && !x.backup_for))).catch(() => {});
+    api
+      .facilities()
+      .then((f) => {
+        const found = f.filter((x) => x.kind === "store");
+        setStores(found);
+        // A link or default for a store this deployment doesn't have: start from its first store.
+        setForm((prev) => (found.some((x) => x.id === prev.origin_id) ? prev : { ...prev, origin_id: found[0]?.id ?? "" }));
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
+    api
+      .nodes()
+      .then((n) => setCarriers(n.filter((x) => (x.kind === "carrier" || x.kind === "cold_box") && !x.backup_for)))
+      .catch(() => {});
   }, []);
 
   const run = () => {
@@ -39,8 +53,10 @@ export default function PlanPage() {
       .finally(() => setBusy(false));
   };
 
-  // Plan once on arrival with the defaults.
-  useEffect(run, []);
+  // Plan once on arrival, once the stores (and so a real origin) are known.
+  useEffect(() => {
+    if (ready) run();
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const field = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm";
   return (

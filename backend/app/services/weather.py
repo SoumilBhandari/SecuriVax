@@ -69,18 +69,21 @@ def clear_cache() -> None:
     _down_until = 0.0
 
 
+def model_at(lat: float, lon: float, ts: float) -> tuple[float, float]:
+    """The offline model's temperature and humidity at any time: a smooth daily
+    cycle for a warm, humid lowland. Never runs out, unlike a forecast."""
+    solar_hour = (ts / 3600 + lon / 15) % 24
+    day = math.cos((solar_hour - 15) / 24 * 2 * math.pi)
+    return round(18 + 6.5 * (day + 1) + 1.5 * math.sin(ts / 86400 / 3), 1), round(72 - 20 * day, 0)
+
+
 def model_weather(lat: float, lon: float, now: int | None = None) -> Weather:
-    """Offline stand-in: a smooth daily cycle for a warm, humid lowland."""
+    """Offline stand-in for the forecast, hourly over the usual window."""
     now = int(time.time()) if now is None else now
     start = (now // 3600 - PAST_DAYS * 24) * 3600
     times = [start + h * 3600 for h in range((PAST_DAYS + FORECAST_DAYS) * 24)]
-    temps, rhs = [], []
-    for t in times:
-        solar_hour = (t / 3600 + lon / 15) % 24
-        day = math.cos((solar_hour - 15) / 24 * 2 * math.pi)
-        temps.append(round(18 + 6.5 * (day + 1) + 1.5 * math.sin(t / 86400 / 3), 1))
-        rhs.append(round(72 - 20 * day, 0))
-    return Weather(lat, lon, times, temps, rhs, "model")
+    temps, rhs = zip(*(model_at(lat, lon, t) for t in times))
+    return Weather(lat, lon, times, list(temps), list(rhs), "model")
 
 
 def _fetch(cells: list[tuple[float, float]]) -> list[Weather]:
