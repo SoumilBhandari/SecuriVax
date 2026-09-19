@@ -36,7 +36,8 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
     <div>
       <div className="h-64 overflow-hidden rounded-2xl border border-line">
         <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
-          <TileLayer key={theme} url={BASEMAP.url} attribution={BASEMAP.attribution} className={BASEMAP.className(theme)} />
+          <TileLayer key={theme} url={BASEMAP.base(theme)} attribution={BASEMAP.attribution} maxNativeZoom={BASEMAP.maxNativeZoom} />
+          <TileLayer key={`labels-${theme}`} url={BASEMAP.labels(theme)} maxNativeZoom={BASEMAP.maxNativeZoom} />
           {segments.map((s) =>
             runs(s).map((r, i) => (
               <Polyline

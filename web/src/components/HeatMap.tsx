@@ -3,7 +3,7 @@ import "leaflet/dist/leaflet.css";
 import { divIcon, latLngBounds } from "leaflet";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CircleMarker, ImageOverlay, MapContainer, Marker, TileLayer, Tooltip } from "react-leaflet";
+import { CircleMarker, ImageOverlay, MapContainer, Marker, Pane, TileLayer, Tooltip, useMapEvents } from "react-leaflet";
 import { useNavigate } from "react-router";
 
 import { api } from "../lib/api";
@@ -15,8 +15,11 @@ import { XIcon } from "./Icons";
 
 type Layer = "forecast" | "satellite" | "plain";
 
-// Risk isn't a verdict, so no signal colours: hotter sites are bigger and darker.
-const RISK_RADIUS: Record<string, number> = { extreme: 12, high: 9, moderate: 7, low: 5 };
+// Risk isn't a verdict, so no signal colours: hotter sites are bigger and solid.
+const RISK_RADIUS: Record<string, number> = { extreme: 8, high: 7, moderate: 5.5, low: 4.5 };
+// Carriers show their inside temperature as a tag once the map is zoomed in
+// enough for tags not to pile up; before that, a dot.
+const TAG_ZOOM = 5;
 const RISK_LEVELS = ["extreme", "high", "moderate", "low"] as const;
 
 // NASA's satellite measurement of how hot the ground was (MODIS on Terra),
@@ -141,8 +144,12 @@ function MapBody({
       minZoom={2}
       maxZoom={11}
     >
-      <TileLayer key={theme} url={BASEMAP.url} attribution={BASEMAP.attribution} className={BASEMAP.className(theme)} />
+      <TileLayer key={`base-${theme}`} url={BASEMAP.base(theme)} attribution={BASEMAP.attribution} maxNativeZoom={BASEMAP.maxNativeZoom} />
       {layer === "forecast" && grid && image && <ImageOverlay url={image} bounds={grid.bounds} opacity={1} />}
+      {/* Place names above the heat, so the map stays readable under it. */}
+      <Pane name="labels" style={{ zIndex: 450, pointerEvents: "none" }}>
+        <TileLayer key={`labels-${theme}`} url={BASEMAP.labels(theme)} maxNativeZoom={BASEMAP.maxNativeZoom} />
+      </Pane>
       {layer === "satellite" && (
         <TileLayer
           url={`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${SATELLITE_LAYER}/default/${satelliteDate()}/GoogleMapsCompatible_Level7/{z}/{y}/{x}.png`}
@@ -166,22 +173,34 @@ function MapBody({
           </Tooltip>
         </CircleMarker>
       ))}
+      <Carriers carriers={carriers} grid={grid} frame={layer === "forecast" ? frame : 0} onOpen={(id) => navigate(`/node/${id}`)} />
+    </MapContainer>
+  );
+}
+
+/** Every carrier at its last fix: a dot, or its inside temperature once zoomed in. */
+function Carriers({ carriers, grid, frame, onOpen }: { carriers: NodeSummary[]; grid: HeatGrid | null; frame: number; onOpen: (id: string) => void }) {
+  const [zoom, setZoom] = useState<number | null>(null);
+  const map = useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  const tags = (zoom ?? map.getZoom()) >= TAG_ZOOM;
+  return (
+    <>
       {carriers.map((c) => {
         const inside = c.latest!.temp_c;
-        const outside = grid ? heatAt(grid, layer === "forecast" ? frame : 0, c.latest!.lat!, c.latest!.lon!) : null;
+        const outside = grid ? heatAt(grid, frame, c.latest!.lat!, c.latest!.lon!) : null;
         return (
           <Marker
-            key={c.id}
+            key={`${c.id}-${tags}`}
             position={[c.latest!.lat!, c.latest!.lon!]}
             icon={divIcon({
               className: "carrier-pin-wrap",
-              html: `<span class="carrier-pin">${inside.toFixed(1)}°</span>`,
-              iconSize: [48, 24],
-              iconAnchor: [24, 12],
+              html: tags ? `<span class="carrier-pin">${inside.toFixed(1)}°</span>` : `<span class="carrier-dot"></span>`,
+              iconSize: tags ? [44, 22] : [12, 12],
+              iconAnchor: tags ? [22, 11] : [6, 6],
             })}
-            eventHandlers={{ click: () => navigate(`/node/${c.id}`) }}
+            eventHandlers={{ click: () => onOpen(c.id) }}
           >
-            <Tooltip direction="top" offset={[0, -12]}>
+            <Tooltip direction="top" offset={[0, -10]}>
               <b>{c.label}</b>
               <br />
               Inside {inside.toFixed(1)} °C
@@ -192,7 +211,7 @@ function MapBody({
           </Marker>
         );
       })}
-    </MapContainer>
+    </>
   );
 }
 
@@ -267,8 +286,8 @@ function Controls({
             </p>
             <HeatKey />
             <p className="ui-caption m-0">
-              {grid.source === "open-meteo" ? "Open-Meteo forecast" : "Climate model (the forecast is unreachable)"}: air at 2 m on a{" "}
-              {grid.step_deg}° grid near each site, every 3 hours, updated {time(grid.generated_at)}. The line is {HEAT_LINE_C} °C.
+              {grid.source === "open-meteo" ? "Open-Meteo forecast" : "Climate model (the forecast is unreachable)"}: air temperature at 2 m
+              over the region, every 3 hours, updated {time(grid.generated_at)}. The line is {HEAT_LINE_C} °C.
             </p>
           </>
         ) : (
@@ -292,7 +311,7 @@ function Controls({
           </span>
         ))}
         <span className="inline-flex items-center gap-1.5">
-          <span className="carrier-pin !text-[10px]">5.1°</span> carrier, inside
+          <span className="carrier-dot" /> carrier (zoom in for its inside temperature)
         </span>
       </div>
     </div>
@@ -303,14 +322,14 @@ function HeatKey() {
   const lo = HEAT_STOPS[0][0];
   const hi = HEAT_STOPS[HEAT_STOPS.length - 1][0];
   const pos = (t: number) => `${((t - lo) / (hi - lo)) * 100}%`;
-  const gradient = HEAT_STOPS.map(([t, [r, g, b, a]]) => `rgba(${r},${g},${b},${Math.max(a, 0.15)}) ${pos(t)}`).join(", ");
+  const gradient = HEAT_STOPS.map(([t, [r, g, b]]) => `rgb(${r},${g},${b}) ${pos(t)}`).join(", ");
   return (
     <div aria-label={`Heat key: ${lo} to ${hi} °C, line at ${HEAT_LINE_C} °C`}>
       <div className="relative h-3 rounded-full border border-line" style={{ background: `linear-gradient(90deg, ${gradient})` }}>
         <span className="absolute -top-1 bottom-[-4px] w-0.5 bg-text" style={{ left: pos(HEAT_LINE_C) }} />
       </div>
       <div className="ui-caption relative mt-1 h-4">
-        {[20, 25, 30, 35, 40].map((t) => (
+        {[10, 20, 30, 40].map((t) => (
           <span key={t} className="absolute -translate-x-1/2" style={{ left: pos(t) }}>
             {t}°
           </span>

@@ -168,16 +168,3 @@ def test_heat_grid_covers_the_sites_every_three_hours(client):
     assert client.get("/api/climate/grid").json()["generated_at"] == g["generated_at"]  # cached
 
 
-
-def test_heat_grid_skips_what_is_far_from_every_site(client, session):
-    # Two sites 4,000 km apart: the grid spans both, but only fetches near each.
-    from app.models import Facility
-    from app.services import heatgrid
-
-    session.add(Facility(id="FAR-WEST", name="Dakar · far west", kind="clinic", lat=14.7, lon=-17.4))
-    session.commit()
-    heatgrid.clear_cache()
-    g = client.get("/api/climate/grid").json()
-    cells = g["rows"] * g["cols"]
-    assert 0 < g["points"] < cells / 2
-    assert g["frames"][0].count(None) == cells - g["points"]

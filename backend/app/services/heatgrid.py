@@ -5,10 +5,9 @@ next 3 days.
 The sites' own forecasts (weather.py) keep a week of history for each point;
 the grid needs none, so it has its own lean fetch. Open-Meteo's free tier
 counts each grid point as a call (10,000 a day per address, shared with the
-sites' own forecasts), so the grid is coarse (2.5 degrees), only covers land
-near a site (not the open ocean or empty desert), and is refreshed every 6
-hours: about a thousand calls a day. Points outside it are null: no data, drawn
-as nothing. Offline, the climate model stands in, and the field
+sites' own forecasts), so the grid is coarse (2.5 degrees, drawn smooth) and
+refreshed every 6 hours: about 3,300 calls a day. It's one continuous field
+over the region, sea included, the way a weather map shows it. Offline, the climate model stands in, and the field
 says so. Like all weather here, it never changes a verdict.
 """
 
@@ -28,11 +27,10 @@ from app.services import weather as wx
 log = logging.getLogger(__name__)
 
 STEP_DEG = 2.5
-MARGIN_DEG = 4.0
+MARGIN_DEG = 8.0  # room for the field to fade out well away from the sites
 FRAME_STEP_H = 3
 HORIZON_H = 72
 TTL_S = 6 * 3600
-NEAR_KM = 900  # a grid point is fetched only within this of some site
 CHUNK = 50  # locations per Open-Meteo request
 MAX_POINTS = 900  # a guard on the free tier if the sites ever spread further
 
@@ -80,11 +78,9 @@ def build(session: Session, now: int | None = None) -> dict:
         return {"available": False, "reason": "No sites yet."}
     lats = _axis(min(f.lat for f in sites), max(f.lat for f in sites))[::-1]  # north first
     lons = _axis(min(f.lon for f in sites), max(f.lon for f in sites))
-    from app.services.climate import haversine_km
-
     grid_points = [(la, lo) for la in lats for lo in lons]
-    near = [any(haversine_km(p, (f.lat, f.lon)) <= NEAR_KM for f in sites) for p in grid_points]
-    points = [p for p, keep in zip(grid_points, near) if keep][:MAX_POINTS]
+    near = [i < MAX_POINTS for i in range(len(grid_points))]  # the free-tier guard; beyond it, no data
+    points = [p for p, keep in zip(grid_points, near) if keep]
     first = (now // 3600 + 1) * 3600
     times = list(range(first, first + HORIZON_H * 3600 + 1, FRAME_STEP_H * 3600))
 

@@ -686,18 +686,61 @@
   font: inherit;
   background: var(--fog);
 }
-/* The base map only: darkened for the dark theme. The heat and satellite
-   layers sit above it untouched, so their colours stay true. */
-.basemap-dark {
-  filter: invert(1) hue-rotate(180deg) brightness(0.82) contrast(0.9) saturate(0.6);
+.leaflet-container {
+  background: var(--fog);
 }
 [data-theme="dark"] .leaflet-container {
-  background: #1b1f27;
+  background: #2b2b2b;
+}
+/* Zoom buttons in the brand's surface, in both themes. */
+.leaflet-bar {
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: none !important;
+}
+.leaflet-bar a,
+.leaflet-bar a:hover {
+  width: 34px !important;
+  height: 34px !important;
+  line-height: 34px !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-bottom-color: var(--border) !important;
+}
+.leaflet-bar a.leaflet-disabled {
+  color: var(--text-muted) !important;
+  opacity: 0.5;
+}
+.leaflet-tooltip {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+.leaflet-tooltip-top::before {
+  border-top-color: var(--surface);
 }
 .leaflet-tooltip {
   font: inherit;
   font-size: 13px;
   line-height: 18px;
+}
+.carrier-dot {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+  border: 2px solid var(--surface);
+  background: var(--text);
+  cursor: pointer;
+}
+.ui-caption .carrier-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
 }
 
 /* A carrier on the heat map: its inside temperature on an Ink tag. */
@@ -721,25 +764,19 @@
   line-height: 1;
   cursor: pointer;
 }
-/* Heat risk on the map: darker is hotter, with a ground-coloured edge. */
+/* Stores and clinics on the map: bigger and solid for more heat risk; a light
+   ring keeps them readable on any colour of the heat field. */
 .risk-marker {
-  stroke: var(--bg);
-  stroke-width: 2;
-  fill-opacity: 1;
-}
-.risk-extreme {
   fill: var(--text);
+  fill-opacity: 1;
+  stroke: var(--surface);
+  stroke-width: 2;
 }
-.risk-high {
-  fill: var(--ink-500);
-}
-.risk-moderate {
-  fill: var(--ink-300);
-}
+.risk-moderate,
 .risk-low {
   fill: var(--surface);
-  stroke: var(--ink-500);
-  stroke-width: 1.5;
+  stroke: var(--text);
+  stroke-width: 2;
 }
 /* A trip's route: Ink throughout, with the state in the line's weight and dash. */
 .route-line {
