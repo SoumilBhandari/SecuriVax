@@ -257,9 +257,10 @@ def plan_trips(
     now = int(time.time()) if now is None else now
     profile = PRODUCTS_BY_ID[product_id]
     origin = session.get(Facility, origin_id)
+    # By default, the clinics within a day's drive of the origin.
     dests = [
         f for f in session.exec(select(Facility).where(Facility.kind == "clinic")).all()
-        if not destination_ids or f.id in destination_ids
+        if (f.id in destination_ids if destination_ids else haversine_km((origin.lat, origin.lon), (f.lat, f.lon)) <= 900)
     ]
 
     spec_note = f"rated {RATED.cold_life_h:g} h carrier"

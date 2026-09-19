@@ -61,13 +61,32 @@ def demo_facilities() -> list[Facility]:
     ]
 
 
-def seed(session: Session) -> bool:
+def stage_nodes(key: str) -> list[Node]:
+    """The carrier (and its backup) used live on stage, in any dataset."""
+    return [n for n in demo_nodes(key) if n.id.startswith("DEMO-")]
+
+
+def stage_boxes() -> list[Box]:
+    return [b for b in demo_boxes() if b.id.startswith("BOX-9")]
+
+
+def seed(session: Session, dataset: str = "kisumu") -> bool:
     """Insert demo data if the database is empty. Returns True if it did."""
     if session.exec(select(Node)).first() is not None:
         return False
-    session.add_all(demo_nodes(get_settings().node_key))
-    session.add_all(demo_boxes())
-    session.add_all(demo_facilities())
+    key = get_settings().node_key
+    if dataset == "lanes":
+        from simulator import lanes
+
+        session.add_all(lanes.facilities())
+        session.add_all(lanes.nodes(key))
+        session.add_all(lanes.boxes())
+        session.add_all(stage_nodes(key))
+        session.add_all(stage_boxes())
+    else:
+        session.add_all(demo_nodes(key))
+        session.add_all(demo_boxes())
+        session.add_all(demo_facilities())
     session.commit()
     return True
 
@@ -75,12 +94,13 @@ def seed(session: Session) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reset", action="store_true", help="drop every table first")
+    parser.add_argument("--dataset", default=get_settings().demo_dataset, choices=["lanes", "kisumu"])
     args = parser.parse_args()
     if args.reset:
         SQLModel.metadata.drop_all(engine)
     init_db()
     with Session(engine) as session:
-        print("seeded" if seed(session) else "already seeded")
+        print("seeded" if seed(session, args.dataset) else "already seeded")
 
 
 if __name__ == "__main__":

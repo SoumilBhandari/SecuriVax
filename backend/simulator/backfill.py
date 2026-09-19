@@ -110,7 +110,12 @@ def carrier_physics(start: int, end: int, cold_life_h: float, gain_c: float, whe
     return lambda ts: temps.get(ts, temps[max(k for k in temps if k <= ts)]) + random.gauss(0, 0.15)
 
 
-def backfill(session: Session, now: int) -> None:
+def backfill(session: Session, now: int, dataset: str = "kisumu") -> None:
+    if dataset == "lanes":
+        from simulator import lanes
+
+        lanes.backfill(session, now)
+        return
     random.seed(7)
 
     # BOX-0005: carrier forgotten in a parked car, 5 -> 3 days ago.
@@ -172,13 +177,14 @@ def backfill(session: Session, now: int) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--reset", action="store_true", help="drop every table first")
+    parser.add_argument("--dataset", default="lanes", choices=["lanes", "kisumu"])
     args = parser.parse_args()
     if args.reset:
         SQLModel.metadata.drop_all(engine)
     init_db()
     with Session(engine) as session:
-        seed(session)
-        backfill(session, int(time.time()))
+        seed(session, args.dataset)
+        backfill(session, int(time.time()), args.dataset)
     print("backfilled demo history")
 
 

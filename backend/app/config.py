@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     weather_offline: bool = False
     # Fill a fresh database with a few days of demo trips.
     demo_history: bool = True
+    # "lanes": eight shipments across Africa; "kisumu": one district (tests, backtest).
+    demo_dataset: str = "lanes"
+    # Wipe and re-seed on every start, so a deployed demo is always current.
+    demo_reset: bool = False
     # Directory holding the built web app. When set, FastAPI serves it.
     static_dir: str = ""
 

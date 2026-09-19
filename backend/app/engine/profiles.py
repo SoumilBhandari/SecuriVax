@@ -129,4 +129,40 @@ PRODUCTS: list[ProductProfile] = [
     ),
 ]
 
+# Products from the lane demo. Anchors marked "illustrative" come from label
+# storage claims (days at +2-8 C, hours at room temperature), not from a VVM
+# category; replace with manufacturer stability data before real use.
+PRODUCTS += [
+    ProductProfile(
+        id="r21", name="R21/Matrix-M malaria vaccine", kind="vaccine", stability_ref="VVM14 (assumed)",
+        anchors=VVM_ANCHORS["VVM14"], freeze_sensitive=True, freeze_check="Run the shake test",
+        storage_min_c=2, storage_max_c=8, notes="Adjuvanted: do not freeze. VVM category assumed.",
+    ),
+    ProductProfile(
+        id="rtss", name="RTS,S/AS01 malaria vaccine", kind="vaccine", stability_ref="VVM14 (assumed)",
+        anchors=VVM_ANCHORS["VVM14"], freeze_sensitive=True, freeze_check="Run the shake test",
+        storage_min_c=2, storage_max_c=8, notes="AS01 adjuvant: do not freeze. VVM category assumed.",
+    ),
+    ProductProfile(
+        id="comirnaty", name="Comirnaty (thawed)", kind="vaccine", stability_ref="label claims, illustrative",
+        anchors=((5.0, 10 * 7 * DAY), (25.0, 12.0)), freeze_sensitive=True, freeze_check="Do not use: never refreeze",
+        storage_min_c=2, storage_max_c=8, notes="Thawed vials: up to 10 weeks at 2-8 C, hours at room temperature.",
+    ),
+    ProductProfile(
+        id="spikevax", name="Spikevax (thawed)", kind="vaccine", stability_ref="label claims, illustrative",
+        anchors=((5.0, 30 * DAY), (25.0, 24.0)), freeze_sensitive=True, freeze_check="Do not use: never refreeze",
+        storage_min_c=2, storage_max_c=8, notes="Thawed vials: up to 30 days at 2-8 C, 24 h at 8-25 C.",
+    ),
+    ProductProfile(
+        id="nuvaxovid", name="Nuvaxovid (protein)", kind="vaccine", stability_ref="VVM7-equivalent, illustrative",
+        anchors=VVM_ANCHORS["VVM7"], freeze_sensitive=True, freeze_check="Run the shake test",
+        storage_min_c=2, storage_max_c=8, notes="Stability anchors assumed equal to VVM7.",
+    ),
+    ProductProfile(
+        id="flucelvax", name="Flucelvax (influenza, cell-based)", kind="vaccine", stability_ref="VVM7-equivalent, illustrative",
+        anchors=VVM_ANCHORS["VVM7"], freeze_sensitive=True, freeze_check="Run the shake test",
+        storage_min_c=2, storage_max_c=8, notes="Stability anchors assumed equal to VVM7.",
+    ),
+]
+
 PRODUCTS_BY_ID = {p.id: p for p in PRODUCTS}

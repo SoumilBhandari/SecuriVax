@@ -19,12 +19,16 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if settings.demo_reset:
+        from sqlmodel import SQLModel
+
+        SQLModel.metadata.drop_all(engine)
     init_db()
     with Session(engine) as session:
-        if seed(session) and settings.demo_history:
+        if seed(session, settings.demo_dataset) and settings.demo_history:
             from simulator.backfill import backfill
 
-            backfill(session, int(time.time()))
+            backfill(session, int(time.time()), settings.demo_dataset)
         if not settings.weather_offline:
             from sqlmodel import select as _select
 

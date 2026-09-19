@@ -13,7 +13,7 @@ router = APIRouter(prefix="/api", tags=["climate"])
 
 class PlanIn(BaseModel):
     product_id: str
-    origin_id: str = "KSM-STORE"
+    origin_id: str | None = None  # default: the first store
     destination_ids: list[str] | None = None
     carrier_id: str | None = None
     cold_life_h: float | None = Field(None, gt=0, le=200)
@@ -40,6 +40,11 @@ def carriers(session: Session = Depends(get_session)) -> list[dict]:
 def plan(body: PlanIn, session: Session = Depends(get_session)) -> dict:
     if body.product_id not in PRODUCTS_BY_ID:
         raise HTTPException(404, f"no product {body.product_id}")
+    if body.origin_id is None:
+        first = session.exec(select(Facility).where(Facility.kind == "store").order_by(Facility.id)).first()
+        if first is None:
+            raise HTTPException(404, "no stores to plan from")
+        body.origin_id = first.id
     if session.get(Facility, body.origin_id) is None:
         raise HTTPException(404, f"no facility {body.origin_id}")
     if body.carrier_id and session.get(Node, body.carrier_id) is None:
