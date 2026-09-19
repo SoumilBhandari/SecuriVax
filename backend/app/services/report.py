@@ -111,7 +111,10 @@ def cached_places(session: Session, points: list[tuple[float, float]]) -> dict[s
 def report_json(session: Session, box: Box, now: int | None = None) -> dict:
     report = evaluate_box(session, box, now)
     data = asdict(report)
-    for seg in data["segments"]:
+    from app.services.climate import leg_environment  # avoids an import cycle
+
+    for seg, result in zip(data["segments"], report.segments):
+        seg["environment"] = asdict(leg_environment(result, PRODUCTS_BY_ID[box.product_id]))
         seg["route"] = _thin(seg["route"], lambda p: p["status"] != "ok")
         seg["series"] = _thin(seg["series"])
     profile = PRODUCTS_BY_ID[box.product_id]
