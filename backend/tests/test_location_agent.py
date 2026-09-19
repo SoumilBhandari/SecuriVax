@@ -132,3 +132,15 @@ def test_rules_never_divert_to_a_place_without_a_fridge(client, on_the_road, ses
     offered = next(s for s in body["steps"] if s["tool"] == "find_facilities")
     assert body["recommendation"]["facility_id"] != "KSM-STORE"
     assert "KSM-STORE" not in str(offered)
+
+
+def test_heading_to_offers_only_places_within_reach(client, on_the_road, session):
+    from app.models import Facility
+
+    session.add(Facility(id="FAR-AWAY", name="Dakar · somewhere far", kind="clinic", lat=14.7, lon=-17.4))
+    session.commit()
+    rows = client.get("/api/nodes/CAR-02/destinations").json()
+    ids = [r["id"] for r in rows]
+    assert "FAR-AWAY" not in ids and "KSM-STORE" in ids
+    kms = [r["road_km"] for r in rows]
+    assert kms == sorted(kms)  # nearest first

@@ -18,7 +18,7 @@ function title(rec: AgentAdvice["recommendation"]): string {
 
 /** Ask the location agent what this carrier should do; a person accepts it. */
 export function Dispatch({ nodeId }: { nodeId: string }) {
-  const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [facilities, setFacilities] = useState<(Facility & { road_km: number | null })[]>([]);
   const [destination, setDestination] = useState("");
   const [advice, setAdvice] = useState<AgentAdvice | null>(null);
   const [busy, setBusy] = useState(false);
@@ -27,8 +27,8 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
   const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
-    api.facilities().then(setFacilities).catch(() => {});
-  }, []);
+    api.destinations(nodeId).then(setFacilities).catch(() => {});
+  }, [nodeId]);
 
   const ask = () => {
     setBusy(true);
@@ -105,6 +105,7 @@ export function Dispatch({ nodeId }: { nodeId: string }) {
           {facilities.map((f) => (
             <option key={f.id} value={f.id}>
               {f.name}
+              {f.road_km != null ? ` · ${f.road_km} km` : ""}
             </option>
           ))}
         </select>

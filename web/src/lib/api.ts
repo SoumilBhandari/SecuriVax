@@ -144,6 +144,9 @@ export const api = {
   impact: () => request<Impact>("/api/impact"),
   products: () => request<Product[]>("/api/products"),
   facilities: () => request<Facility[]>("/api/facilities"),
+  /** Where a carrier could be heading: within a day's drive, nearest first. */
+  destinations: (nodeId: string) =>
+    request<(Facility & { road_km: number | null })[]>(`/api/nodes/${encodeURIComponent(nodeId)}/destinations`),
   storesAtRisk: () => request<StoresAtRisk>("/api/climate/stores"),
   carriers: () => request<CarrierPerformance[]>("/api/climate/carriers"),
   liveRecent: (limit = 120, node?: string) =>

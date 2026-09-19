@@ -82,6 +82,35 @@ class DecisionIn(BaseModel):
     note: str = Field("", max_length=200)
 
 
+# "Heading to" offers places a carrier could reach today, not every site on the
+# continent: a truck in Tanzania shouldn't be offered a clinic in Senegal.
+REACH_KM = 800
+
+
+@router.get("/{node_id}/destinations")
+def destinations(node_id: str, session: Session = Depends(get_session)) -> list[dict]:
+    """Facilities within a day's drive of where the carrier is, nearest first,
+    with the road distance. A carrier with no position gets those in its zone."""
+    from app.services import twin as twin_service
+    from app.services.climate import ROAD_FACTOR, haversine_km
+
+    node = session.get(Node, node_id)
+    if node is None:
+        raise HTTPException(404, f"no node {node_id}")
+    now = int(time.time())
+    located = [r for r in twin_service.carrier_readings(session, node_id, now - 6 * 3600, now) if r.lat is not None]
+    pos = (located[-1].lat, located[-1].lon) if located else None
+    rows = []
+    for f in session.exec(select(Facility)).all():
+        km = haversine_km(pos, (f.lat, f.lon)) * ROAD_FACTOR if pos else None
+        if (km is not None and km > REACH_KM) or (km is None and node.timezone and f.timezone != node.timezone):
+            continue
+        rows.append({"id": f.id, "name": f.name, "kind": f.kind, "has_fridge": f.has_fridge,
+                     "road_km": round(km) if km is not None else None})
+    rows.sort(key=lambda r: (r["road_km"] is None, r["road_km"] or 0, r["name"]))
+    return rows
+
+
 @router.post("/{node_id}/agent", dependencies=[Depends(require_operator), Depends(agent_limit)])
 def location_agent(node_id: str, body: AgentIn, session: Session = Depends(get_session)) -> dict:
     """Gemini dispatch agent (rules fallback): continue, divert or hold."""
