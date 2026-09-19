@@ -5,6 +5,9 @@
 #define NODE_ID   "DEMO-01"                // second ESP32 in the same carrier: "DEMO-01B"
 #define NODE_KEY  "dev-node-key"          // X-Node-Key; NODE_KEY env on the server
 #define API_BASE  "https://your-app.ondigitalocean.app"   // or your own domain; no trailing slash
+// Testing against the laptop before deploying: "https://<laptop-ip>:5173", the
+// phone-test server (npm run dev:phone), which passes /api on to the laptop's
+// API. The laptop and the ESP32 must share a 2.4 GHz network (a phone hotspot).
 
 // --- WiFi (ESP32 is 2.4 GHz only; on iPhone hotspots enable Maximize Compatibility)
 #define WIFI_SSID "your-hotspot"

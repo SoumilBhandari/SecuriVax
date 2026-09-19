@@ -33,9 +33,19 @@ Both builds compile (checked with `pio run -e demo -e node`, with and without
 the probe and LED), so the morning is only config and upload:
 
 1. Use a **data** USB cable: charge-only cables power the board but can't flash it.
+   The board is the classic ESP32 DevKit (`esp32dev`, ESP32-WROOM-32). If upload says
+   *Failed to connect*, hold the **BOOT** button while it starts. If no serial port
+   shows up at all, the board's USB chip (CP2102 or CH340) may need its driver.
 2. `cp include/config.example.h include/config.h`, then set `NODE_ID` (`DEMO-01`),
-   `NODE_KEY` (the server's `NODE_KEY`), `API_BASE` (the deployed URL, no trailing
-   slash) and the WiFi. On an iPhone hotspot turn on *Maximize Compatibility*.
+   `NODE_KEY` (the server's `NODE_KEY`; `dev-node-key` on a laptop), `API_BASE` (no
+   trailing slash) and the WiFi:
+   - Not deployed yet? Use the laptop: `https://<laptop-ip>:5173` while
+     `npm run dev:phone` runs (it passes `/api` on to the laptop's API, which
+     itself only listens on the laptop). `ipconfig getifaddr en0` gives the IP.
+   - Deployed: the app's HTTPS URL.
+   - The ESP32 only does 2.4 GHz WiFi with a plain password: campus WiFi such as
+     eduroam (WPA2-Enterprise) won't work. Use a phone hotspot for both the ESP32
+     and the laptop; on an iPhone turn on *Maximize Compatibility*.
 3. `pio run -e demo -t upload && pio device monitor`. You should see
    `uploaded 1: 1 new` every 5 s, and the `DEMO-01` page says **Online**.
 4. Only then add the extras: `HAS_DS18B20 1` (probe in a water vial) and

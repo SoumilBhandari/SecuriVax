@@ -243,10 +243,18 @@ bool sendBatch(const Record *records, size_t n) {
   String body;
   serializeJson(doc, body);
 
+  // https:// for the deployed server (or the laptop's phone-test server on
+  // :5173); plain http:// for the laptop's API on :8000 while testing.
+  String url = String(API_BASE) + "/api/ingest/readings";
   WiFiClientSecure tls;
   tls.setInsecure();  // TODO: pin the server's root CA for production
+  WiFiClient plain;
   HTTPClient http;
-  http.begin(tls, String(API_BASE) + "/api/ingest/readings");
+  if (url.startsWith("https://")) {
+    http.begin(tls, url);
+  } else {
+    http.begin(plain, url);
+  }
   http.addHeader("Content-Type", "application/json");
   http.addHeader("X-Node-Key", NODE_KEY);
   http.setTimeout(15000);
