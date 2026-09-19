@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
 import { Counterfactual } from "../components/Counterfactual";
@@ -20,6 +20,9 @@ import { clearArm, getArm, setArm, takeTap } from "../lib/tap";
 import { useReadingNudge } from "../lib/useLive";
 import { usePoll } from "../lib/usePoll";
 import type { CarrierForecast, NodeSummary, Report } from "../types";
+
+// The route map pulls in Leaflet: loaded only when it's shown.
+const RouteMap = lazy(() => import("../components/RouteMap"));
 
 function cached(id: string): { report: Report; at: number } | null {
   try {
@@ -170,6 +173,18 @@ export default function BoxPage() {
               </button>
               {moving && <MoveBox report={report} onMoved={changed} />}
             </div>
+
+            {/* Laptops: where the box went, beside the reasons (phones have it under More detail). */}
+            {report.segments.some((s) => s.route.length > 0) && (
+              <div className="hidden lg:block">
+                <SectionTitle>Where it has been</SectionTitle>
+                <ErrorBoundary label="The map">
+                  <Suspense fallback={<Spinner label="Loading the map" />}>
+                    <RouteMap segments={report.segments} places={report.places} height="h-[max(220px,calc(100dvh-600px))]" />
+                  </Suspense>
+                </ErrorBoundary>
+              </div>
+            )}
           </>
         }
         right={

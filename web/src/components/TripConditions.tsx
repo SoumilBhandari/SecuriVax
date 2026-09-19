@@ -201,39 +201,35 @@ function Viewer({ cloud, focus }: { cloud: TripCloud; focus: number | null }) {
       ctx.stroke();
     }
 
-    // Each group named at its centre; labels that would overlap step aside.
-    ctx.font = "600 11px 'DM Sans', system-ui, sans-serif";
+    // A small numbered marker at each group's centre (the cards below name
+    // them); markers that would overlap step aside.
+    ctx.font = "600 9px 'Geist Mono', ui-monospace, monospace";
     ctx.textBaseline = "middle";
-    ctx.textAlign = "left";
-    const placed: { x: number; y: number; w: number }[] = [];
-    const tags = c.groups
+    ctx.textAlign = "center";
+    const R = 8;
+    const placed: { x: number; y: number }[] = [];
+    const marks = c.groups
       .filter((g) => f == null || g.id === f)
-      .map((g) => ({ g, p: project(g.centre, cam.current, frame), text: `${g.id} · ${g.name}` }))
+      .map((g) => ({ g, p: project(g.centre, cam.current, frame) }))
       .sort((a, b) => a.p.y - b.p.y);
-    for (const { g, p, text } of tags) {
-      const bw = ctx.measureText(text).width + 28;
-      const x = Math.min(Math.max(p.x - bw / 2, 6), w - bw - 6);
-      let y = p.y - 12;
-      for (let tries = 0; tries < 8; tries++) {
-        const hit = placed.find((o) => x < o.x + o.w + 4 && o.x < x + bw + 4 && Math.abs(o.y - y) < 28);
+    for (const { g, p } of marks) {
+      const x = p.x;
+      let y = p.y;
+      for (let tries = 0; tries < 6; tries++) {
+        const hit = placed.find((o) => Math.hypot(o.x - x, o.y - y) < 2 * R + 3);
         if (!hit) break;
-        y = hit.y + 28;
+        y = hit.y + 2 * R + 3;
       }
-      y = Math.min(y, h - 30);
-      placed.push({ x, y, w: bw });
-      ctx.fillStyle = token("--surface", "#ffffff");
-      ctx.strokeStyle = g.color;
-      ctx.lineWidth = 1.5;
+      placed.push({ x, y });
+      ctx.fillStyle = g.color;
+      ctx.strokeStyle = token("--surface", "#ffffff");
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(x, y, bw, 24, 12);
+      ctx.arc(x, y, R, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = g.color;
-      ctx.beginPath();
-      ctx.arc(x + 12, y + 12, 4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = token("--text", "#0b2545");
-      ctx.fillText(text, x + 21, y + 12.5);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(String(g.id), x, y + 0.5);
     }
     ctx.textBaseline = "alphabetic";
   };

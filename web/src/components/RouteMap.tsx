@@ -21,7 +21,7 @@ function runs(seg: Segment) {
   return out;
 }
 
-export function RouteMap({ segments, places }: { segments: Segment[]; places: Record<string, string> }) {
+export function RouteMap({ segments, places, height = "h-64" }: { segments: Segment[]; places: Record<string, string>; height?: string }) {
   const all = segments.flatMap((s) => s.route.map((p) => [p.lat, p.lon] as [number, number]));
   if (all.length === 0) {
     return <p className="ui-caption m-0 py-6 text-center">No GPS fix recorded yet.</p>;
@@ -31,7 +31,7 @@ export function RouteMap({ segments, places }: { segments: Segment[]; places: Re
 
   return (
     <div>
-      <div className="h-64 overflow-hidden rounded-2xl border border-line">
+      <div className={`${height} overflow-hidden rounded-2xl border border-line`}>
         <MapContainer bounds={bounds} scrollWheelZoom={false} dragging={!coarsePointer()} className="h-full w-full" attributionControl>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
