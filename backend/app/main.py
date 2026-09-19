@@ -83,6 +83,10 @@ if settings.static_dir and Path(settings.static_dir, "index.html").is_file():
         if path == "api" or path.startswith("api/"):
             raise HTTPException(404, "not found")
         file = (static_root / path).resolve()
+        if path.startswith("assets/") and not file.is_file():
+            # An old tab asking for a chunk from a previous deploy: a real 404,
+            # not the app shell (which would fail as "not a module").
+            raise HTTPException(404, "not found")
         if path and file.is_file() and file.is_relative_to(static_root):
             cache = "public, max-age=31536000, immutable" if path.startswith("assets/") else "no-cache"
             return FileResponse(file, headers={"Cache-Control": cache})

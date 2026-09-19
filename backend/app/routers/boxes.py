@@ -75,6 +75,7 @@ def _summaries(session: Session) -> list[dict]:
             "budget_used": report.budget_used,
             "mkt_c": report.mkt_c,
             "logger_outcome": report.logger.get("outcome"),
+            "status": "In transit" if custody else ("Delivered" if report.segments else "Not dispatched"),
         })
     return out
 

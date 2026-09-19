@@ -134,13 +134,17 @@ def nodes(key: str) -> list[Node]:
         out.append(Node(id=f"{lane.code}-TRK", label=f"Truck cold box {a.city}–{b.city}", kind="cold_box",
                         facility=a.city, key=key))
         for s in lane.stops[:-1] if not lane.delivered else lane.stops:
-            out.append(Node(id=f"{s.id}-CR", label=f"{s.city} {s.name.lower()}", kind="cold_room",
+            out.append(Node(id=f"{s.id}-CR", label=f"{s.city} {_lower_first(s.name)}", kind="cold_room",
                             facility=f"{s.city} · {s.name}", key=key))
     return out
 
 
 def boxes() -> list[Box]:
-    return [Box(id=l.box, product_id=l.product, lot=l.lot, quantity=l.doses, initial_budget_used=l.initial) for l in LANES]
+    return [
+        Box(id=l.box, product_id=l.product, lot=l.lot, quantity=l.doses, initial_budget_used=l.initial,
+            origin=l.stops[0].city, destination=l.stops[-1].city)
+        for l in LANES
+    ]
 
 
 def _write(session: Session, node_id: str, start: int, end: int, temp: Callable[[int], float],
@@ -235,3 +239,9 @@ def backfill(session: Session, now: int) -> None:
             session.add(Custody(box_id=lane.box, node_id=node_id, start_ts=start, end_ts=end if closed else None, end_note=note or ""))
             session.add(Scan(box_id=lane.box, node_id=node_id, action="load", ts=start))
     session.commit()
+
+
+def _lower_first(name: str) -> str:
+    """'Regional cold room' -> 'regional cold room'; 'PNA central store' stays."""
+    first = name.split()[0]
+    return name if first.isupper() else first.lower() + name[len(first):]

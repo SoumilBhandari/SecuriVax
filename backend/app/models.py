@@ -43,6 +43,8 @@ class Box(SQLModel, table=True):
     # Budget already used before the box entered our monitoring (e.g. read
     # off the VVM at dispatch).
     initial_budget_used: float = 0.0
+    origin: str | None = None  # e.g. "Accra"
+    destination: str | None = None  # e.g. "Bolgatanga"
     created_at: int = Field(default_factory=now_ts)
 
 
