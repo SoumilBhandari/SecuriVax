@@ -30,7 +30,8 @@
 // A DHT11 reads 0-50 °C in whole degrees: fine for heat, blind to freezing.
 // A DHT22 reads -40-80 °C. -1 = none.
 #define DHT_PIN 4
-#define DHT_TYPE DHT11                    // or DHT22
+#define DHT2_PIN -1                       // the second DHT (a backup in the same box); -1: find it on the free pins
+#define DHT_TYPE DHT11                    // or DHT22 (both sensors the same type)
 
 // Status LED showing the worst verdict among the boxes in this carrier
 // (demo build only; the battery build sleeps). -1 = no LED.

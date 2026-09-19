@@ -79,10 +79,18 @@ def test_stream_turns_viewers_away_when_full(client, monkeypatch):
 
 
 def test_bridge_reads_the_firmware_serial_line():
-    s = parse_sample("#12 23.40 C 52.0% no fix")
-    assert (s["seq"], s["temp_c"], s["rh"]) == (12, 23.4, 52.0)
-    assert parse_sample("#3 4.10 C nan% fix")["rh"] is None
+    first, backup = parse_sample("#12 23.40 C 52.0% no fix")
+    assert (first["seq"], first["temp_c"], first["rh"]) == (12, 23.4, 52.0) and backup is None
+    assert parse_sample("#3 4.10 C nan% fix")[0]["rh"] is None
     assert parse_sample("uploaded 3: 3 new, 0 dup, 0 rejected") is None
+
+
+def test_bridge_reads_both_dhts():
+    first, backup = parse_sample("#7 4.80 C 55.0% no fix | B 5.10 C 53.0%")
+    assert (first["temp_c"], backup["temp_c"], backup["rh"], backup["seq"]) == (4.8, 5.1, 53.0, 7)
+    # The first sensor missed this one: the backup's reading still goes up.
+    first, backup = parse_sample("#8 nan C nan% no fix | B 5.20 C 53.5% OUT OF RANGE")
+    assert first is None and backup["temp_c"] == 5.2
 
 
 def test_bridge_reads_the_sensor_from_the_boot_line():

@@ -47,6 +47,16 @@ def test_backup_fills_the_primarys_silence_and_is_compared_elsewhere():
     assert [r.ts for r in m.readings] == sorted(r.ts for r in m.readings)
 
 
+def test_of_two_readings_at_once_the_cautious_one_counts():
+    # Warm: the warmer sensor counts. Cold: the colder one. In range: whichever is further from 5 C.
+    primary = [Reading(T0, 9.0), Reading(T0 + 600, 1.5), Reading(T0 + 1200, 4.8)]
+    backup = [Reading(T0 + 5, 10.5, rh=60.0), Reading(T0 + 605, 0.4), Reading(T0 + 1205, 5.1)]
+    m = merge(primary, backup)
+    assert [r.temp_c for r in m.readings] == [10.5, 0.4, 4.8]
+    assert m.readings[0].rh == 60.0  # the humidity comes with the reading that counts
+    assert m.max_disagreement_c == 1.5
+
+
 # --- API ---------------------------------------------------------------------
 
 def post_readings(client, node, temps, start, step=60, boot=1, gps=False):

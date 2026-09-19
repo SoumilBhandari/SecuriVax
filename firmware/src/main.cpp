@@ -48,6 +48,15 @@
 #ifndef DHT_PIN
 #define DHT_PIN -1
 #endif
+#ifndef DHT2_PIN
+#define DHT2_PIN -1
+#endif
+// Two DHTs in one box back each other up: the second one's readings go up as
+// this node (the server knows it as NODE_ID's backup), and where both read at
+// once the server keeps the more cautious one and flags a disagreement.
+#ifndef BACKUP_NODE_ID
+#define BACKUP_NODE_ID NODE_ID "B"
+#endif
 #if HAS_DS18B20
 #include <DallasTemperature.h>
 #include <OneWire.h>
@@ -56,9 +65,10 @@
 #include <DHT.h>
 #endif
 
-static const char *FW_VERSION = "0.2.0";
-static const char *QUEUE_PATH = "/queue.bin";
+static const char *FW_VERSION = "0.3.0";
+static const char *QUEUE_PATH = "/queue2.bin";  // v2 records carry the second sensor
 static const char *QUEUE_TMP = "/queue.tmp";
+static const char *OLD_QUEUE_PATH = "/queue.bin";  // v1 records: a different size, so dropped on upgrade
 static const time_t CLOCK_VALID_AFTER = 1704067200;  // 2024-01-01
 
 // One reading, as stored in flash.
@@ -66,8 +76,10 @@ struct Record {
   uint32_t seq;
   uint32_t clock_s;   // RTC clock when sampled (true UTC if synced, else seconds since power-on)
   uint8_t synced;     // was the clock set when this was sampled?
-  float temp_c;
+  float temp_c;       // NAN when the first sensor's read failed
   float rh;
+  float temp2_c;      // the second DHT; NAN when there is none or its read failed
+  float rh2;
   float lat;          // NAN when there is no recent fix
   float lon;
   uint16_t battery_mv;
@@ -98,29 +110,69 @@ bool use_dht = false;
 #if DHT_PIN >= 0
 DHT *dht = nullptr;
 int dht_pin = -1;
+DHT *dht2 = nullptr;
+// Found once at power-on (the search takes a while), then reused after each deep sleep.
+RTC_DATA_ATTR int8_t rtc_dht_pin = -1;
+RTC_DATA_ATTR int8_t rtc_dht2_pin = -1;
 
 // Pins a DHT's data wire might be on: DHT_PIN first, then the other free
 // GPIOs. Skips the boot pins (0, 2, 12, 15), UART0 (1, 3), the flash pins
 // (6-11), 16/17 (PSRAM on WROVER modules) and the input-only 34-39.
 static const int DHT_CANDIDATES[] = {DHT_PIN, 4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 
-bool findDht() {
-  for (int pin : DHT_CANDIDATES) {
-    if (pin < 0 || (pin == DHT_PIN && dht_pin == pin)) continue;
-    DHT *probe = new DHT(pin, DHT_TYPE);
-    probe->begin();
-    for (int i = 0; i < 2; i++) {
-      delay(1100);  // a DHT11 needs a second between reads
-      if (!isnan(probe->readTemperature(false, true))) {
-        dht = probe;
-        dht_pin = pin;
-        return true;
+// A DHT on this pin that answers, or nullptr.
+DHT *tryDht(int pin) {
+  DHT *probe = new DHT(pin, DHT_TYPE);
+  probe->begin();
+  for (int i = 0; i < 2; i++) {
+    delay(1100);  // a DHT11 needs a second between reads
+    if (!isnan(probe->readTemperature(false, true))) return probe;
+  }
+  delete probe;
+  pinMode(pin, INPUT);
+  return nullptr;
+}
+
+// Up to two DHTs: the configured pins first, then (only at power-on) the free
+// GPIOs. The pins found are kept in RTC memory, so a wake from deep sleep
+// doesn't search again.
+bool findDhts() {
+  if (rtc_dht_pin >= 0) {
+    dht = new DHT(rtc_dht_pin, DHT_TYPE);
+    dht->begin();
+    dht_pin = rtc_dht_pin;
+    if (rtc_dht2_pin >= 0) {
+      dht2 = new DHT(rtc_dht2_pin, DHT_TYPE);
+      dht2->begin();
+    }
+    delay(1100);  // first read after power-up
+    return true;
+  }
+  int found[2] = {-1, -1};
+  int n = 0;
+  for (int pin : {DHT_PIN, DHT2_PIN}) {
+    if (pin < 0 || n >= 2) continue;
+    DHT *d = tryDht(pin);
+    if (d) {
+      (n == 0 ? dht : dht2) = d;
+      found[n++] = pin;
+    }
+  }
+  if (n < 2 && DHT2_PIN < 0) {
+    for (int pin : DHT_CANDIDATES) {
+      if (n >= 2) break;
+      if (pin < 0 || pin == found[0] || pin == found[1]) continue;
+      DHT *d = tryDht(pin);
+      if (d) {
+        (n == 0 ? dht : dht2) = d;
+        found[n++] = pin;
       }
     }
-    delete probe;
-    pinMode(pin, INPUT);
   }
-  return false;
+  dht_pin = found[0];
+  rtc_dht_pin = found[0];
+  rtc_dht2_pin = found[1];
+  return n > 0;
 }
 #endif
 
@@ -192,6 +244,7 @@ void updateGps() {
 bool sample(Record &r) {
   float t = NAN;
   float h = sht_ok ? sht31.readHumidity() : NAN;  // air humidity, if the SHT31 is fitted
+  float t2 = NAN, h2 = NAN;
 #if HAS_DS18B20
   if (use_probe) {
     probe.requestTemperatures();  // ~750 ms at 12-bit
@@ -205,9 +258,13 @@ bool sample(Record &r) {
   if (!use_probe && !sht_ok && use_dht) {
     t = dht->readTemperature();
     h = dht->readHumidity();
+    if (dht2) {
+      t2 = dht2->readTemperature();
+      h2 = dht2->readHumidity();
+    }
   }
 #endif
-  if (isnan(t)) {
+  if (isnan(t) && isnan(t2)) {
     Serial.println("temperature read failed; skipping this sample");
     return false;
   }
@@ -217,6 +274,8 @@ bool sample(Record &r) {
   r.synced = clockSynced();
   r.temp_c = t;
   r.rh = isnan(h) ? NAN : h;
+  r.temp2_c = t2;
+  r.rh2 = isnan(h2) ? NAN : h2;
   r.lat = fresh_fix ? last_lat : NAN;
   r.lon = fresh_fix ? last_lon : NAN;
   r.battery_mv = readBatteryMv();
@@ -279,10 +338,12 @@ bool connectWifi() {
   return WiFi.status() == WL_CONNECTED;
 }
 
-// Sends one batch. Returns false on any failure; records stay queued.
-bool sendBatch(const Record *records, size_t n) {
+// Posts one sensor's readings from these records (second = the backup DHT)
+// under node_id. Returns false on any failure; `ack` gets the acked seq.
+// Only the primary's reply sets the clock, the LED and live mode.
+bool postReadings(const char *node_id, const Record *records, size_t n, bool second, uint32_t &ack) {
   JsonDocument doc;
-  doc["node_id"] = NODE_ID;
+  doc["node_id"] = node_id;
   doc["boot_id"] = boot_id;
   doc["fw_version"] = FW_VERSION;
   // The server sizes its allowance for calibration error by this.
@@ -295,6 +356,9 @@ bool sendBatch(const Record *records, size_t n) {
   JsonArray arr = doc["readings"].to<JsonArray>();
   for (size_t i = 0; i < n; i++) {
     const Record &r = records[i];
+    float t = second ? r.temp2_c : r.temp_c;
+    float h = second ? r.rh2 : r.rh;
+    if (isnan(t)) continue;  // this sensor missed that reading
     JsonObject o = arr.add<JsonObject>();
     o["seq"] = r.seq;
     if (r.synced) {
@@ -304,13 +368,17 @@ bool sendBatch(const Record *records, size_t n) {
     } else {
       o["uptime_ms"] = (uint64_t)r.clock_s * 1000;
     }
-    o["temp_c"] = roundf(r.temp_c * 100) / 100;
-    if (!isnan(r.rh)) o["rh"] = roundf(r.rh * 10) / 10;
+    o["temp_c"] = roundf(t * 100) / 100;
+    if (!isnan(h)) o["rh"] = roundf(h * 10) / 10;
     if (!isnan(r.lat)) {
       o["lat"] = r.lat;
       o["lon"] = r.lon;
     }
     o["battery_v"] = r.battery_mv / 1000.0;
+  }
+  if (arr.size() == 0) {  // nothing from this sensor in these records: nothing to wait for
+    ack = records[n - 1].seq;
+    return true;
   }
   String body;
   serializeJson(doc, body);
@@ -332,26 +400,41 @@ bool sendBatch(const Record *records, size_t n) {
   http.setTimeout(15000);
   int code = http.POST(body);
   if (code != 200) {
-    Serial.printf("upload failed: HTTP %d\n", code);
+    Serial.printf("upload for %s failed: HTTP %d\n", node_id, code);
     http.end();
     return false;
   }
   JsonDocument res;
   DeserializationError err = deserializeJson(res, http.getString());
   http.end();
-  if (err) return false;
+  if (err || res["ack_seq"].isNull()) return false;
+  ack = res["ack_seq"].as<uint32_t>();
 
-  if (!res["server_time"].isNull() && !clockSynced()) setClock(res["server_time"].as<time_t>());
-  if (!res["ack_seq"].isNull()) dropAcked(res["ack_seq"].as<uint32_t>());
-  const char *worst = res["worst_verdict"] | "";
-  worst_verdict = !strcmp(worst, "DISCARD") ? 4 : !strcmp(worst, "QUARANTINE") ? 3
-                : !strcmp(worst, "USE_FIRST") ? 2 : !strcmp(worst, "USE") ? 1 : 0;
-  uint32_t was_live = live_until;
-  live_until = res["live_until"].isNull() ? 0 : res["live_until"].as<uint32_t>();
-  if (!res["live_sample_s"].isNull()) live_sample_s = max<uint16_t>(2, res["live_sample_s"].as<uint16_t>());
-  if (live_until && !was_live) Serial.printf("someone is watching: live every %u s until %u\n", live_sample_s, live_until);
-  Serial.printf("uploaded %u: %d new, %d dup, %d rejected\n", (unsigned)n,
+  if (!second) {
+    if (!res["server_time"].isNull() && !clockSynced()) setClock(res["server_time"].as<time_t>());
+    const char *worst = res["worst_verdict"] | "";
+    worst_verdict = !strcmp(worst, "DISCARD") ? 4 : !strcmp(worst, "QUARANTINE") ? 3
+                  : !strcmp(worst, "USE_FIRST") ? 2 : !strcmp(worst, "USE") ? 1 : 0;
+    uint32_t was_live = live_until;
+    live_until = res["live_until"].isNull() ? 0 : res["live_until"].as<uint32_t>();
+    if (!res["live_sample_s"].isNull()) live_sample_s = max<uint16_t>(2, res["live_sample_s"].as<uint16_t>());
+    if (live_until && !was_live) Serial.printf("someone is watching: live every %u s until %u\n", live_sample_s, live_until);
+  }
+  Serial.printf("uploaded %u for %s: %d new, %d dup, %d rejected\n", (unsigned)arr.size(), node_id,
                 res["accepted"].as<int>(), res["duplicates"].as<int>(), (int)res["rejected"].size());
+  return true;
+}
+
+// Sends one batch: the first sensor as NODE_ID, the second (if fitted) as
+// BACKUP_NODE_ID. Records leave flash only once both are acked; on any
+// failure they stay queued, and resending is safe (seq identifies a reading).
+bool sendBatch(const Record *records, size_t n) {
+  uint32_t ack = 0, ack2 = UINT32_MAX;
+  if (!postReadings(NODE_ID, records, n, false, ack)) return false;
+#if DHT_PIN >= 0
+  if (dht2 && !postReadings(BACKUP_NODE_ID, records, n, true, ack2)) return false;
+#endif
+  dropAcked(min(ack, ack2));
   return true;
 }
 
@@ -392,8 +475,11 @@ void cycle() {
   bool alarm = false;
   if (sample(r)) {
     enqueue(r);
-    alarm = r.temp_c < ALARM_LOW_C || r.temp_c > ALARM_HIGH_C;
-    Serial.printf("#%u %.2f C %.1f%% %s%s\n", r.seq, r.temp_c, r.rh, isnan(r.lat) ? "no fix" : "fix", alarm ? " OUT OF RANGE" : "");
+    for (float t : {r.temp_c, r.temp2_c})
+      if (!isnan(t) && (t < ALARM_LOW_C || t > ALARM_HIGH_C)) alarm = true;
+    Serial.printf("#%u %.2f C %.1f%% %s", r.seq, r.temp_c, r.rh, isnan(r.lat) ? "no fix" : "fix");
+    if (!isnan(r.temp2_c)) Serial.printf(" | B %.2f C %.1f%%", r.temp2_c, r.rh2);
+    Serial.println(alarm ? " OUT OF RANGE" : "");
   }
   // Check in on schedule; at once when a reading is out of range or someone is watching.
   bool due = UPLOAD_EVERY == 1 || wake_count % UPLOAD_EVERY == 0;
@@ -412,15 +498,19 @@ void setup() {
 #endif
 #if DHT_PIN >= 0
   if (!use_probe && !sht_ok) {
-    Serial.println("looking for a DHT11/DHT22 on the free pins...");
-    use_dht = findDht();
+    if (rtc_dht_pin < 0) Serial.println("looking for DHT11/DHT22 sensors (two, if a backup is fitted)...");
+    use_dht = findDhts();
   }
 #endif
   if (use_probe) Serial.printf("temperature: DS18B20 probe on GPIO %d%s\n", DS18B20_PIN, sht_ok ? ", humidity: SHT31" : "");
   else if (sht_ok) Serial.printf("temperature and humidity: SHT31 on SDA %d / SCL %d\n", I2C_SDA, I2C_SCL);
 #if DHT_PIN >= 0
-  else if (use_dht) Serial.printf("temperature and humidity: %s on GPIO %d%s\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", dht_pin,
-                                  dht_pin == DHT_PIN ? "" : " (set DHT_PIN to this in config.h to skip the search)");
+  else if (use_dht) {
+    Serial.printf("temperature and humidity: %s on GPIO %d\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", dht_pin);
+    if (dht2) Serial.printf("backup %s on GPIO %d, uploaded as %s\n", DHT_TYPE == DHT11 ? "DHT11" : "DHT22", rtc_dht2_pin, BACKUP_NODE_ID);
+    if (dht_pin != DHT_PIN || (dht2 && rtc_dht2_pin != DHT2_PIN))
+      Serial.printf("set DHT_PIN %d and DHT2_PIN %d in config.h to skip the search\n", dht_pin, rtc_dht2_pin);
+  }
 #endif
   else Serial.printf("no temperature sensor found: SHT31 on SDA %d / SCL %d, DS18B20 on GPIO %d (4.7k pull-up), or DHT on GPIO %d\n",
                      I2C_SDA, I2C_SCL, HAS_DS18B20 ? DS18B20_PIN : -1, DHT_PIN);
@@ -428,6 +518,7 @@ void setup() {
   pinMode(VERDICT_LED_PIN, OUTPUT);
 #endif
   if (!LittleFS.begin(true)) Serial.println("LittleFS mount failed");
+  if (LittleFS.exists(OLD_QUEUE_PATH)) LittleFS.remove(OLD_QUEUE_PATH);  // v1 records don't fit v2
   if (!LittleFS.exists(QUEUE_PATH)) LittleFS.open(QUEUE_PATH, "w").close();  // so later checks never log a miss
   loadBootId();
 

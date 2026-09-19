@@ -24,19 +24,32 @@ import time
 import urllib.error
 import urllib.request
 
-SAMPLE = re.compile(r"^#(\d+) (-?\d+(?:\.\d+)?) C (nan|-?\d+(?:\.\d+)?)%")
+SAMPLE = re.compile(r"^#(\d+) (nan|-?\d+(?:\.\d+)?) C (nan|-?\d+(?:\.\d+)?)%")
+# The backup DHT on the same line, when one is fitted: "... | B 5.10 C 53.0%".
+BACKUP = re.compile(r"\| B (nan|-?\d+(?:\.\d+)?) C (nan|-?\d+(?:\.\d+)?)%")
 BOOT = re.compile(r"\bboot (\d+)\b")
 # The boot line naming the temperature sensor, e.g. "temperature and humidity: DHT11 on GPIO 4".
 SENSOR = re.compile(r"^temperature(?: and humidity)?: (DS18B20|SHT31|DHT11|DHT22)\b")
 MAX_PENDING = 5000
 
 
-def parse_sample(line: str) -> dict | None:
+def _num(text: str) -> float | None:
+    return None if text == "nan" else float(text)
+
+
+def parse_sample(line: str) -> tuple[dict | None, dict | None] | None:
+    """A sample line: (the first sensor's reading, the backup's), either None
+    when that sensor missed; None for any other line."""
     m = SAMPLE.match(line)
     if not m:
         return None
-    rh = None if m.group(3) == "nan" else float(m.group(3))
-    return {"seq": int(m.group(1)), "ts": int(time.time()), "temp_c": float(m.group(2)), "rh": rh}
+    seq, now = int(m.group(1)), int(time.time())
+    temp = _num(m.group(2))
+    first = {"seq": seq, "ts": now, "temp_c": temp, "rh": _num(m.group(3))} if temp is not None else None
+    b = BACKUP.search(line)
+    temp2 = _num(b.group(1)) if b else None
+    backup = {"seq": seq, "ts": now, "temp_c": temp2, "rh": _num(b.group(2))} if temp2 is not None else None
+    return first, backup
 
 
 def parse_sensor(line: str) -> str | None:
@@ -78,6 +91,7 @@ def main() -> None:
     parser.add_argument("--baud", type=int, default=115200)
     parser.add_argument("--api", default="http://localhost:8000")
     parser.add_argument("--node", default="DEMO-01")
+    parser.add_argument("--backup-node", help="where the second DHT's readings go (default: --node + 'B')")
     parser.add_argument("--no-reset", action="store_true",
                         help="don't restart the board (the boot id then comes from the next boot line, or --boot)")
     parser.add_argument("--boot", type=int, help="the node's boot id, if it booted before the bridge started")
@@ -105,11 +119,12 @@ def main() -> None:
         return port
 
     port = connect(not args.no_reset)
-    print(f"bridging {args.port} -> {args.api} as {args.node}")
+    backup_node = args.backup_node or f"{args.node}B"
+    print(f"bridging {args.port} -> {args.api} as {args.node} (a backup sensor as {backup_node})")
 
     boot = args.boot
     sensor = None
-    pending: list[dict] = []
+    pending: dict[str, list[dict]] = {args.node: [], backup_node: []}
     while True:
         try:
             raw = port.readline()
@@ -130,7 +145,8 @@ def main() -> None:
         sensor = parse_sensor(line) or sensor
         if (m := BOOT.search(line)) and ("SecuriVax" in line or "Vialtality" in line):  # or older firmware
             if boot is not None and int(m.group(1)) != boot:
-                pending.clear()  # the board restarted: its sequence starts over
+                for queue in pending.values():
+                    queue.clear()  # the board restarted: its sequence starts over
             boot = int(m.group(1))
             continue
         sample = parse_sample(line)
@@ -139,10 +155,14 @@ def main() -> None:
         if boot is None:
             print("  waiting for the boot line (or pass --boot) before uploading", file=sys.stderr)
             continue
-        pending = (pending + [sample])[-MAX_PENDING:]
-        acked = upload(args.api, args.node, key, boot, pending, sensor)
-        if acked is not None:
-            pending = [r for r in pending if r["seq"] > acked]
+        for node, reading in zip((args.node, backup_node), sample):
+            if reading is None and not pending[node]:
+                continue
+            if reading is not None:
+                pending[node] = (pending[node] + [reading])[-MAX_PENDING:]
+            acked = upload(args.api, node, key, boot, pending[node], sensor)
+            if acked is not None:
+                pending[node] = [r for r in pending[node] if r["seq"] > acked]
 
 
 if __name__ == "__main__":
