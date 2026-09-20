@@ -1,5 +1,5 @@
 # SecuriVax 102
-
+![ SecuriVax 102](https://github.com/SoumilBhandari/hophacks/blob/main/Hardware/image/Animate%20Box%20Drawing.png)
 SecuriVax 102 is the production-oriented custom-PCB revision. It replaces the 101 point-to-point wiring with an ESP32-C3-WROOM-02-N4, DHT22, ST25R3916 NFC/RFID reader, USB-C connector, regulator, two buttons, status LED, and supporting passives.
 
 ## Design iteration
