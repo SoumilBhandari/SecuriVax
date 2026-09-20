@@ -51,7 +51,6 @@ export default function LandingPage() {
   const toCheck = boxes.filter((b) => b.verdict === "QUARANTINE" || b.verdict === "DISCARD").length;
   const doses = boxes.reduce((n, b) => n + b.quantity, 0);
   const line = boxes.length ? `${boxes.length} boxes · ${doses.toLocaleString()} doses and tests · ${toCheck} to check now` : null;
-  const spotlight = boxes.find((b) => b.id === "BOX-KO-0915") ?? boxes.find((b) => b.verdict === "QUARANTINE") ?? null;
   const root = useRef<HTMLDivElement>(null);
   const ground = useGround(root);
   const scrolled = useScrolled();
@@ -59,7 +58,7 @@ export default function LandingPage() {
   return (
     <div ref={root} data-theme="light" className="landing overflow-x-clip bg-bg text-text">
       <Nav ground={ground} scrolled={scrolled} />
-      <Hero line={line} spotlight={spotlight} />
+      <Hero line={line} />
       <TraceChapter report={trip} />
       <HowItWorks />
       <ObjectChapter

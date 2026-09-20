@@ -1,37 +1,31 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router";
 
-import { VerdictBadge } from "../components/Brand";
 import { ChevronDownIcon } from "../components/Icons";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "../lib/motion";
-import { useLive } from "../lib/useLive";
 import { useWide } from "../lib/useWide";
-import type { BoxSummary } from "../types";
 import type { Anchor } from "./placeholders";
 import { Sequence, type Extra, type SequenceHandle } from "./Sequence";
 import { chapterHeight, reveal, useChapter } from "./useChapter";
 
 /**
- * The front door: the question over a lit carrier on black, with the live
- * signal floating beside it. On load the lines rise out of a mask and the
- * scene fades up; while the reader rests, the carrier sways and bobs.
+ * The front door: the question over a lit carrier on black, and nothing else.
+ * On load the lines rise out of a mask and the scene fades up; while the
+ * reader rests, the carrier sways and bobs.
  * Scrolling lifts the lid, then the carrier settles back and up as what
  * SecuriVax does, and the way in, rise from the bottom.
  */
-export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxSummary | null }) {
+export function Hero({ line }: { line: string | null }) {
   const section = useRef<HTMLElement>(null);
   const seq = useRef<SequenceHandle>(null);
   const scene = useRef<HTMLDivElement>(null);
   const head = useRef<HTMLDivElement>(null);
-  const chips = useRef<HTMLDivElement>(null);
   const after = useRef<HTMLDivElement>(null);
   const hint = useRef<HTMLDivElement>(null);
   const wide = useWide();
-  const start: Anchor = wide ? { ax: 0.5, ay: 0.68, scale: 0.68 } : { ax: 0.5, ay: 0.66, scale: 0.6 };
-  const end: Anchor = wide ? { ax: 0.5, ay: 0.4, scale: 0.5 } : { ax: 0.5, ay: 0.36, scale: 0.42 };
+  const start: Anchor = wide ? { ax: 0.5, ay: 0.7, scale: 0.95 } : { ax: 0.5, ay: 0.68, scale: 0.8 };
+  const end: Anchor = wide ? { ax: 0.5, ay: 0.4, scale: 0.56 } : { ax: 0.5, ay: 0.36, scale: 0.46 };
   const state = useRef<{ p: number; at: Anchor; extra: Extra }>({ p: 0, at: start, extra: {} });
-  const live = useLive();
-  const last = live.readings[live.readings.length - 1];
 
   useChapter(
     section,
@@ -45,7 +39,6 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
       tl.to(o, { p: 1, duration: 0.72, onUpdate: paint }, 0.1);
       tl.to(o, { ...end, duration: 0.3, ease: "power2.inOut", onUpdate: paint }, 0.5);
       if (hint.current) tl.fromTo(hint.current, { opacity: 1 }, { opacity: 0, duration: 0.08, immediateRender: false }, 0);
-      if (chips.current) tl.fromTo(chips.current, { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 0.14, ease: "power2.in", immediateRender: false }, 0.06);
       if (head.current) tl.fromTo(head.current, { opacity: 1, y: 0 }, { opacity: 0, y: -48, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.26);
       if (after.current) reveal(tl, after.current.children, 0.6, { duration: 0.2, stagger: 0.05, y: 40 });
     },
@@ -92,9 +85,6 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
     return () => gsap.ticker.remove(tick);
   }, []);
 
-  const bandWord = last ? (last.band === "ok" ? "in range" : last.band === "warm" ? "too warm" : last.band === "cold" ? "cold" : "freezing") : "";
-  const place = last ? last.label.replace(/^(truck cold box|vaccine carrier|demo carrier|backup node|cold box)\s*/i, "").replace(/\s*\(.*$/, "") : "";
-
   return (
     <section ref={section} data-theme="dark" className="chapter" style={chapterHeight(3)} aria-label="SecuriVax">
       <div className="chapter__view">
@@ -113,34 +103,6 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
               <span>still good?</span>
             </span>
           </h1>
-        </div>
-
-        {/* The live signal, floating beside the carrier: the newest reading anywhere, and one box's verdict. */}
-        <div ref={chips} className="pointer-events-none absolute inset-0" aria-hidden="true">
-          {last && (
-            <div className="hero-chip-slot left-4 top-[46%] lg:left-[17%] lg:top-[54%]">
-              <div className="rise-in" style={{ "--i": 2 } as CSSProperties}>
-                <div className="hero-chip">
-                  <span className="hero-chip__dot" />
-                  <span className="hero-chip__num">{last.temp_c.toFixed(1)} °C</span>
-                  <span className="hero-chip__muted hidden sm:inline">
-                    {place} · {bandWord}
-                  </span>
-                  <span className="hero-chip__muted sm:hidden">{bandWord}</span>
-                </div>
-              </div>
-            </div>
-          )}
-          {spotlight && (
-            <div className="hero-chip-slot right-4 top-[80%] lg:right-[17%] lg:top-[66%]">
-              <div className="rise-in" style={{ "--i": 5 } as CSSProperties}>
-                <div className="hero-chip" style={{ animationDelay: "-3.2s" }}>
-                  <span className="hero-chip__muted">{spotlight.id}</span>
-                  <VerdictBadge verdict={spotlight.verdict} />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         <div
