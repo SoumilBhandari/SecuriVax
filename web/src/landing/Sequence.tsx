@@ -1,5 +1,7 @@
 import { forwardRef, lazy, Suspense, useEffect, useImperativeHandle, useRef, useState } from "react";
 
+import { ErrorBoundary } from "../components/ErrorBoundary";
+
 import { framesFor, type Crop, type Frames } from "./frames";
 import { CENTRED, PLACEHOLDERS, type Anchor, type Ground } from "./placeholders";
 import type { ObjectViewHandle } from "./three/ObjectView";
@@ -47,6 +49,8 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
   const size = useRef({ w: 0, h: 0, dpr: 1 });
   const [mode, setMode] = useState<Mode>("drawn");
   const [near, setNear] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     state.current.at = at;
@@ -82,7 +86,7 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
     draw(p: number, where?: Anchor, extra?: Extra) {
       state.current.p = p;
       if (where) state.current.at = where;
-      if (mode === "live") live.current?.set(p, state.current.at, extra);
+      if (showLive) live.current?.set(p, state.current.at, extra);
       else paint2d();
     },
   }));
@@ -143,24 +147,44 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
     ro.observe(el);
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, ground, mode]);
+  }, [id, ground, mode, failed, ready]);
 
-  const showLive = mode === "live" && near && state.current.at.scale > 0;
+  // WebGL can fail after it has been proved to work: a driver that gives up on
+  // a big glTF, a context lost under memory pressure. The flat drawing is
+  // already painted underneath, so a failure here uncovers it rather than
+  // taking the chapter — and with it the whole landing page — down.
+  const live3d = mode === "live" && near && !failed && state.current.at.scale > 0;
+
+  // A context that never arrives. The renderer is built in a promise, so a
+  // failure there reaches no error boundary and the chapter would stay blank
+  // with nothing reported; if no frame has been made by now, show the drawing.
+  useEffect(() => {
+    if (!live3d || ready) return;
+    const t = setTimeout(() => setFailed(true), 6000);
+    return () => clearTimeout(t);
+  }, [live3d, ready]);
+
+  // The flat drawing shows until the live view proves it has a context.
+  const showLive = live3d && ready;
   return (
     <div ref={box} className={className} aria-hidden="true">
-      <canvas ref={canvas} className="absolute inset-0 block h-full w-full" style={{ opacity: mode === "live" ? 0 : 1 }} />
-      {showLive && (
-        <Suspense fallback={null}>
-          <ObjectView
-            ref={(h) => {
-              live.current = h;
-              h?.set(state.current.p, state.current.at);
-            }}
-            id={id}
-            ground={ground}
-            initial={state.current.at}
-          />
-        </Suspense>
+      <canvas ref={canvas} className="absolute inset-0 block h-full w-full" style={{ opacity: showLive ? 0 : 1 }} />
+      {live3d && (
+        <ErrorBoundary fallback={null} onError={() => setFailed(true)}>
+          <Suspense fallback={null}>
+            <ObjectView
+              ref={(h) => {
+                live.current = h;
+                h?.set(state.current.p, state.current.at);
+              }}
+              id={id}
+              ground={ground}
+              initial={state.current.at}
+              onReady={() => setReady(true)}
+              onLost={() => setFailed(true)}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
     </div>
   );

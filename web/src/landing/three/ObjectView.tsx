@@ -83,7 +83,8 @@ const SHOTS: Record<string, Shot> = {
  * key light, and a contact shadow under it. The anchor shifts and scales the
  * object in the frame so words can share it.
  */
-export const ObjectView = forwardRef<ObjectViewHandle, { id: string; ground: Ground; initial: Anchor }>(function ObjectView({ id, ground, initial }, ref) {
+export const ObjectView = forwardRef<ObjectViewHandle, { id: string; ground: Ground; initial: Anchor; onReady?: () => void; onLost?: () => void }>(
+  function ObjectView({ id, ground, initial, onReady, onLost }, ref) {
   const drive = useRef<Drive & { at: Anchor; spin: number; bob: number; invalidate: () => void }>({ p: 0, at: initial, spin: 0, bob: 0, invalidate: () => {} });
   useImperativeHandle(ref, () => ({
     set(p, at, extra) {
@@ -96,16 +97,26 @@ export const ObjectView = forwardRef<ObjectViewHandle, { id: string; ground: Gro
   }));
   const shot = SHOTS[id];
   if (!shot) return null;
+  const phone = typeof window !== "undefined" && window.innerWidth < 768;
   return (
     <Canvas
       frameloop="demand"
-      dpr={[1, 2]}
-      shadows
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+      // A phone runs four of these chapters at once, each with its own context
+      // and environment map. At this size the extra pixels and the multisample
+      // buy nothing anyone can see, and they are what makes a mid-range phone
+      // drop a context part way down the page.
+      dpr={phone ? [1, 1.5] : [1, 2]}
+      shadows={!phone}
+      gl={{ antialias: !phone, alpha: true, powerPreference: "high-performance" }}
       style={{ position: "absolute", inset: 0, background: "transparent" }}
       onCreated={({ gl, invalidate }) => {
         gl.localClippingEnabled = true;
         drive.current.invalidate = invalidate;
+        // Proof that a context really exists. Creating one can fail inside a
+        // promise, where a React error boundary never sees it, so the chapter
+        // waits for this instead of assuming.
+        onReady?.();
+        gl.domElement.addEventListener("webglcontextlost", () => onLost?.());
       }}
     >
       <Studio ground={ground} />
