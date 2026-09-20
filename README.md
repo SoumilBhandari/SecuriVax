@@ -210,6 +210,83 @@ fleet — the box list, live, climate, impact, the stickers, the stage — asks 
 to sign in and returns you to where you were. The sign-up's operator code is
 what makes an operator; leave it empty for a viewer.
 
+# Testing & Demonstration
+
+## One Trip. Four Products. Four Answers.
+
+A single cold-chain journey does not necessarily mean every product experiences the same conditions.
+
+SecuriVax evaluates each tracked product individually and turns its thermal history into an actionable status.
+
+[View the four product cases image](https://github.com/SoumilBhandari/SecuriVax/blob/main/Hardware/image/cases.png?utm_source=chatgpt.com)
+
+<img src="https://github.com/SoumilBhandari/SecuriVax/blob/main/Hardware/image/cases.png?raw=true" width="900">
+
+The system can distinguish between different outcomes:
+
+| Product                        |     Status     | Action                                   |
+| ------------------------------ | :------------: | ---------------------------------------- |
+| **RTS,S/AS01 malaria vaccine** |     **USE**    | Safe to use                              |
+| **Malaria rapid test (RDT)**   |  **USE FIRST** | Bring this box to the front              |
+| **Pentavalent vaccine**        | **QUARANTINE** | Keep cold and perform the required check |
+| **Comirnaty (thawed)**         |   **DISCARD**  | Set the box aside and report it          |
+
+This is the core idea behind SecuriVax: **products do not receive one blanket decision simply because they traveled together. Each product gets its own status based on its recorded history.**
+
+---
+
+## Physical Demonstration: Two Different Outcomes
+
+We also tested the physical workflow using two different cases.
+
+### Case 1 — Discard
+
+In the first test, the product experiences conditions that push its thermal exposure beyond the acceptable limit.
+
+SecuriVax identifies the problem and produces a clear action:
+
+|                                                   **Case 1 — Discard**                                                   |                                               **Case 2 — Safe to Use**                                               |
+| :----------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------: |
+| <img src="https://github.com/SoumilBhandari/SecuriVax/blob/main/Hardware/image/discard%20case.gif?raw=true" width="300"> | <img src="https://github.com/SoumilBhandari/SecuriVax/blob/main/Hardware/image/use%20case.gif?raw=true" width="300"> |
+|                 **DISCARD** — The recorded thermal history indicates that the product should not be used.                |                      **USE** — The recorded thermal history remains within the acceptable range.                     |
+|                               **Action:** Do not use. Set the product aside and report it.                               |                                               **Action:** Safe to use.                                               |
+
+
+---
+
+## Why the Two Cases Matter
+
+The two demonstrations show that SecuriVax is not simply displaying a temperature reading.
+
+The same monitoring workflow can lead to **different actions depending on what the individual product experienced**:
+
+```text
+                    Product
+                       ↓
+                NFC Identification
+                       ↓
+               Environmental Data
+                       ↓
+                Thermal History
+                       ↓
+                  Analysis
+                       ↓
+             ┌─────────┴─────────┐
+             ↓                   ↓
+       Within limits        Beyond limits
+             ↓                   ↓
+            USE                DISCARD
+```
+
+This allows the system to move from:
+
+> **"What is the temperature?"**
+
+to:
+
+> **"What happened to this product, and what should I do now?"**
+
+The four-case demonstration extends this idea further by showing that different products can receive different decisions — **USE, USE FIRST, QUARANTINE, or DISCARD** — even when they are part of the same overall cold-chain journey.
 
 ## Hardware
 
