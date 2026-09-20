@@ -6,7 +6,7 @@ import { useCanTapTags } from "../lib/device";
 import { SNAPSHOT } from "../lib/snapshot";
 import { ARM_TTL_MS, clearArm, getArm, type Arm } from "../lib/tap";
 import { Logo, ThemeToggle } from "./Brand";
-import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PlanIcon, PulseIcon, SignInIcon, SignOutIcon, XIcon } from "./Icons";
+import { BackIcon, BoxIcon, ChevronDownIcon, ClimateIcon, ImpactIcon, PulseIcon, SignInIcon, SignOutIcon, XIcon } from "./Icons";
 
 /**
  * The page frame. On a phone: one column with a floating glass tab bar. From
@@ -69,11 +69,10 @@ const TABS = [
   { to: "/boxes", label: "Boxes", Icon: BoxIcon, match: (p: string) => p.startsWith("/box") || p.startsWith("/node") || p.startsWith("/tags") },
   { to: "/live", label: "Live", Icon: PulseIcon, match: (p: string) => p.startsWith("/live") },
   { to: "/climate", label: "Climate", Icon: ClimateIcon, match: (p: string) => p.startsWith("/climate") },
-  { to: "/plan", label: "Plan", Icon: PlanIcon, match: (p: string) => p.startsWith("/plan") },
   { to: "/impact", label: "Impact", Icon: ImpactIcon, match: (p: string) => p.startsWith("/impact") },
 ];
 
-/** The laptop's chrome: logo, the five sections centred, who's signed in and the theme. */
+/** The laptop's chrome: logo, the sections centred, who's signed in and the theme. */
 function TopNav() {
   const { pathname } = useLocation();
   return (
@@ -126,14 +125,14 @@ function TabBar() {
         transition: "transform 0.45s var(--ease-out)",
       }}
     >
-      <div className="relative grid grid-cols-5 p-1.5">
+      <div className="relative grid p-1.5" style={{ gridTemplateColumns: `repeat(${TABS.length}, minmax(0, 1fr))` }}>
         {/* The lens behind the chosen section slides into place. */}
         {active >= 0 && (
           <span
             aria-hidden="true"
             className="absolute inset-y-1.5 left-1.5 rounded-full"
             style={{
-              width: "calc((100% - 12px) / 5)",
+              width: `calc((100% - 12px) / ${TABS.length})`,
               background: "var(--surface-2)",
               transform: `translateX(${active * 100}%)`,
               transition: "transform 0.45s var(--ease-out)",

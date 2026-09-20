@@ -17,7 +17,6 @@ import { applyTheme, followSystemTheme } from "./lib/theme";
 
 // Pages off the tap-a-sticker path load on demand (they pull in the map).
 const ClimatePage = lazy(() => import("./pages/ClimatePage"));
-const PlanPage = lazy(() => import("./pages/PlanPage"));
 const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
 const LivePage = lazy(() => import("./pages/LivePage"));
@@ -93,7 +92,6 @@ const router = (SNAPSHOT ? createHashRouter : createBrowserRouter)([
       { path: "/live", element: page(<LivePage />), handle: { title: "Live" } },
       { path: "/stage", element: page(<StagePage />), handle: { title: "Stage" } },
       { path: "/climate", element: page(<ClimatePage />), handle: { title: "Climate" } },
-      { path: "/plan", element: page(<PlanPage />), handle: { title: "Trip planner" } },
       { path: "/impact", element: page(<ImpactPage />), handle: { title: "Impact" } },
       // "/boxes/BOX-…" is the URL people guess; the route is "/box/:id".
       { path: "/boxes/:id", element: <BoxRedirect /> },

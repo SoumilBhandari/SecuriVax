@@ -1,24 +1,4 @@
-import type {
-  AgentAdvice,
-  BoxSummary,
-  CarrierForecast,
-  CarrierPerformance,
-  CounterfactualRow,
-  Facility,
-  FleetSummary,
-  Impact,
-  LearnedRate,
-  LearningSummary,
-  LiveRecent,
-  NodeDetail,
-  NodeSummary,
-  Product,
-  Report,
-  StoresAtRisk,
-  TripPlan,
-  User,
-  VvmResult,
-} from "../types";
+import type { AgentAdvice, BoxSummary, CarrierForecast, CarrierPerformance, CounterfactualRow, Facility, FleetSummary, Impact, LearnedRate, LearningSummary, LiveRecent, NodeDetail, NodeSummary, Product, Report, StoresAtRisk, User, VvmResult } from "../types";
 import { SNAPSHOT } from "./snapshot";
 
 // Same origin in production (FastAPI serves the app); proxied by Vite in dev.
@@ -159,6 +139,4 @@ export const api = {
   /** Server-sent events of new readings; the browser reconnects and resumes on its own. */
   liveStreamUrl: ({ after, node }: { after?: number; node?: string }) =>
     `${BASE}/api/live/stream?${new URLSearchParams({ ...(after != null && { after: String(after) }), ...(node && { node }) })}`,
-  plan: (body: { product_id: string; origin_id: string; carrier_id?: string | null; session_h?: number }) =>
-    request<TripPlan>("/api/climate/plan", { method: "POST", body: JSON.stringify(body) }),
 };

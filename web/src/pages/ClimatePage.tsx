@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 
-import { ChevronDownIcon, ChevronRightIcon } from "../components/Icons";
+import { ChevronDownIcon } from "../components/Icons";
 import { ErrorNote, Layout, PageTitle, SectionTitle, Spinner, Split } from "../components/Layout";
 import RiskMap from "../components/RiskMap";
 import { VerdictChip } from "../components/Verdict";
@@ -114,11 +114,6 @@ export default function ClimatePage() {
                 ))}
               </ul>
             )}
-
-            <Link to="/plan" className="btn-primary mt-6">
-              Plan a trip from the forecast
-              <ChevronRightIcon size={18} />
-            </Link>
           </>
         }
       />
