@@ -121,7 +121,7 @@ const tagIt: Placeholder = (ctx, w, h, p, g, at) => {
   rr(ctx, cx - W / 2, cy - H / 2, W, H, 6);
   ctx.fill();
   ctx.fillStyle = c.label;
-  ctx.font = `500 ${Math.round(size * 0.05)}px "SF Pro Text", -apple-system, sans-serif`;
+  ctx.font = `500 ${Math.round(size * 0.05)}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`;
   ctx.fillText("OPV · 10 vials · 20 doses", cx - W / 2 + size * 0.06, cy + H / 2 - size * 0.06);
   // Top with the sticker; the sticker brightens at the midpoint.
   ctx.fillStyle = g === "light" ? "#ffffff" : "#f5f5f7";

@@ -26,7 +26,7 @@ const TEAL = "#35d0c3";
 const SCALE = 8;
 
 const font = (size: number, weight = 400, mono = false) =>
-  `${weight} ${size}px ${mono ? '"SF Mono", ui-monospace, Menlo, monospace' : '"SF Pro Text", -apple-system, system-ui, sans-serif'}`;
+  `${weight} ${size}px ${mono ? 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'}`;
 
 interface Shown {
   label: string;

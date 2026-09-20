@@ -31,7 +31,6 @@ monitor grades and are illustrative, not a manufacturer's dossier.
 Weather data is from Open-Meteo (CC BY 4.0). Map tiles are OpenStreetMap
 (ODbL). The historical backtest uses ERA5 reanalysis via Open-Meteo.
 
-This repository currently bundles Apple's SF Pro and SF Mono webfonts under
-`web/public/fonts/`. Apple's license restricts those fonts to Apple platforms;
-they are not covered by the MIT license above and should be replaced with a
-system font stack before any distribution beyond this hackathon submission.
+No fonts are bundled. The app asks for the platform's own UI face
+(`-apple-system` and its equivalents), so it renders in SF Pro on Apple
+hardware without redistributing Apple's font files.

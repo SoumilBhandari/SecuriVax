@@ -59,7 +59,7 @@ function usePanel(widthMm: number, heightMm: number, paint: Paint, deps: unknown
 }
 
 const font = (size: number, weight = 400, mono = false) =>
-  `${weight} ${size}px ${mono ? '"SF Mono", ui-monospace, Menlo, monospace' : '"SF Pro Text", -apple-system, system-ui, sans-serif'}`;
+  `${weight} ${size}px ${mono ? 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace' : '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'}`;
 
 /** The drop from the mark, drawn straight rather than loaded, so a panel paints in one pass. */
 function drop(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, body = INK) {
