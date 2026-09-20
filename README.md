@@ -41,7 +41,7 @@ What makes it more than a logger:
   freeze-exposed doses given fall 98% versus today (freeze-exposed, not proven
   damaged: chilled vaccine often supercools).
 
-![Phone web app: box list, a discarded OPV box, a rapid-test box](docs/img/overview.png)
+![The app: every box with its verdict, a discarded Comirnaty box, a rapid test to use first](docs/img/overview.png)
 
 ## How it works
 
@@ -88,7 +88,7 @@ flowchart LR
    - in every verdict;
    - on each of the 400 confidence samples;
    - along every forecast trajectory, for the chance a box reaches QUARANTINE;
-   - in the trip planner;
+   -;
    - over every simulated box in the backtest.
 
    The VVM camera measures the same quantity off the label (0 = fresh, 1 = end
@@ -107,7 +107,7 @@ flowchart LR
 | QUARANTINE | Freeze-sensitive product ≤ -0.5 °C for ≥ 60 min (WHO alarm) | Shake test (vaccines) / positive control (RDTs) |
 | QUARANTINE | Budget used ≥ 75% | Check each vial's VVM |
 | QUARANTINE | Hole in the history > 60 min, or node silent > 60 min | Supervisor reviews the record |
-| USE | Otherwise (≥ 50%: "use this box first") | Use it |
+| USE | Otherwise (≥ 40%: "use this box first") | Use it |
 
 Heat excursions, WHO heat alarms (≥ 8 °C for 10 h), freezes of
 non-sensitive products and humidity (rapid tests, ≥ 75% RH for 6 h) are shown
@@ -123,7 +123,7 @@ Products seeded (`backend/app/engine/profiles.py`):
 
 ## The carrier twin
 
-![Carrier forecast, borderline verdict, carrier twin](docs/img/twin-vvm.png)
+![A carrier's forecast, why one box is quarantined, and heat risk across the sites](docs/img/twin-vvm.png)
 
 The inside of a carrier holds at the ice packs' temperature until the ice is
 gone, then drifts toward the outside air, plus any heat from sun or a vehicle.
@@ -191,7 +191,7 @@ different question, for a different person:
 
 ## Environmental intelligence
 
-![Stores at risk, trip planner, weather vs carrier](docs/img/environment.png)
+![Stores and clinics at risk, and the weather behind one box's legs](docs/img/environment.png)
 
 Hourly weather from [Open-Meteo](https://open-meteo.com) (free, no key): the
 past 7 days and the next 3, for every store, clinic and carrier position.
@@ -212,11 +212,6 @@ measured. Weather tells you *why*, and *what's coming*:
   degree-hours, WHO-style rating at +43 °C) is replayed against each real trip.
   The fit gives the carrier's *effective* cold life. The demo data shows CAR-02
   holding 3 h against a rated 20 h: "freeze packs fully, check the lid seal".
-- **Trip planner** (`/plan`). Every daylight departure over the next 48 h, for
-  every clinic, is predicted from the forecast and the carrier's measured cold
-  life. It gives the best slot, the time the carrier would leave the safe range,
-  whether a properly packed carrier would fix it, and which boxes (least budget
-  left) should go on the gentlest run.
 
 Offline, a built-in climate model stands in, labelled "model" everywhere it's
 used. It's never shown as observed weather.
@@ -248,10 +243,15 @@ verdicts, because the verdict is product-specific. Full script:
 
 | Folder | What lives there |
 | --- | --- |
-| [`backend/`](backend) | FastAPI API, verdict engine, Gemini/Grok services, node simulator, tests |
-| [`web/`](web) | Phone web app (React + Vite + Tailwind + Leaflet) |
-| [`firmware/`](firmware) | ESP32 node skeleton (PlatformIO): SHT31, optional GPS, deep sleep, flash queue |
-| [`docs/`](docs) | Demo script, hardware build, SmartTag bridge, screenshots |
+| [`backend/`](backend) | FastAPI API, the verdict engine, the AI services, the lane simulator, the backtest, 211 tests |
+| [`web/`](web) | The phone web app and the landing story (React, Vite, Tailwind, three.js, Leaflet) |
+| [`firmware/`](firmware) | The ESP32 node (PlatformIO): six builds, from the battery node to the bench diagnostics |
+| [`Hardware/`](Hardware) | Enclosure CAD and the bill of materials |
+| [`docs/`](docs) | [Architecture](docs/architecture.md), the demo script, the hardware build, evals, deploy |
+| `vvm-photos/` | Where a scanned VVM photo is written when `VVM_SAVE_DIR` is set |
+
+**Start here:** [docs/architecture.md](docs/architecture.md) — the repo map, how a
+reading becomes a verdict, the engine module by module, the pin map and the API.
 
 ## Run it locally
 
@@ -260,7 +260,7 @@ Needs Python 3.11+ and Node 22.
 ```bash
 cd backend
 uv venv && uv pip install -r requirements-dev.txt
-cp ../.env.example .env            # add GEMINI_API_KEY / XAI_API_KEY if you have them
+cp ../.env.example .env            # optional: GEMINI_API_KEY, XAI_API_KEY, TYPESAFE_API_KEY
 .venv/bin/uvicorn app.main:app --reload --timeout-graceful-shutdown 2 --port 8000
 ```
 
@@ -285,9 +285,9 @@ cd backend && .venv/bin/python -m pytest
 Add `TEST_DATABASE_URL=postgresql://...` to run the same suite on Postgres.
 Reset the demo data with `python -m simulator.backfill --reset`.
 
-Evals (8 suites: verdicts, confidence, carrier twin, VVM camera, camera vs
-record cross-check, learning, ingest under a hostile link, API latency) check
-each part against a target. Latest results: [docs/evals.md](docs/evals.md).
+Evals (9 suites: verdicts, confidence, carrier twin, VVM camera, camera vs
+record cross-check, learning, likely cause, ingest under a hostile link, API
+latency) check each part against a target. Latest results: [docs/evals.md](docs/evals.md).
 
 ```bash
 cd backend && .venv/bin/python -m evals.run            # full, writes docs/evals.md
@@ -319,7 +319,6 @@ and rehearsing against the live URL: [docs/deploy.md](docs/deploy.md).
 | POST | `/api/ingest/locations` | Tracker positions (SmartTag, phone, GPS) |
 | GET | `/api/climate/stores` | 72 h heat risk per store/clinic |
 | GET | `/api/climate/carriers` | Effective cold life per carrier (model vs reality) |
-| POST | `/api/climate/plan` | Departure × destination predictions from the forecast |
 | GET | `/api/nodes/{id}/forecast` | Carrier twin: state, forecast fan, breach time P10/P50/P90, per-box risk |
 | POST | `/api/nodes/{id}/agent` | Gemini dispatch agent (rules fallback): continue / divert / hold, with its tool calls |
 | POST | `/api/boxes/{id}/vvm` · `/vvm/{check}/confirm` | Camera VVM reading vs sensor; worker confirms |

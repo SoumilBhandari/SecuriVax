@@ -1,7 +1,9 @@
-# SecuriVax node firmware (skeleton)
+# SecuriVax node firmware
 
-ESP32 + SHT31 temperature/humidity sensor, running on a LiPo cell or power
-bank. It rides inside a vaccine carrier, cold box or rapid-test storage box.
+ESP32 with a temperature/humidity sensor, running on a LiPo cell or power
+bank. The firmware finds whichever sensor is fitted — an SHT31 over I2C, a
+DS18B20 probe, or a DHT11/DHT22 — so the same build runs on the designed node
+and on whatever is on the bench. It rides inside a vaccine carrier, cold box or rapid-test storage box.
 A NEO-6M GPS is optional (`HAS_GPS`). Without one, position comes from a
 Samsung SmartTag in the carrier. See [../docs/hardware.md](../docs/hardware.md) for
 the build guide.
@@ -67,9 +69,19 @@ on these readings, at demo speed.
 
 ```bash
 cp include/config.example.h include/config.h   # set NODE_ID, NODE_KEY, API_BASE, WiFi
-pio run -e node -t upload && pio device monitor   # battery build
-pio run -e demo -t upload                         # stage build: awake, 5 s readings
+pio run -e node   -t upload && pio device monitor   # battery build: 5 min readings, deep sleep
+pio run -e demo   -t upload                         # stage build: awake, 5 s readings
+pio run -e replay -t upload                         # no sensor fitted: replays a scripted trip
 ```
+
+Four more builds exist for working out what is wired where:
+
+| Build | What it tells you |
+| --- | --- |
+| `scan` | Sweeps every safe pin for an I2C sensor, a DS18B20, a DHT and an analog part, and prints which pin each is on. |
+| `i2c` | Talks to each I2C candidate in its own language and prints the temperature it gets back, so an address that merely acknowledges can't pass for a sensor. |
+| `diag` | Watches two pins closely: what the line rests at under each internal pull, every transition after the DHT start signal, and a 40-bit decode. |
+| `replay` | No sensor at all. Sends a scripted trip over serial and steps through it on the BOOT button: cooler → vehicle → hot vehicle → freezer pack. |
 
 `NODE_ID` must exist on the server (seeded: `CAR-01`, `CAR-02`, `RDT-01`,
 `DEMO-01`), and `NODE_KEY` must match the server's `NODE_KEY`.
@@ -79,10 +91,11 @@ pio run -e demo -t upload                         # stage build: awake, 5 s read
 | Part | ESP32 |
 | --- | --- |
 | SHT31 SDA / SCL | GPIO 21 / 22, 3V3, GND |
+| DHT11 / DHT22 data | GPIO 4, 3V3, GND (`DHT_PIN`; a second on `DHT2_PIN`) |
 | NEO-6M TX / RX (optional) | GPIO 16 / 17 |
 | NEO-6M VCC (optional) | through a P-MOSFET or load switch on GPIO 25 (LOW = on) |
 | Battery + | 100k/100k divider into GPIO 35 |
-| DS18B20 data (optional) | GPIO 4, 4.7k pull-up to 3V3; red to 3V3, black to GND |
+| DS18B20 data (optional) | GPIO 13, 4.7k pull-up to 3V3; red to 3V3, black to GND |
 | Status LED (optional) | GPIO 2 is the DevKit's own blue LED; an external LED needs a 220 Ω resistor |
 
 With `HAS_DS18B20 1` the temperature comes from the probe (in a water-filled

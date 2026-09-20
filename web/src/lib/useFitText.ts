@@ -13,18 +13,33 @@ export function useFitText(deps: DependencyList = [], { min = 32, max = 128 }: {
     const b = box.current;
     const t = text.current;
     if (!b || !t) return;
+    // Measured from whatever size it is at now, never by setting it to `max`
+    // first. Setting it to max resizes the box, which wakes the observer
+    // below, which measures at max again: the word never settles and is left
+    // at full size, running off its box. Scaling from the current size is
+    // idempotent — once it fits, re-running changes nothing and the loop ends.
     const fit = () => {
-      t.style.fontSize = `${max}px`;
-      const width = t.scrollWidth;
+      const now = parseFloat(getComputedStyle(t).fontSize) || max;
+      const perPx = t.scrollWidth / Math.max(now, 1); // width of the word per px of font size
       const room = b.clientWidth;
-      const size = Math.max(min, Math.min(max, Math.floor((max * room) / Math.max(width, 1))));
-      t.style.fontSize = `${size}px`;
+      if (!perPx || !room) return;
+      const size = Math.max(min, Math.min(max, Math.floor(room / perPx)));
+      if (Math.abs(size - now) >= 1) t.style.fontSize = `${size}px`;
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(b);
+    // The display font arrives after the first paint, and it is wider than the
+    // fallback it was measured against, so a size chosen before it lands is too
+    // big and the word runs past its box. `ready` covers the usual case;
+    // `loadingdone` catches a face that starts loading after it resolved, which
+    // is what leaves "QUARANTINE" clipped to "QUARA" on a slow connection.
     document.fonts?.ready.then(fit).catch(() => {});
-    return () => ro.disconnect();
+    document.fonts?.addEventListener?.("loadingdone", fit);
+    return () => {
+      ro.disconnect();
+      document.fonts?.removeEventListener?.("loadingdone", fit);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [min, max, ...deps]);
 

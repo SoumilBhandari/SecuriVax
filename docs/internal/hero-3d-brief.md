@@ -1,4 +1,4 @@
-# SecuriVax landing page: 3D hero brief
+# (superseded) SecuriVax landing page: 3D hero brief
 
 > **Superseded in part, 19 September 2026.** The node exists in CAD now, so
 > the page renders the team's own Onshape parts (`web/hero-src/device/`) and

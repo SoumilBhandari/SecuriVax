@@ -33,3 +33,10 @@ dist-snapshot/
 
 # Vercel project link
 .vercel/
+
+# Landing-page animation exports: regenerate with web/scripts/chapters.mjs.
+# Hundreds of MB of frames; not worth carrying in the repo.
+docs/img/explode/
+docs/img/landing/
+docs/img/securivax-landing-animations/
+docs/img/securivax-*.zip

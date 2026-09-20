@@ -11,7 +11,7 @@ Postgres 16 database, both in Render's Virginia region.
    `SoumilBhandari/hophacks` repo (it's private: pick *Only select repositories*).
 2. Open **https://render.com/deploy?repo=https://github.com/SoumilBhandari/hophacks**
    (or **New → Blueprint** and pick the repo). Render reads `render.yaml`.
-3. It asks for the four secrets. Type them in there; they never go in the repo:
+3. It asks for the five secrets. Type them in there; they never go in the repo:
 
 | Variable | What |
 | --- | --- |
@@ -31,7 +31,7 @@ curl https://securivax.onrender.com/api/health
 ```
 
 (Render adds a suffix to the name if `securivax` is taken; the dashboard shows the URL.)
-It should say `"status": "ok"`, `"database": "ok"`, both AI keys `true`,
+It should say `"status": "ok"`, `"database": "ok"`, the AI keys `true`,
 `"writes": "operator code"`, `"node_key": "set"`, and `version` set to the deployed commit.
 
 Free instead? Switch the web service to *Free* in the dashboard. It then sleeps

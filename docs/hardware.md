@@ -1,5 +1,13 @@
 # Hardware build: what we have and what it becomes
 
+> **What actually happened.** This page describes the intended build around an
+> SHT31 on GPIO 21/22. On the bench we had DHT11s instead, and none of them ever
+> answered — across every GPIO the node reports silence rather than garbled data,
+> which rules out timing and pin choice and points at the wiring or a dead part.
+> The diagnosis is at the bottom under [The sensor that never
+> answered](#the-sensor-that-never-answered). The node therefore runs
+> `pio run -e replay`, which sends a scripted trip with no sensor fitted.
+
 ## Parts on hand
 
 | Part | Becomes |
@@ -72,3 +80,33 @@ the fallback.
 - Salt. Seriously.
 - Optional: a NEO-6M GPS for continuous routes (`HAS_GPS 1`). The SmartTag
   only updates when a Galaxy phone passes by.
+
+## The sensor that never answered
+
+Two CJSL DHT11s, wired to GPIO 26 and 27. What the board reports, every sweep:
+
+```
+No DHT is answering on any pin.
+  Pins showing a flicker (noise, not a sensor): 27(3)   [a live DHT11 gives ~84]
+Pins held high by something with power: 5              [the devkit's own pull-up]
+GPIO 26 rests: pulled up HIGH, pulled down LOW, 1808 mV -> 1898 mV -> 2031 mV
+GPIO 27 rests: pulled up HIGH, pulled down LOW,  823 mV ->  870 mV ->  915 mV
+```
+
+What that rules out, in order:
+
+1. **Not timing, not the library, not the pin choice.** A sensor that answered
+   at the wrong speed would give garbled bits. This gives none: 3 noise edges
+   where a live DHT11 gives about 84.
+2. **Not power at the board.** It runs for hours without a brownout once the
+   USB cable is seated.
+3. **The data pins are electrically empty.** This is the telling one. The rest
+   voltage on both pins *drifts* between sweeps — 1.81 V to 2.03 V on GPIO 26.
+   A pin connected to anything, even a completely dead part, is clamped to a
+   steady value by that part's input protection. Only a pin connected to
+   nothing drifts like that, charging from leakage.
+
+So the data legs are not reaching the GPIOs: a breadboard row out, a leg folded
+under the body instead of into the hole, a broken jumper, or — on a clone board
+— a silkscreen that does not match the pin it names. Reproduce with
+`pio run -e diag -t upload`, which prints all of the above for GPIO 26 and 27.

@@ -3,9 +3,19 @@
 Freeze, heat, VVM camera, twin, impact. Open with freezing: it does more damage
 in our backtest than heat, and it's the thing a VVM can't show.
 
+> **This script needs a node with a working sensor**, because steps 1 and 2 are
+> performed by physically freezing and heating it. The bench sensor never
+> answered (see [hardware.md](hardware.md)), so as things stand the node runs
+> `pio run -e replay`, which sends a scripted trip and steps through it on the
+> BOOT button instead. If you are demoing the website rather than the hardware,
+> use [walkthrough.md](walkthrough.md) — it is the five-minute script that
+> matches what actually works today.
+
 ## Before you go on
 
-- The deployed URL loads and `/api/health` says `"status": "ok"`, with `grok` and `gemini` both `true`.
+- The deployed URL loads and `/api/health` says `"status": "ok"`. `ai` names three integrations —
+  `grok`, `gemini`, `jev` — and each one falls back to rules when its key is unset, so `false` is not
+  a failure, it just means that answer comes from the rules.
 - Stickers and codes come from `/tags` (stage: `DEMO-01`, `BOX-9001`, `BOX-9002`). **NFC stickers are
   for drivers on the way**: tapping a box logs a checkpoint (where it is, from the phone's location, and
   who), and tapping a carrier then a box hands the box over. **The pickup QR on each box's label is for
