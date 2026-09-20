@@ -4,6 +4,56 @@
 
 HopHacks 2026 · Healthcare track
 
+<p align="center">
+  <img alt="Project: SecuriVax" src="https://img.shields.io/badge/PROJECT-SECURIVAX-0d9488?style=for-the-badge&labelColor=2b3137" />
+</p>
+
+<p align="center">
+  <img alt="Stars" src="https://img.shields.io/github/stars/SoumilBhandari/SecuriVax?style=flat-square&logo=github&logoColor=white&label=stars&labelColor=2b3137&color=f0f0f0" />
+  <img alt="Contributors" src="https://img.shields.io/github/contributors/SoumilBhandari/SecuriVax?style=flat-square&label=contributors&labelColor=2b3137&color=4c9a2a" />
+  <img alt="Top language" src="https://img.shields.io/github/languages/top/SoumilBhandari/SecuriVax?style=flat-square&labelColor=2b3137&color=3178c6" />
+  <img alt="Repo size" src="https://img.shields.io/github/repo-size/SoumilBhandari/SecuriVax?style=flat-square&label=repo%20size&labelColor=2b3137&color=0b7285" />
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/SoumilBhandari/SecuriVax?style=flat-square&label=last%20commit&labelColor=2b3137&color=6741d9" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-4c9a2a?style=flat-square&labelColor=2b3137" />
+  <img alt="Tests: 211 passing" src="https://img.shields.io/badge/tests-211%20passing-4c9a2a?style=flat-square&labelColor=2b3137" />
+</p>
+
+<p align="center">
+  <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black&labelColor=20232a" />
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white&labelColor=20232a" />
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white&labelColor=20232a" />
+  <img alt="Tailwind CSS 4" src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white&labelColor=20232a" />
+  <img alt="three.js" src="https://img.shields.io/badge/three.js-000000?style=flat-square&logo=threedotjs&logoColor=white&labelColor=20232a" />
+  <img alt="GSAP" src="https://img.shields.io/badge/GSAP-0AE448?style=flat-square&logo=greensock&logoColor=black&labelColor=20232a" />
+  <img alt="MapLibre and OpenStreetMap" src="https://img.shields.io/badge/Leaflet%20%2B%20OSM-199900?style=flat-square&logo=openstreetmap&logoColor=white&labelColor=20232a" />
+</p>
+
+<p align="center">
+  <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white&labelColor=20232a" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white&labelColor=20232a" />
+  <img alt="SQLModel" src="https://img.shields.io/badge/SQLModel-7E56C2?style=flat-square&logo=sqlalchemy&logoColor=white&labelColor=20232a" />
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white&labelColor=20232a" />
+  <img alt="NumPy" src="https://img.shields.io/badge/NumPy-013243?style=flat-square&logo=numpy&logoColor=white&labelColor=20232a" />
+  <img alt="Pydantic v2" src="https://img.shields.io/badge/Pydantic-v2-E92063?style=flat-square&logo=pydantic&logoColor=white&labelColor=20232a" />
+</p>
+
+<p align="center">
+  <img alt="ESP32" src="https://img.shields.io/badge/ESP32-E7352C?style=flat-square&logo=espressif&logoColor=white&labelColor=20232a" />
+  <img alt="PlatformIO" src="https://img.shields.io/badge/PlatformIO-FF7F00?style=flat-square&logo=platformio&logoColor=white&labelColor=20232a" />
+  <img alt="Arduino framework" src="https://img.shields.io/badge/Arduino-00878F?style=flat-square&logo=arduino&logoColor=white&labelColor=20232a" />
+  <img alt="NFC: NTAG213" src="https://img.shields.io/badge/NFC-NTAG213-0b7285?style=flat-square&labelColor=20232a" />
+  <img alt="Onshape CAD" src="https://img.shields.io/badge/CAD-Onshape-1A73E8?style=flat-square&labelColor=20232a" />
+  <img alt="Deployed on Render" src="https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black&labelColor=20232a" />
+</p>
+
+<p align="center">
+  <a href="https://securivax.onrender.com"><b>Live app</b></a> ·
+  <a href="https://securivax.onrender.com/team">Team</a> ·
+  <a href="docs/walkthrough.md">Walkthrough</a> ·
+  <a href="docs/architecture.md">Architecture</a> ·
+  <a href="Hardware/README.md">Hardware</a>
+</p>
+
 On outreach, the vaccine vial monitor (VVM) is often the only monitor a vial
 carries, and its colour is read by eye — which makes it easy to misread. Rapid
 tests carry no monitor at all. We tell the health worker whether the box in

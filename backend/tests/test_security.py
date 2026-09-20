@@ -1,6 +1,7 @@
 import pytest
 import base64
 import io
+from pathlib import Path
 
 from PIL import Image
 
@@ -130,8 +131,10 @@ def test_api_docs_can_be_turned_off():
 
     # The app reads the setting when it's built, so check it in a fresh process.
     code = "from fastapi.testclient import TestClient; from app.main import app; print(TestClient(app).get('/openapi.json').status_code)"
+    # The child has to start in backend/ to import app, wherever pytest was run from.
+    backend = Path(__file__).resolve().parent.parent
     def status(env: dict) -> str:
-        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=".",
+        out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, cwd=backend,
                              env={"DATABASE_URL": "sqlite://", "DEMO_HISTORY": "false", "PATH": "", **env})
         return out.stdout.strip()[-3:] or out.stderr[-300:]
 
