@@ -100,6 +100,82 @@ flowchart LR
    worker. Neither can change the verdict. Both are cached, time out, and fall
    back to plain text.
 
+
+## Hardware
+
+SecuriVax is designed as a small, serviceable monitoring node that can live
+inside a vaccine carrier or rapid-test storage box. The hardware documentation
+is kept in [Hardware/](Hardware/) and is organized around two revisions so that
+someone else can build, wire, test, and duplicate the project.
+
+### Prototype 101: the event validation build
+
+Prototype 101 is the removable bench prototype used to validate the sensing and
+identification concept before committing to a custom PCB. It contains:
+
+- ESP32 DevKit WROOM-1 controller
+- RC522 13.56 MHz RFID reader over SPI
+- Two DHT11 sensors for independent temperature and humidity observations
+- Solderable prototype board, female headers, jumper wires, and USB access
+
+The two DHT11 data lines are independent: sensor 1 uses GPIO 4 and sensor 2
+uses GPIO 13. The RC522 uses GPIO 18/23/19 for SPI clock/MOSI/MISO, GPIO 5 for
+chip select, and GPIO 22 for reset. All modules use 3.3 V logic and a common
+ground. The complete component and protocol table is in the
+[Prototype 101 schematic](Hardware/prototype%20101/schematics/README.md), with
+the [Prototype 101 BOM](<Hardware/prototype%20101/BOM(Bill%20of%20material)/README.md>)
+and [CAD guide](Hardware/prototype%20101/cad/README.md) beside it.
+
+This was the version we could physically assemble during the 36-hour event:
+the lab did not have enough of the required production materials to fabricate
+the custom board and final enclosure in time. It is a functional validation
+prototype, not the final hardware release.
+
+### SecuriVax 102: the final hardware version
+
+Revision 102 is the final hardware design. It consolidates the prototype into a
+repeatable custom PCB and enclosure.
+The board carries an ESP32-C3-WROOM-02-N4, DHT22, two buttons, USB-C,
+AMS1117M-5.0RG regulation, a red status LED, passives, and an
+ST25R3916 NFC/RFID reader with its antenna network. The 102 reader is a
+different design from the 101 RC522, so its final bus, interrupt, reset, and
+GPIO assignments are recorded against the PCB schematic rather than copied
+from the prototype.
+
+![SecuriVax 102 exploded hardware assembly](Hardware/image/Animate%20Box%20Drawing.png)
+
+![SecuriVax 102 custom PCB](Hardware/image/Custom%20PCB.png)
+
+The enclosure is approximately 70 mm x 30 mm x 17 mm and is documented with
+exploded, isometric, orthographic, cover, base, PCB, and dimension drawings.
+The current STL exports are kept in [Hardware/STL/](Hardware/STL/), while the
+[102 CAD guide](<Hardware/SecuriVax%20(102)/cad/README.md>) explains the model,
+assembly order, print settings, and how to identify the two exported parts.
+
+See the [102 BOM](<Hardware/SecuriVax%20(102)/BOM(Bill%20of%20material)/README.md>)
+and [102 schematic](<Hardware/SecuriVax%20(102)/schematics/README.md>) for the
+component images, PCB roles, power rails, protocol table, and final pin record.
+The current 102 net map records GPIO 2 for DHT22 data, GPIO 0/1 for the two
+buttons, GPIO 3 for the status LED, and GPIO 4/5/6/10 for NFC clock/data/chip
+select/reset.
+
+### Firmware and hardware boundary
+
+The PlatformIO firmware supports the node's low-power sensing workflow:
+
+1. Read temperature, humidity, and battery voltage.
+2. Store readings in a LittleFS queue while offline.
+3. Upload batches only after Wi-Fi is available and the server acknowledges them.
+4. Deep-sleep between battery samples, with a demo build that stays awake for
+   rapid presentation feedback.
+
+The current firmware pin convention for the classic ESP32 DevKit is GPIO 4 for
+the primary DHT data line, GPIO 13 for the optional second sensor or DS18B20
+probe, GPIO 21/22 for an SHT31 I2C bus, GPIO 16/17 for optional GPS serial, and
+GPIO 35 for battery measurement. The 102 PCB uses its own recorded ESP32-C3
+net map above. Firmware build and wiring details are in
+[firmware/README.md](firmware/README.md); the 102 pin rows remain subject to
+bench verification before production firmware is locked.
 ### Verdict rules
 
 | Verdict | When | What the worker does |
