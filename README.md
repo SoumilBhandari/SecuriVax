@@ -254,8 +254,8 @@ Built at HopHacks 2026 over the 36 hours, by four people:
 | --- | --- |
 | **Soumil Bhandari** | [@SoumilBhandari](https://github.com/SoumilBhandari) |
 | **TAIDI LAAMIRI Taha** | [@DexterTaha](https://github.com/DexterTaha) |
-| **yyppyae** | [@yyppyae](https://github.com/yyppyae) |
-| **clemencecoco** | [@clemencecoco](https://github.com/clemencecoco) |
+| **Ye Yint Phone Pyae** | [@yyppyae](https://github.com/yyppyae) |
+| **Avery Wu** | [@clemencecoco](https://github.com/clemencecoco) |
 
 Every commit in this repo was made inside the event window: the first is
 Friday 22:11, the last is Sunday morning. No code was carried in.
