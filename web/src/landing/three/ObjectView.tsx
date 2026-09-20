@@ -37,9 +37,7 @@ const SHOTS: Record<string, Shot> = {
     ],
     dolly: [1.02, 1.3],
     fov: 30,
-    // Open by the middle, shut again by the time the words rise from the
-    // bottom: a case still in pieces would sit right through them.
-    render: (d) => <Device drive={d} open={(p) => between(p, 0.12, 0.5) * (1 - between(p, 0.6, 0.88))} />,
+    render: (d) => <Device drive={d} open={(p) => between(p, 0.14, 0.86)} />,
   },
   B: {
     radius: 0.58,

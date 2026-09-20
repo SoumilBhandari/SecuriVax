@@ -48,12 +48,8 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
   const [mode, setMode] = useState<Mode>("drawn");
   const [near, setNear] = useState(false);
 
-  // Only when it really changes: once a chapter's scroll is driving the
-  // anchor, a parent that re-renders (a live reading arriving, say) must not
-  // reset the object to where it started.
   useEffect(() => {
-    const now = state.current.at;
-    if (now.ax !== at.ax || now.ay !== at.ay || now.scale !== at.scale) state.current.at = at;
+    state.current.at = at;
   }, [at]);
 
   const paint2d = () => {
