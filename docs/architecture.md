@@ -152,6 +152,13 @@ every bad dose and still costs more than doing nothing, because it throws away
 
 ## Hardware
 
+> The board below is what the **firmware** drives — the bench prototype the
+> `node`, `demo` and diagnostic builds were written against. The final board,
+> revision 102, is a custom PCB with a different part list (ESP32-C3, DHT22, an
+> ST25R3916 NFC reader, USB-C) and is documented by its own schematic and BOM in
+> [`Hardware/`](../Hardware). Take the pin map here as the prototype's, and the
+> 102's pin record from its PCB schematic.
+
 ### The node
 
 ```

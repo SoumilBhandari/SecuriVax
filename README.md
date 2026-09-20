@@ -522,8 +522,6 @@ used. It's never shown as observed weather.
 
 ## Location and redundancy
 
-![The node: lid, cell, board and enclosure, with every component placed](docs/img/hardware-scheme.png)
-
 - **Samsung SmartTag** in the carrier gives location without a GPS module. It
   reaches us through Home Assistant ([docs/smarttag.md](docs/smarttag.md)),
   because Samsung has no official tag-location API. Positions are interpolated
