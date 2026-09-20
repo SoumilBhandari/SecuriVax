@@ -10,9 +10,6 @@ Weather never changes a verdict.
 import bisect
 import math
 import time
-from dataclasses import asdict
-from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from sqlmodel import Session, select
 
@@ -33,21 +30,6 @@ RATED = cm.CarrierSpec()
 # Health workers travel in daylight: departures between these hours, in the
 # origin's own time zone (a site without one is taken to be on East Africa Time).
 FIRST_DEPARTURE_H, LAST_DEPARTURE_H = 5, 15
-DEFAULT_TZ = "Africa/Nairobi"
-
-
-def local(ts: int, tz: str | None) -> datetime:
-    return datetime.fromtimestamp(ts, ZoneInfo(tz or DEFAULT_TZ))
-
-
-def local_label(ts: int, tz: str | None) -> str:
-    """'Sun 06:00 local (GMT+1)': the site's own clock, with its offset, the same
-    way the app writes it, so one departure is never shown two ways."""
-    dt = local(ts, tz)
-    hours = int(dt.utcoffset().total_seconds() // 3600)
-    return f"{dt:%a %H:%M} local (GMT{'' if hours == 0 else f'{hours:+d}'})"
-
-
 def haversine_km(a: tuple[float, float], b: tuple[float, float]) -> float:
     lat1, lon1, lat2, lon2 = map(math.radians, (*a, *b))
     h = math.sin((lat2 - lat1) / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin((lon2 - lon1) / 2) ** 2

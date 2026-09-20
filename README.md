@@ -229,15 +229,20 @@ used. It's never shown as observed weather.
 ## The stage demo
 
 Two boxes go in the same demo carrier. On `DEMO-01`, one real minute counts as
-two days of product time, and the UI says so.
+two days of product time, and the UI says so. Heat the carrier and the OPV box
+goes to DISCARD; freeze it and the pentavalent box goes to QUARANTINE with "run
+the shake test". Same carrier, same trip, different verdicts, because the
+verdict is product-specific.
 
-![Before](docs/img/demo-1-before.png)
-![After: heat, then freeze](docs/img/demo-2-after.png)
+That script needs a node with a working sensor, and ours never answered
+([docs/hardware.md](docs/hardware.md#the-sensor-that-never-answered)). The node
+runs `pio run -e replay` instead: a scripted trip over serial, stepped through
+on the BOOT button, with nothing presented as measured. Everything downstream of
+it — ingest, budget, verdict, live — is the real thing.
 
-Heat the carrier and the OPV box goes to DISCARD. Freeze it and the pentavalent
-box goes to QUARANTINE with "run the shake test". Same carrier, different
-verdicts, because the verdict is product-specific. Full script:
-[docs/demo.md](docs/demo.md).
+Scripts: [docs/demo.md](docs/demo.md) for the stage, or
+[docs/walkthrough.md](docs/walkthrough.md) for the five-minute website tour,
+which is what works today.
 
 ## Repo
 

@@ -55,13 +55,6 @@ export const ClimateIcon = (p: IconProps) => (
   </Icon>
 );
 
-export const PlanIcon = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z" />
-    <path d="M9 4v14M15 6v14" />
-  </Icon>
-);
-
 export const ImpactIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 20V10M10 20V4M16 20v-8M22 20H2" />

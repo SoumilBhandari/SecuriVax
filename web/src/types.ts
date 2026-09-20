@@ -436,36 +436,7 @@ export interface CarrierPerformance {
   legs: CarrierLeg[];
 }
 
-export interface TripOption {
-  depart_ts: number;
-  arrive_ts: number;
-  end_ts: number;
-  budget_used: number;
-  max_inside_c: number;
-  breach_ts: number | null;
-  outside_max_c: number;
-}
 
-export interface TripPlan {
-  generated_at: number;
-  product: Product;
-  origin: Facility;
-  assumptions: string;
-  cold_life_h: number;
-  source: WeatherSource;
-  destinations: {
-    id: string;
-    name: string;
-    km: number;
-    travel_h: number;
-    best: TripOption;
-    worst: TripOption;
-    rated_best: TripOption | null;
-    options: TripOption[];
-  }[];
-  recommendations: string[];
-  stock_advice: string[];
-}
 
 export interface AgentAdvice {
   node_id: string;

@@ -13,7 +13,8 @@
  *   object-NN.png   the 3D object alone on transparency, where there is one
  *
  * Needs the app running: `npm run dev` on :5173, or BASE=http://localhost:8010
- * for a production build. Frames land in docs/img/landing/<chapter>/.
+ * for a production build. Frames land in docs/img/landing/<chapter>/; turn them
+ * into looping previews and contact sheets with scripts/chapter-previews.py.
  */
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";

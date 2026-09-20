@@ -2,7 +2,6 @@ import { forwardRef, lazy, Suspense, useEffect, useImperativeHandle, useRef, use
 
 import { ErrorBoundary } from "../components/ErrorBoundary";
 
-import { framesFor, type Crop, type Frames } from "./frames";
 import { CENTRED, PLACEHOLDERS, type Anchor, type Ground } from "./placeholders";
 import type { ObjectViewHandle } from "./three/ObjectView";
 
@@ -20,7 +19,7 @@ export interface SequenceHandle {
   draw(progress: number, at?: Anchor, extra?: Extra): void;
 }
 
-type Mode = "frames" | "live" | "drawn";
+type Mode = "live" | "drawn";
 
 function webglWorks(): boolean {
   try {
@@ -32,10 +31,10 @@ function webglWorks(): boolean {
 }
 
 /**
- * One chapter's picture, driven by scroll progress. Three ways to draw it,
- * in order of preference: the render's frame sequence if it exists
- * (/hero/manifest.json), the models rendered live in WebGL, or a flat
- * drawing on a 2D canvas. The parent drives it through the handle.
+ * One chapter's picture, driven by scroll progress. Two ways to draw it: the
+ * models rendered live in WebGL, or a flat drawing on a 2D canvas when the
+ * browser can't, or when WebGL fails after it said it could. The parent drives
+ * it through the handle.
  */
 export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground; at?: Anchor; className?: string }>(function Sequence(
   { id, ground, at = CENTRED, className = "" },
@@ -43,7 +42,6 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
 ) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
-  const frames = useRef<Frames | null>(null);
   const live = useRef<ObjectViewHandle>(null);
   const state = useRef({ p: 0, at });
   const size = useRef({ w: 0, h: 0, dpr: 1 });
@@ -69,17 +67,7 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
       ctx.fillRect(0, 0, w, h);
       return;
     }
-    const img = frames.current?.at(p);
-    if (img) {
-      ctx.fillStyle = ground === "dark" ? "#000000" : "#ffffff";
-      ctx.fillRect(0, 0, w, h);
-      const s = Math.max(w / img.naturalWidth, h / img.naturalHeight) * at.scale;
-      const dw = img.naturalWidth * s;
-      const dh = img.naturalHeight * s;
-      ctx.drawImage(img, w * at.ax - dw / 2, h * at.ay - dh / 2, dw, dh);
-    } else {
-      PLACEHOLDERS[id]?.(ctx, w, h, p, ground, at);
-    }
+    PLACEHOLDERS[id]?.(ctx, w, h, p, ground, at);
   };
 
   useImperativeHandle(ref, () => ({
@@ -91,24 +79,9 @@ export const Sequence = forwardRef<SequenceHandle, { id: string; ground: Ground;
     },
   }));
 
-  // Which way to draw: the render if there is one, else live if the browser can.
+  // Which way to draw: live if the browser can, else the flat drawing.
   useEffect(() => {
-    let alive = true;
-    const crop: Crop = window.innerHeight > window.innerWidth ? "portrait" : "landscape";
-    framesFor(id, crop).then((f) => {
-      if (!alive) return;
-      if (f) {
-        frames.current = f;
-        setMode("frames");
-        f.start(() => alive && paint2d());
-      } else {
-        setMode(webglWorks() ? "live" : "drawn");
-      }
-    });
-    return () => {
-      alive = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setMode(webglWorks() ? "live" : "drawn");
   }, [id]);
 
   // Mount the live renderer when the chapter first comes within a screen of
