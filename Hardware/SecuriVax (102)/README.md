@@ -1,20 +1,34 @@
 # SecuriVax 102
 
-The designed node: a sealed enclosure sized around a LiPo cell and the board.
+SecuriVax 102 is the production-oriented custom-PCB revision. It replaces the 101 point-to-point wiring with an ESP32-C3-WROOM-02-N4, DHT22, ST25R3916 NFC/RFID reader, USB-C connector, regulator, two buttons, status LED, and supporting passives.
 
-```
-TopCover     lid, carries the lockup and the status LED
-Battery      3.7 V LiPo
-Board        ESP32 + sensor headers
-LowCover     base
-```
+## Design iteration
 
-Modelled in Onshape, exported as glTF. The export lives in
-[`web/public/hero/models/`](../../web/public/hero/models) because the landing
-page renders it live — the device that opens up on the front page is this CAD.
+The 102 revision consolidates the validated concept into a repeatable PCB and enclosure. The ST25R3916 reader is a different architecture from the 101 RC522 module, so its bus, interrupt, reset, and antenna network must be verified from the 102 PCB schematic rather than copied from 101.
 
-Why sealed: the node spends eight hours sitting in a cold box full of melting
-ice. Condensation on an open devkit is what kills it first.
+The enclosure is designed around the custom board and its antenna clearance. Use the supplied enclosure drawings in [the image inventory](../image/README.md) while checking the final PCB revision.
 
-Parts: [`../README.md`](../README.md). Pin map and firmware builds:
-[docs/architecture.md](../../docs/architecture.md#hardware).
+## Build contents
+
+- [Bill of materials](<BOM(Bill%20of%20material)/README.md>)
+- [SecuriVax 102 schematic](schematics/README.md)
+- [CAD and 3D-printing guide](cad/README.md)
+- [Available enclosure and component images](../image/README.md)
+
+## Assembly sequence
+
+1. Inspect the PCB for solder bridges, polarity, and connector orientation.
+2. Verify VBUS, regulated rails, and GND with power removed.
+3. Apply current-limited USB power and confirm the ESP32-C3 boot output.
+4. Test the DHT22, both buttons, and status LED.
+5. Test the ST25R3916 reader and antenna with a known compatible tag.
+6. Install the verified board in the printed enclosure.
+
+## Reproduction checklist
+
+- [ ] Final PCB schematic stored with the hardware release
+- [ ] All TBD GPIO and PCB-net rows completed in the 102 schematic
+- [ ] BOM parts and PCB revision verified
+- [ ] USB-C polarity and regulated rails tested
+- [ ] NFC antenna clearance and reader range tested
+- [ ] STL and enclosure fit checked against the same PCB revision
