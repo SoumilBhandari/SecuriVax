@@ -11,6 +11,6 @@ as designed. Onshape writes flat fills rather than materials, so the surfaces
 are restyled in `web/src/landing/three/device.tsx`.
 
 The vaccine carton on the landing page is still built from geometry in
-`web/src/landing/three/objects.tsx`, since no one models a cardboard box in
+`web/src/landing/three/device.tsx`, since no one models a cardboard box in
 CAD. Free models were evaluated early on (Poly Pizza's CC0 "Cooler Box" by
 MilkAndBanana and "Cardboard Boxes" by Quaternius) and none are shipped.

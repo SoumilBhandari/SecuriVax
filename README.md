@@ -4,16 +4,17 @@
 
 HopHacks 2026 · Healthcare track
 
-> On outreach, the vaccine vial monitor (VVM) is often the only monitor. The color of the VVM is assessed by the human eye, and is subject to misinterpretation.
-
-> Rapid tests have no monitor at all. We tell the health worker whether this box is still good.
+On outreach, the vaccine vial monitor (VVM) is often the only monitor a vial
+carries, and its colour is read by eye — which makes it easy to misread. Rapid
+tests carry no monitor at all. We tell the health worker whether the box in
+front of them is still good.
 
 The weakest stretch is the outreach carrier. UNICEF recommends electronic freeze
 indicators for cold boxes and fridges have 30-day loggers, but a freeze indicator
 gives one pass/fail for the whole trip, and a VVM shows heat exposure but not freezing.
 We say when and where it happened, and give a verdict for the product's viability in each box.
 
-SecuriVax puts a economical, battery-powered ESP32 node (temperature + humidity)
+SecuriVax puts an economical, battery-powered ESP32 node (temperature + humidity)
 inside the carrier, plus a Samsung SmartTag for location. Every vaccine box gets an
 NFC sticker. A health worker taps the box and gets **USE / QUARANTINE /
 DISCARD** for *that product*, worked out from everything the box has been
@@ -138,8 +139,9 @@ carrier's twin estimates them from the readings.
 - **Prior from the carrier's own history.** Its last few trips set the starting
   estimate for the next one.
 - **Validated on synthetic carriers with a known answer.** Cold life is
-  recovered to about 5% mean error, and the model predicts each next reading to
-  within about 0.2 °C.
+  recovered to a median error of 4.3%, and the median one-step tracking error is
+  0.29 °C. Both are measured by `backend/evals/twin.py`; the numbers come
+  straight out of [docs/evals.md](docs/evals.md).
 - **Forecast.** It rolls forward through the 40-member Open-Meteo ensemble and
   reports:
   - when the carrier leaves 2–8 °C, with P10, P50 and P90 times;
@@ -187,7 +189,7 @@ different question, for a different person:
 | Prediction | Trend alerts | Physics twin with hidden-state estimation and calibrated P10–P90 |
 | Ground truth | Sensors only | Sensor record cross-checked against the vial's own VVM label |
 | Where | Warehouses and trucks | Outreach carriers, where the VVM is often the only monitor, plus rapid tests |
-| Setting | Connected, enterprise | Offline-first $10 nodes, SmartTag location, no app install |
+| Setting | Connected, enterprise | Offline-first nodes from commodity parts, SmartTag location, no app install |
 
 ## Environmental intelligence
 
@@ -243,6 +245,20 @@ it — ingest, budget, verdict, live — is the real thing.
 Scripts: [docs/demo.md](docs/demo.md) for the stage, or
 [docs/walkthrough.md](docs/walkthrough.md) for the five-minute website tour,
 which is what works today.
+
+## Team
+
+Built at HopHacks 2026 over the 36 hours, by four people:
+
+| | |
+| --- | --- |
+| **Soumil Bhandari** | [@SoumilBhandari](https://github.com/SoumilBhandari) |
+| **TAIDI LAAMIRI Taha** | [@DexterTaha](https://github.com/DexterTaha) |
+| **yyppyae** | [@yyppyae](https://github.com/yyppyae) |
+| **clemencecoco** | [@clemencecoco](https://github.com/clemencecoco) |
+
+Every commit in this repo was made inside the event window: the first is
+Friday 22:11, the last is Sunday morning. No code was carried in.
 
 ## Repo
 

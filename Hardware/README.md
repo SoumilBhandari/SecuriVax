@@ -37,7 +37,7 @@ so the backup covers a gap in the primary.
 | SHT31 | Temperature + humidity | ±0.2 °C. The design sensor: accurate enough to call a freeze. |
 | DS18B20 probe | Product temperature | Optional. Goes in a water-filled vial among the vials, so a real freeze shows as a flat line at 0 °C while the water turns to ice. Needs a 4.7k pull-up. |
 | DHT11 / DHT22 | Fallback sensor | What was on the bench. A DHT11 is ±2 °C and reads whole degrees from 0 °C up, so it cannot see freezing — fine for heat, useless for the freeze case. |
-| 3.7 V LiPo cell | Power | ~2000 mAh runs the battery build for months at a reading every 5 minutes. |
+| 3.7 V LiPo cell | Power | ~2000 mAh should run the battery build for months at a reading every 5 minutes — estimated from the duty cycle, not measured, because the bench node never ran on a cell. |
 | TP4056 module | Charge + protection | USB charging and low-voltage cutoff. |
 | 100k / 100k resistors | Battery divider | Into GPIO 35 so the node reports its own voltage. |
 | NFC sticker (NTAG213) | The tag on the box | Written with NFC Tools; the `/tags` page prints the URL for each box and carrier. |

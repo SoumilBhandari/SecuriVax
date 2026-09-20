@@ -25,6 +25,11 @@ decides. Hardware first.
 
 ## The hardware
 
+> **Say this first, in your own words.** The sensor didn't survive the build, so
+> the node replays a recorded trip rather than measuring one. Everything
+> downstream of it is live. Judges respect it, it costs you nothing, and being
+> asked instead of volunteering it is much worse.
+
 *[the hero, device large on black]*
 
 This is the node. It sits in the cold box with the vaccine, takes a temperature and

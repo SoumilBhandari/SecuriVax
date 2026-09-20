@@ -198,8 +198,8 @@ function Numbers({ fleet, impact }: { fleet: FleetSummary | null; impact: Impact
         </div>
         {impact && (
           <p className="ui-caption m-0 mx-auto mt-12 max-w-xl text-center">
-            The last two are from a backtest: {impact.run.trips} outreach trips over {impact.run.days} days on the real hourly weather at the
-            district's clinics, decided four ways. A simulation, not a field trial.{" "}
+            The first two are the demo fleet running on this site. The last two are from a backtest: {impact.run.trips} outreach trips over{" "}
+            {impact.run.days} days on the real hourly weather at the district's clinics, decided four ways. A simulation, not a field trial.{" "}
             <Link to="/impact" viewTransition className="underline underline-offset-2">
               See the backtest
             </Link>

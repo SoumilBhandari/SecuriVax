@@ -80,7 +80,7 @@ place names. `GET /api/health` reports which are live.
 ```
    node samples every 5 min
         │
-        │  queues to flash if offline (~2 weeks)
+        │  queues to flash if offline (~2 weeks, by queue size)
         ▼
    POST /api/ingest/readings        X-Node-Key
         │   validate range, reject bad clocks
