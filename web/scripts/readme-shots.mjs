@@ -56,12 +56,42 @@ const context = await browser.newContext({
 const page = await context.newPage();
 page.on("pageerror", (e) => console.error("  pageerror:", e.message.slice(0, 160)));
 
+// The fleet pages ask for a sign-in now; a single box or carrier does not.
+await page.goto(BASE + "/login", { waitUntil: "networkidle", timeout: 60000 });
+const signedIn = await page.evaluate(
+  async ([email, password]) => {
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
+    return r.ok;
+  },
+  [process.env.LOGIN_EMAIL ?? "bhanda61@purdue.edu", process.env.LOGIN_PASSWORD ?? "12345678"],
+);
+console.log(`signed in = ${signedIn}`);
+
 for (const fig of FIGURES) {
   const paths = [];
   for (const [i, shot] of fig.shots.entries()) {
     await page.goto(BASE + shot.route, { waitUntil: "networkidle", timeout: 60000 });
     await page.evaluate(() => document.fonts.ready);
     await page.waitForTimeout(3500);
+    // Headless Chromium cannot measure the fitted verdict word: scrollWidth
+    // comes back clipped to the parent, so every fit lands back on the
+    // measuring size and "QUARANTINE" renders as "QUARANTIN". Measure the inner
+    // span's rect instead, which is the true text width, and apply the same
+    // sum the app does — so the shot matches what a real browser draws.
+    await page.evaluate(() => {
+      const t = document.querySelector(".verdict-field__word");
+      const box = t && t.parentElement;
+      if (!t || !box) return;
+      const inner = t.firstElementChild || t;
+      const now = parseFloat(getComputedStyle(t).fontSize) || 128;
+      const per = inner.getBoundingClientRect().width / now;
+      if (per > 0 && box.clientWidth > 0) t.style.fontSize = `${Math.floor(box.clientWidth / per)}px`;
+    });
+    await page.waitForTimeout(400);
     if (shot.scrollTo) {
       await page.evaluate((y) => window.scrollTo(0, y), shot.scrollTo);
       await page.waitForTimeout(900);
@@ -75,4 +105,4 @@ for (const fig of FIGURES) {
 }
 
 await browser.close();
-console.log(`\nscreens in ${out} (compose with scripts/readme-figures.py)`);
+console.log(`\nscreens in ${out} (composed by the figure step below)`);
