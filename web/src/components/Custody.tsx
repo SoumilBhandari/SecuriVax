@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { Link } from "react-router";
 
-import { hours, pct, time } from "../lib/format";
+import { budgetPct, hours, time } from "../lib/format";
 import type { Segment } from "../types";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { OfflineIcon } from "./Icons";
@@ -47,7 +47,7 @@ export function Custody({ segments, places }: { segments: Segment[]; places: Rec
                     <Link to={`/node/${s.node_id}`} className="font-display font-semibold text-text no-underline hover:text-accent-300">
                       {s.node_label}
                     </Link>
-                    <span className="ui-caption whitespace-nowrap leading-6">{pct(s.budget_used)} of budget</span>
+                    <span className="ui-caption whitespace-nowrap leading-6">{budgetPct(s.budget_used)} of budget</span>
                   </span>
                   <span className="ui-caption">
                     {time(s.start_ts, s.tz)} · {span} · {range}

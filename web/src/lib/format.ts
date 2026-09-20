@@ -2,6 +2,22 @@ import type { Verdict } from "../types";
 
 export const pct = (x: number) => (x > 0 && x < 0.005 ? "<1%" : `${Math.round(x * 100)}%`);
 
+/**
+ * How much of a stability budget is gone, for a reader.
+ *
+ * The engine keeps counting past 1.0, and that number means something to the
+ * model: a box that spent three times its budget is further gone than one
+ * that just crossed. To a reader "323% used" reads as a broken page, and it
+ * lands on the one figure the whole Arrhenius argument rests on. The bar has
+ * always clamped at full; the figure now agrees with it, and `budgetOver`
+ * says how far past it went wherever there is room to say so.
+ */
+export const budgetPct = (x: number) => pct(Math.min(1, x));
+
+// "2.1x over" could be read as 2.1x past the budget, i.e. 310%. "2.1x the
+// budget" cannot.
+export const budgetOver = (x: number) => (x >= 1.05 ? `${x.toFixed(1)}× the budget` : null);
+
 export const temp = (c: number | null | undefined) => (c == null ? "–" : `${c.toFixed(1)} °C`);
 
 export const humidity = (rh: number | null | undefined) => (rh == null ? "–" : `${Math.round(rh)}%`);

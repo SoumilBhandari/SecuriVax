@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api } from "../lib/api";
 import { useCanTapTags } from "../lib/device";
-import { pct } from "../lib/format";
+import { budgetPct, pct } from "../lib/format";
 import { asset } from "../lib/snapshot";
 import { PhoneIcon, UploadIcon } from "./Icons";
 import { QrCode } from "./QrCode";
@@ -157,7 +157,7 @@ function LatestLabel({ latest }: { latest: LabelCheck }) {
         {latest.rho != null && <span className="text-neutral-500"> (square/ring {latest.rho.toFixed(2)})</span>}
       </p>
       <p className="ui-caption">
-        The record said {pct(latest.sensor_budget)}
+        The record said {budgetPct(latest.sensor_budget)}
         {latest.predicted_stage != null && `, stage ${latest.predicted_stage}`} ·{" "}
         {latest.flagged ? <span className="font-bold text-text">flagged: they disagreed</span> : "they agreed"}
       </p>
@@ -211,7 +211,7 @@ function Result({
           <p className="eyebrow">Record predicts</p>
           <p className="mt-1 font-bold">Stage {span}</p>
           <p className="ui-caption">
-            {pct(w.sensor)} of the budget ({pct(w.sensor_range[0])}–{pct(w.sensor_range[1])})
+            {budgetPct(w.sensor)} of the budget ({budgetPct(w.sensor_range[0])}–{budgetPct(w.sensor_range[1])})
           </p>
         </div>
       </div>

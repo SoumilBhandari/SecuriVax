@@ -1,4 +1,4 @@
-import { hours, pct, temp } from "../lib/format";
+import { budgetPct, hours, pct, temp } from "../lib/format";
 import type { Reason, Report, Verdict } from "../types";
 import { DataList, VerdictBadge } from "./Brand";
 
@@ -81,7 +81,7 @@ export function Numbers({ report }: { report: Report }) {
       <p className="ui-caption m-0 mt-2">
         Stability data: {report.product.stability_ref}
         {learned ? `, adjusted to ${learned.scale_used.toFixed(2)}x from ${learned.photos} confirmed field photos` : ""}.{" "}
-        {pct(report.initial_budget_used)} of the budget was used before monitoring began. The verdict holds in{" "}
+        {budgetPct(report.initial_budget_used)} of the budget was used before monitoring began. The verdict holds in{" "}
         {pct(report.confidence.confidence)} of plausible scenarios.
       </p>
     </div>

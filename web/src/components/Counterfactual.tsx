@@ -1,5 +1,5 @@
 import { api } from "../lib/api";
-import { pct } from "../lib/format";
+import { budgetPct } from "../lib/format";
 import { usePoll } from "../lib/usePoll";
 import { VerdictBadge } from "./Brand";
 
@@ -17,7 +17,7 @@ export function Counterfactual({ boxId }: { boxId: string }) {
             {r.name}
             {r.this_box && " (this box)"}
           </span>
-          <span className="text-right text-[15px] font-bold tabular-nums">{pct(r.budget_used)}</span>
+          <span className="text-right text-[15px] font-bold tabular-nums">{budgetPct(r.budget_used)}</span>
           <VerdictBadge verdict={r.verdict} />
         </li>
       ))}

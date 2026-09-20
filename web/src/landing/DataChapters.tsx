@@ -1,6 +1,6 @@
 import { useMemo, useRef } from "react";
 
-import { pct, temp, time } from "../lib/format";
+import { budgetOver, budgetPct, pct, temp, time } from "../lib/format";
 import { EASE, gsap, prefersReducedMotion } from "../lib/motion";
 import { SIGNAL_HEX } from "../lib/useVerdictView";
 import type { Report } from "../types";
@@ -22,6 +22,8 @@ function Spent({ className = "" }: { className?: string }) {
       <span className="mt-3 block h-[3px] w-full overflow-hidden rounded-full lg:mt-4" style={{ background: "rgba(255,255,255,0.14)" }}>
         <span data-bar className="block h-full w-full origin-left rounded-full" style={{ background: "currentColor", transform: "scaleX(0)" }} />
       </span>
+      {/* Only once the budget is gone: how far past it this trip went. */}
+      <p data-over className="eyebrow m-0 mt-2 opacity-0 transition-opacity duration-300" />
     </div>
   );
 }
@@ -105,8 +107,13 @@ export function TraceChapter({ report }: { report: Report | null }) {
             // warms with it, so the cost of the hot stretch is visible while
             // it happens rather than at the end.
             const b = trace.budgets[Math.round(o.f * (trace.budgets.length - 1))] ?? 0;
-            const shown = pct(b);
+            const shown = budgetPct(b);
             view.current?.querySelectorAll<HTMLElement>("[data-spent]").forEach((el) => (el.textContent = shown));
+            const over = budgetOver(b);
+            view.current?.querySelectorAll<HTMLElement>("[data-over]").forEach((el) => {
+              el.textContent = over ?? "";
+              el.style.opacity = over ? "1" : "0";
+            });
             view.current?.querySelectorAll<HTMLElement>("[data-bar]").forEach((el) => (el.style.transform = `scaleX(${Math.min(1, b)})`));
             if (view.current) view.current.style.background = heat(b);
           },
@@ -120,13 +127,17 @@ export function TraceChapter({ report }: { report: Report | null }) {
   );
 
   return (
-    <section ref={section} data-theme="dark" className="chapter bg-bg text-text" style={chapterHeight(2.6)} aria-label="Temperature over the trip">
+    <section ref={section} data-theme="dark" className="chapter bg-bg text-text" style={chapterHeight(trace ? 2.6 : 1)} aria-label="Temperature over the trip">
       <div ref={view} className="chapter__view">
         <div className="chapter__copy chapter__copy--top">
           <div ref={copy}>
             <p className="eyebrow m-0">{report?.box.id ?? " "}</p>
             <h2 className="ui-title-1 m-0 mt-4">Temperature over the trip</h2>
-            {trace && <Spent className="mt-7 max-w-[220px] lg:hidden" />}
+            {trace ? (
+              <Spent className="mt-7 max-w-[220px] lg:hidden" />
+            ) : (
+              <p className="ui-body m-0 mt-5 max-w-[34ch] text-neutral-500">Fetching a real trip from the server.</p>
+            )}
           </div>
         </div>
         {trace && <Spent className="absolute right-6 top-[calc(var(--nav-h)+7vh)] hidden w-[220px] text-right lg:block lg:right-10" />}

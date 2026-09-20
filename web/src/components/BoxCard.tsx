@@ -1,6 +1,6 @@
 import { Link, useViewTransitionState } from "react-router";
 
-import { pct } from "../lib/format";
+import { budgetPct } from "../lib/format";
 import type { BoxSummary } from "../types";
 import { BudgetRing, VerdictBadge } from "./Brand";
 
@@ -21,7 +21,7 @@ export function BoxCard({ box: b, compact = false }: { box: BoxSummary; compact?
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="truncate font-display text-[17px] font-semibold leading-[22px] tracking-[-0.01em]">{b.product_name}</span>
         <span className="ui-caption">{compact ? b.id : `${b.quantity.toLocaleString()} ${unit} · ${route}`}</span>
-        {!compact && <span className="text-[15px] font-semibold leading-5 tabular-nums">{pct(b.budget_used)} of budget used</span>}
+        {!compact && <span className="text-[15px] font-semibold leading-5 tabular-nums">{budgetPct(b.budget_used)} of budget used</span>}
       </span>
       <span style={leaving ? ({ viewTransitionName: "verdict" } as React.CSSProperties) : undefined} className="inline-flex">
         <VerdictBadge verdict={b.verdict} />

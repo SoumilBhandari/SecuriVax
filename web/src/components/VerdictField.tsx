@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { pct } from "../lib/format";
+import { budgetOver, budgetPct, pct } from "../lib/format";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "../lib/motion";
 import { applyTheme } from "../lib/theme";
 import { useFitText } from "../lib/useFitText";
@@ -32,8 +32,12 @@ export function verdictRows(report: Report): { label: ReactNode; value: ReactNod
     (worst, s) => ((s.sensor_accuracy_c ?? 0) > Math.max(worst?.sensor_accuracy_c ?? 0, 0.5) ? s : worst),
     null,
   );
+  // Past 100% the time left at this temperature is moot, so the overage takes
+  // its place: "100% · 3.2x over" says more than a bare full bar.
+  const spent = budgetPct(report.budget_used);
+  const detail = budgetOver(report.budget_used) ?? left;
   const rows = [
-    { label: "Budget used", value: left ? `${pct(report.budget_used)} · ${left}` : pct(report.budget_used) },
+    { label: "Budget used", value: detail ? `${spent} · ${detail}` : spent },
     { label: "Witnesses", value: `${records} custody ${records === 1 ? "record" : "records"}${report.confidence.label_fused ? " + VVM" : ""}` },
     {
       label: <span title="Share of plausible scenarios (sensor error, batch variation, starting budget) that give the same verdict">Confidence</span>,
