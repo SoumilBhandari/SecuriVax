@@ -1,11 +1,14 @@
-# SecuriVax
-
-**Is this vial still good? A last-mile cold chain monitor for vaccines and rapid tests.**
-
-HopHacks 2026 · Healthcare track
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="web/src/assets/brand/securivax-lockup-horizontal-dark.svg" />
+    <img alt="SecuriVax" src="web/src/assets/brand/securivax-lockup-horizontal-light.svg" width="420" />
+  </picture>
+</p>
 
 <p align="center">
-  <img alt="Project: SecuriVax" src="https://img.shields.io/badge/PROJECT-SECURIVAX-0d9488?style=for-the-badge&labelColor=2b3137" />
+  <b>Is this vial still good? A last-mile cold chain monitor for vaccines and rapid tests.</b>
+  <br />
+  HopHacks 2026 · Healthcare track
 </p>
 
 <p align="center">
