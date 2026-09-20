@@ -30,6 +30,18 @@ in our backtest than heat, and it's the thing a VVM can't show.
   OPV, the most heat-sensitive vaccine, uses most of its budget in that time even at 5 °C.
 - Between steps keep the node **in the cooler at 2–8 °C, not on the ice**, and not on the table:
   at demo speed a fresh OPV box on the bench at 22 °C reaches DISCARD in about seven minutes.
+- **How fast the budget moves** at 2,880x, for OPV, which is what decides whether a verdict flips
+  while anyone is watching. The thresholds are USE FIRST at 40%, QUARANTINE at 75%, DISCARD at 100%.
+
+  | Sensor at | Budget per real minute | A fresh box (10% used) reaches DISCARD in |
+  | --- | --- | --- |
+  | 22 °C, on the bench | 12% | 7 min |
+  | 30 °C, a warm hand | 39% | 2 min 20 s |
+  | 37 °C, a hand warmer against it | 100% | 54 s |
+
+  So a heat step that has to land inside a minute needs the sensor at body temperature or above,
+  not merely warm. Don't slow the clock down for a short demo: at 1 second to the minute (60x),
+  OPV at 37 °C would take 48 minutes to spend its budget and nothing would flip on stage at all.
 - The sensor sets the freeze line. With the design's SHT31 a reading at −0.2 °C already counts as a
   possible freeze; with today's DHT11 (±2 °C) anything at or below about 1.2 °C does, and the verdict
   says it's allowing for the DHT11's error.
@@ -64,7 +76,9 @@ in our backtest than heat, and it's the thing a VVM can't show.
    verdicts." With a DS18B20 probe in a water vial instead, you'd see the drop, then a flat line at
    0 °C while the water in the vial actually freezes.
 2. **Heat (45 s).** Hair dryer on the node. OPV's budget climbs through **USE FIRST** and
-   **QUARANTINE** to **DISCARD**, live. "A VVM shows heat too. We add when and where, and a
+   **QUARANTINE** to **DISCARD**, live. Under *Why*, a **Likely cause** line names what did it,
+   with a probability and who answered — Jev, or the rules when there is no key or the call is
+   slow. Point at it: the rules decide what is safe, this only says what went wrong. "A VVM shows heat too. We add when and where, and a
    verdict for products that have no VVM, like rapid tests." Open *What a threshold logger
    would say* under More detail. "One real minute is two days on this demo carrier; the page says so."
 3. **VVM camera (45 s).** Open `BOX-KO-0915`: 60 doses of pentavalent on a health worker's
