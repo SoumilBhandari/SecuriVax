@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 import { Link } from "react-router";
 
 import { VerdictBadge } from "../components/Brand";
@@ -22,14 +22,16 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
   const section = useRef<HTMLElement>(null);
   const seq = useRef<SequenceHandle>(null);
   const scene = useRef<HTMLDivElement>(null);
+  const object = useRef<HTMLDivElement>(null); // the case alone: the entrance owns `scene`
   const head = useRef<HTMLDivElement>(null);
   const chips = useRef<HTMLDivElement>(null);
   const after = useRef<HTMLDivElement>(null);
   const hint = useRef<HTMLDivElement>(null);
   const wide = useWide();
-  const start: Anchor = wide ? { ax: 0.5, ay: 0.68, scale: 0.68 } : { ax: 0.5, ay: 0.66, scale: 0.6 };
-  // Where it ends up once the words are in: higher and smaller, above them.
-  const end: Anchor = wide ? { ax: 0.5, ay: 0.17, scale: 0.34 } : { ax: 0.5, ay: 0.15, scale: 0.28 };
+  // Held still between renders: a live reading redraws this component every
+  // few seconds, and a fresh object here would hand Sequence a "new" anchor
+  // each time and snap the case back to where it started.
+  const start: Anchor = useMemo(() => (wide ? { ax: 0.5, ay: 0.68, scale: 0.68 } : { ax: 0.5, ay: 0.66, scale: 0.6 }), [wide]);
   const state = useRef<{ p: number; at: Anchor; extra: Extra }>({ p: 0, at: start, extra: {} });
   const live = useLive();
   const last = live.readings[live.readings.length - 1];
@@ -37,18 +39,38 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
   useChapter(
     section,
     (tl) => {
-      const o = { p: 0, ...start };
+      // Where the case ends up: in the room the words leave it. The copy is
+      // anchored to the bottom and is tall on a short window, so a fixed
+      // fraction of the viewport puts the case through the text on a laptop
+      // and strands it near the ceiling on a tall screen. Measure instead,
+      // every frame, and sit in the middle of whatever space is left.
+      const above = () => {
+        const top = after.current?.getBoundingClientRect().top ?? window.innerHeight * 0.62;
+        const room = Math.max(0.2, Math.min(0.72, top / window.innerHeight));
+        return { ax: 0.5, ay: room * 0.46, scale: Math.max(0.3, Math.min(0.56, room * 1.2)) };
+      };
+      const o = { p: 0, t: 0 };
       const paint = () => {
+        const end = above();
+        const k = o.t;
         state.current.p = o.p;
-        state.current.at = { ax: o.ax, ay: o.ay, scale: o.scale };
+        state.current.at = {
+          ax: start.ax + (end.ax - start.ax) * k,
+          ay: start.ay + (end.ay - start.ay) * k,
+          scale: start.scale + (end.scale - start.scale) * k,
+        };
         seq.current?.draw(o.p, state.current.at, state.current.extra);
       };
       tl.to(o, { p: 1, duration: 0.72, onUpdate: paint }, 0.1);
-      tl.to(o, { ...end, duration: 0.3, ease: "power2.inOut", onUpdate: paint }, 0.5);
+      tl.to(o, { t: 1, duration: 0.3, ease: "power2.inOut", onUpdate: paint }, 0.5);
       if (hint.current) tl.fromTo(hint.current, { opacity: 1 }, { opacity: 0, duration: 0.08, immediateRender: false }, 0);
       if (chips.current) tl.fromTo(chips.current, { opacity: 1, y: 0 }, { opacity: 0, y: -40, duration: 0.14, ease: "power2.in", immediateRender: false }, 0.06);
       if (head.current) tl.fromTo(head.current, { opacity: 1, y: 0 }, { opacity: 0, y: -48, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.26);
-      if (after.current) reveal(tl, after.current.children, 0.6, { duration: 0.2, stagger: 0.05, y: 40 });
+      // The case hands the screen over: it has opened and shut by now, and
+      // whatever room is left, words this size will want all of it.
+      if (object.current)
+        tl.fromTo(object.current, { opacity: 1 }, { opacity: 0, duration: 0.18, ease: "power2.in", immediateRender: false }, 0.6);
+      if (after.current) reveal(tl, after.current.children, 0.64, { duration: 0.2, stagger: 0.05, y: 40 });
     },
     [wide, line],
   );
@@ -101,7 +123,9 @@ export function Hero({ line, spotlight }: { line: string | null; spotlight: BoxS
       <div className="chapter__view">
         <div ref={scene} className="absolute inset-0">
           <div className="hero-glow" aria-hidden="true" />
-          <Sequence ref={seq} id="A" ground="dark" at={start} className="absolute inset-0" />
+          <div ref={object} className="absolute inset-0">
+            <Sequence ref={seq} id="A" ground="dark" at={start} className="absolute inset-0" />
+          </div>
         </div>
 
         <div ref={head} className="absolute inset-x-0 top-[calc(var(--nav-h)+9vh)] px-6 text-center lg:top-[calc(var(--nav-h)+10vh)]">
