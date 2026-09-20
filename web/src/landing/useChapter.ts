@@ -1,6 +1,6 @@
 import { useRef, type RefObject } from "react";
 
-import { gsap, prefersReducedMotion, ScrollTrigger, useGSAP } from "../lib/motion";
+import { gsap, prefersReducedMotion, refreshScroll, ScrollTrigger, useGSAP } from "../lib/motion";
 
 /**
  * A chapter is a tall section whose inner viewport sticks while the reader
@@ -44,6 +44,15 @@ export function useChapter(
         onLeave: settle,
         onLeaveBack: settle,
       });
+
+      // Every chapter's start is a pixel offset measured when its trigger is
+      // built, so one chapter changing height after that leaves every chapter
+      // below it pointing at the wrong scroll. The trip chapter does exactly
+      // that: it is one screen tall until its report arrives and 2.6 after,
+      // which was firing the chapters below it a screen and a half early —
+      // they had already finished by the time the reader got to them. A
+      // rebuild here means the layout just changed, so re-measure all of them.
+      refreshScroll();
     },
     // revertOnUpdate: without it a rebuild leaves the old timeline and its
     // scroll trigger alive, and two of them then drive the same words and the

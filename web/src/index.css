@@ -1577,16 +1577,24 @@
   background: #151516;
 }
 
-/* The brand's logo files: the light one on light grounds, the dark one on dark. */
+/* The brand's logo files: the light one on light grounds, the dark one on dark.
+   Driven by inherited custom properties rather than descendant selectors,
+   because the nav sets its own ground to match the chapter under it and that
+   has to beat whatever the app's theme says further up the tree. A descendant
+   rule can't express "nearest wins"; an inherited property does it for free. */
+[data-theme] {
+  --logo-on-light: block;
+  --logo-on-dark: none;
+}
+[data-theme="dark"] {
+  --logo-on-light: none;
+  --logo-on-dark: block;
+}
 .logo-light {
-  display: block;
+  display: var(--logo-on-light, block);
 }
-.logo-dark,
-[data-theme="dark"] .logo-light {
-  display: none;
-}
-[data-theme="dark"] .logo-dark {
-  display: block;
+.logo-dark {
+  display: var(--logo-on-dark, none);
 }
 
 /* Scrollbars stay out of the way on the chrome that scrolls. */
