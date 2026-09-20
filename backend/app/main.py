@@ -118,7 +118,14 @@ def health() -> dict:
     return {
         "status": "ok" if database == "ok" else "degraded",
         "database": database,
-        "ai": {"grok": bool(settings.xai_api_key), "gemini": bool(settings.gemini_api_key)},
+        # jev names a leg's likely cause; without it the rules name it instead,
+        # which is the difference between a cause with a probability and one
+        # without, so it is worth being able to see which is live.
+        "ai": {
+            "grok": bool(settings.xai_api_key),
+            "gemini": bool(settings.gemini_api_key),
+            "jev": bool(settings.typesafe_api_key),
+        },
         "weather": "offline model" if settings.weather_offline else "open-meteo",
         "writes": "operator code" if settings.operator_token else "open (set OPERATOR_TOKEN)",
         # The dev key is in the repo, so anyone could post readings with it.

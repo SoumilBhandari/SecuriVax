@@ -74,7 +74,7 @@ def test_admin_reset_needs_the_right_code(client, monkeypatch):
 def test_health_reports_configuration_not_secrets(client):
     body = client.get("/api/health").json()
     assert body["status"] == "ok" and body["database"] == "ok"
-    assert set(body["ai"]) == {"grok", "gemini"} and all(isinstance(v, bool) for v in body["ai"].values())
+    assert set(body["ai"]) == {"grok", "gemini", "jev"} and all(isinstance(v, bool) for v in body["ai"].values())
 
 
 def test_stage_reset_clears_only_the_stage(client, session):

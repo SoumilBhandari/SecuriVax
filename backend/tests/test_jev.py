@@ -120,3 +120,33 @@ def test_the_summary_reads_as_a_sentence():
     assert "Motorbike carrier." in text
     assert "-2.4 °C within 40 min" in text
     assert "21–28 °C" in text
+
+
+def test_a_client_that_cannot_be_built_does_not_reach_the_caller(monkeypatch):
+    """Building the client can fail on its own: a key the service rejects, or
+    the optional package missing from the image. That must read as "no Jev",
+    not as an exception on its way up through the verdict report."""
+    monkeypatch.setattr(jev, "_client", None)
+    monkeypatch.setattr(jev, "_client_failed", False)
+    monkeypatch.setattr(jev, "get_settings", lambda: type("S", (), {"typesafe_api_key": "a-key"})())
+
+    def explode(*_args, **_kwargs):
+        raise RuntimeError("no such package")
+
+    monkeypatch.setattr(jev, "_build_client", explode)
+    cause = jev.likely_cause(SUMMARY, "FROZEN_PACKS")
+    assert (cause.source, cause.cause) == ("rules", "unconditioned_packs")
+    # And it is not retried once it has failed: the second leg asks nothing.
+    assert jev._client_failed is True
+    assert jev._client_once() is None
+
+
+def test_a_failed_call_is_not_paid_for_twice(monkeypatch):
+    """The fallback is cached like an answer. Without that, every refresh of
+    the box pays the timeout again, once per leg, before the verdict shows."""
+    client = FakeClient(raises=RuntimeError("timed out"))
+    monkeypatch.setattr(jev, "_client_once", lambda: client)
+    first = jev.likely_cause(SUMMARY, "FROZEN_PACKS")
+    second = jev.likely_cause(SUMMARY, "FROZEN_PACKS")
+    assert first.source == second.source == "rules"
+    assert client.calls == 1

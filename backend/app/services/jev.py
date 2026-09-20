@@ -75,24 +75,51 @@ def _rules(code: str) -> Cause:
 
 
 _client = None
+_client_failed = False
 _lock = Lock()
 _cache: dict[str, Cause] = {}
 
 
 def _client_once():
-    """One client for the process, built on first use. None when it can't be."""
-    global _client
+    """One client for the process, built on first use. None when it can't be.
+
+    Building the client can fail on its own — a key the service rejects, or the
+    optional package missing from the image — and naming a cause must never be
+    able to fail a verdict, so a failure here is remembered and answered with
+    None from then on rather than tried again on every leg.
+    """
+    global _client, _client_failed
     if _client is not None:
         return _client
+    if _client_failed:
+        return None
     key = get_settings().typesafe_api_key
     if not key:
         return None
     with _lock:
-        if _client is None:
-            from typesafe_sdk import TypeSafeClient  # kept out of import time: optional dependency
-
-            _client = TypeSafeClient(api_key=key, model=MODEL, timeout=TIMEOUT_S)
+        if _client is None and not _client_failed:
+            try:
+                _client = _build_client(key)
+            except Exception as exc:
+                log.info("jev: no client, the rules will name every cause (%s)", exc)
+                _client_failed = True
+                return None
     return _client
+
+
+def _build_client(key: str):
+    from typesafe_sdk import RetryPolicy, TypeSafeClient  # kept out of import time: optional dependency
+
+    # The SDK's own default retries twice with a growing backoff under its own
+    # 30 s cap, so TIMEOUT_S would bound one attempt out of three and a slow
+    # service would hold the report for tens of seconds, once per leg. A cause
+    # is worth 1.5 seconds and not a second more: the rules already have one.
+    return TypeSafeClient(
+        api_key=key,
+        model=MODEL,
+        timeout=TIMEOUT_S,
+        retry=RetryPolicy(max_retries=0, timeout=TIMEOUT_S),
+    )
 
 
 def likely_cause(leg_summary: str, rules_code: str) -> Cause:
@@ -141,7 +168,11 @@ def likely_cause(leg_summary: str, rules_code: str) -> Cause:
             probabilities=probabilities,
         )
     except Exception as exc:  # never let naming a cause touch the answer
+        # Remember the fallback too. A leg that failed once will fail again,
+        # and without this every refresh of the box pays the timeout afresh,
+        # once per leg, while the reader waits for the verdict.
         log.info("jev: falling back to the rules (%s)", exc)
+        _cache[leg_summary] = fallback
         return fallback
 
     _cache[leg_summary] = cause
