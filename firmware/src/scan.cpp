@@ -10,15 +10,21 @@
 #include <OneWire.h>
 #include <Wire.h>
 
-static const int DIGITAL_PINS[] = {4, 5, 13, 14, 15, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
+// Every pin safe to drive after boot. A generic board's silkscreen cannot be
+// trusted and its module has no PSRAM, so 16 and 17 are free and 2 is fair
+// game once booted: sensors turn up on all three. Still never 6-11 (flash),
+// 1/3 (UART0), 12 (holds the flash voltage at reset) or 34-39 (input only).
+static const int DIGITAL_PINS[] = {2, 4, 5, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 static const int ADC_PINS[] = {32, 33, 34, 35, 36, 39};
 // A DHT module has its own pull-up, but a DHT11 wired to 3.3 V may not read as pulled up: try them all.
-static const int DHT_PINS[] = {4, 5, 13, 14, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};  // not 16/17: PSRAM on WROVER
+static const int DHT_PINS[] = {2, 4, 5, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23, 25, 26, 27, 32, 33};
 
 static int dhtEdges(int pin);
 
 static const char *i2cName(uint8_t a) {
   switch (a) {
+    case 0x39: return "AHT20/Si7021-class temperature/humidity";
+    case 0x41: return "HDC1080/HDC2010 temperature/humidity";
     case 0x44: case 0x45: return "SHT3x (SHT31) temperature/humidity";
     case 0x76: case 0x77: return "BME280/BMP280 temperature/pressure";
     case 0x38: return "AHT10/AHT20 temperature/humidity";
@@ -40,21 +46,31 @@ static bool pulledUp(int pin) {
   return high;
 }
 
+// The addresses a temperature or humidity part actually answers on. Sweeping
+// all 126 across every pin pair takes minutes; these take seconds.
+static const uint8_t I2C_SENSORS[] = {0x18, 0x38, 0x39, 0x40, 0x41, 0x44, 0x45, 0x48, 0x49, 0x4A, 0x4B, 0x5C, 0x76, 0x77};
+
 static void scanI2C() {
-  Serial.println("I2C (every pair of pulled-up pins):");
+  Serial.println("I2C (every pair where at least one line is pulled up):");
   int found = 0;
-  for (int a : DIGITAL_PINS) {
-    for (int b : DIGITAL_PINS) {
-      if (a == b || !pulledUp(a) || !pulledUp(b)) continue;
-      Wire.begin(a, b, 100000);
-      for (uint8_t addr = 1; addr < 127; addr++) {
+  bool up[64] = {false};
+  for (int pin : DIGITAL_PINS) up[pin] = pulledUp(pin);
+  for (int sda : DIGITAL_PINS) {
+    for (int scl : DIGITAL_PINS) {
+      // A module pulls both lines up, but a weak pull-up on one of them can
+      // read low, so one is enough to be worth trying.
+      if (sda == scl || !(up[sda] || up[scl])) continue;
+      Wire.begin(sda, scl, 100000);
+      Wire.setTimeOut(20);
+      for (uint8_t addr : I2C_SENSORS) {
         Wire.beginTransmission(addr);
         if (Wire.endTransmission() == 0) {
-          Serial.printf("  SDA %d, SCL %d: 0x%02X %s\n", a, b, addr, i2cName(addr));
+          Serial.printf("  SDA %d, SCL %d: 0x%02X %s  <- set I2C_SDA %d and I2C_SCL %d\n", sda, scl, addr, i2cName(addr), sda, scl);
           found++;
         }
       }
       Wire.end();
+      delay(2);
     }
   }
   if (!found) Serial.println("  nothing");
@@ -175,8 +191,12 @@ void loop() {
   for (int pin : DIGITAL_PINS)
     if (pulledUp(pin)) Serial.printf(" %d", pin);
   Serial.println();
+  scanI2C();      // an AHT/SHT/BME module is two wires and a pull-up: look first
+  scanOneWire();
   rawDht();
   scanDHT();
+  scanAnalog();
+  deepProbe();
   Serial.println("=== done; scanning again in 10 s ===");
   delay(10000);
 }
