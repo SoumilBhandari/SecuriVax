@@ -133,7 +133,7 @@ void loop() {
   // has something driving it, and a pin whose voltage moves when you warm the
   // sensor is a thermistor or an analog part.
   Serial.println("Pins that are not idle, under each pull:");
-  for (int pin : {32, 33, 34, 35}) {
+  for (int pin : {32, 33, 4, 14, 25, 26, 27}) {
     pinMode(pin, INPUT);
     delay(5);
     int floatMv = analogReadMilliVolts(pin);
@@ -144,8 +144,11 @@ void loop() {
     delay(5);
     int downMv = analogReadMilliVolts(pin);
     pinMode(pin, INPUT);
-    Serial.printf("  GPIO %d: floating %4d mV, pulled up %4d mV, pulled down %4d mV%s\n", pin, floatMv, upMv, downMv,
-                  (abs(upMv - downMv) < 400 && floatMv > 300) ? "  <- something is driving this pin" : "");
+    // An empty pin rises to the full rail on the internal pull-up. A pin
+    // wired to a part with no power of its own is dragged below it: the
+    // part's input protection clamps towards its own dead supply.
+    const char *note = upMv > 2900 ? " (nothing on it)" : upMv > 1500 ? "  <- loaded: something is wired here but unpowered" : "  <- held low";
+    Serial.printf("  GPIO %d: floating %4d mV, pulled up %4d mV, pulled down %4d mV%s\n", pin, floatMv, upMv, downMv, note);
   }
   delay(5000);
 }
