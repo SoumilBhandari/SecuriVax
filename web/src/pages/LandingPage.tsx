@@ -116,6 +116,9 @@ function Nav({ ground, scrolled }: { ground: "light" | "dark"; scrolled: boolean
           <Link to="/impact" viewTransition className="landing-nav__link">
             Impact
           </Link>
+          <Link to="/team" viewTransition className="landing-nav__link">
+            Team
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           {/* The app asks to sign in, so "Sign in" and "Open the app" were two
@@ -248,9 +251,7 @@ function Footer() {
       <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-6 py-6 lg:px-10 lg:py-10">
         <Logo height={18} />
         <span className="ui-footnote hidden text-center sm:inline">Decision support with a human in the loop · not a clinical determination</span>
-        <Link to="/team" viewTransition className="ui-footnote text-inherit no-underline hover:underline">
-          HopHacks 2026 · Team
-        </Link>
+        <span className="ui-footnote">HopHacks 2026</span>
       </div>
       <p className="ui-footnote m-0 px-6 pb-6 text-center sm:hidden">Decision support with a human in the loop · not a clinical determination</p>
     </footer>
