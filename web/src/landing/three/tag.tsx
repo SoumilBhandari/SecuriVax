@@ -1,9 +1,9 @@
-import { RoundedBox } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, CanvasTexture, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, SRGBColorSpace } from "three";
 
 import { between, type Drive } from "./drive";
+import { PHONE, Phone, useScreen } from "./phone";
 
 /**
  * Tag it: the bOPV carton from the team's cutting sheet
@@ -20,8 +20,6 @@ const MM = 1000;
 const BOX = { w: 86 / MM, h: 45 / MM, d: 36 / MM };
 /** Where the SecuriVax label sits on the front panel, from the sheet: 35 x 27 mm. */
 const LABEL = { w: 35 / MM, h: 27 / MM, x: 18.5 / MM, y: 0 };
-/** An iPhone, at its own size: 71.6 x 147.6 x 7.8 mm, corners 9.5 mm. */
-const PHONE = { w: 71.6 / MM, h: 147.6 / MM, t: 7.8 / MM, r: 9.5 / MM, bezel: 2.2 / MM };
 /**
  * The carton is drawn half again as large as life beside the phone. A real
  * 86 mm box next to a 148 mm phone disappears, and this chapter is about what
@@ -365,17 +363,8 @@ export function TagScene({ drive }: { drive: Drive }) {
   const tapTex = usePanel(BOX.d * MM, BOX.h * MM, tapPanel);
   const topTex = usePanel(BOX.w * MM, BOX.d * MM, top);
 
-  // The screen is repainted as it lights, which is cheap at this size.
-  const screen = useMemo(() => {
-    const c = document.createElement("canvas");
-    c.width = Math.round(PHONE.w * MM * 8);
-    c.height = Math.round(PHONE.h * MM * 8);
-    const t = new CanvasTexture(c);
-    t.colorSpace = SRGBColorSpace;
-    t.anisotropy = 8;
-    return { canvas: c, tex: t, lit: -1 };
-  }, []);
-  useEffect(() => () => screen.tex.dispose(), [screen]);
+  const screen = useScreen();
+  const litNow = useRef(-1);
 
   const board = useMemo(
     () => [
@@ -420,13 +409,9 @@ export function TagScene({ drive }: { drive: Drive }) {
     read.current = Math.min(between(p, 0.5, 0.62), 1 - between(p, 0.86, 1));
 
     const lit = between(p, 0.58, 0.72);
-    if (Math.abs(lit - screen.lit) > 0.02) {
-      screen.lit = lit;
-      const ctx = screen.canvas.getContext("2d")!;
-      const px = screen.canvas.width / (PHONE.w * MM);
-      ctx.setTransform(px, 0, 0, px, 0, 0);
-      screenPaint(lit)(ctx, PHONE.w * MM, PHONE.h * MM);
-      screen.tex.needsUpdate = true;
+    if (Math.abs(lit - litNow.current) > 0.02) {
+      litNow.current = lit;
+      screen.paint(screenPaint(lit));
       invalidate();
     }
   });
@@ -441,45 +426,7 @@ export function TagScene({ drive }: { drive: Drive }) {
       </group>
 
       <group ref={phone}>
-        {/* The rail, in brushed titanium, and the glass front and back on it. */}
-        <RoundedBox args={[PHONE.w, PHONE.h, PHONE.t]} radius={PHONE.r} smoothness={7} castShadow receiveShadow>
-          <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
-        </RoundedBox>
-        <RoundedBox args={[PHONE.w - 0.0016, PHONE.h - 0.0016, PHONE.t + 0.0002]} radius={PHONE.r - 0.0008} smoothness={7}>
-          <meshPhysicalMaterial color="#111114" roughness={0.16} metalness={0.2} clearcoat={1} clearcoatRoughness={0.08} />
-        </RoundedBox>
-        {/* The screen, inside the bezel, lit by itself. */}
-        <mesh position={[0, 0, PHONE.t / 2 + 0.0002]}>
-          <planeGeometry args={[PHONE.w - PHONE.bezel * 2, PHONE.h - PHONE.bezel * 2]} />
-          <meshBasicMaterial map={screen.tex} transparent toneMapped={false} />
-        </mesh>
-        {/* The buttons: volume and the action button on the left, wake on the right. */}
-        {[0.026, 0.008, -0.012].map((y, i) => (
-          <mesh key={i} position={[-PHONE.w / 2 - 0.0004, y, 0]}>
-            <boxGeometry args={[0.0012, i === 0 ? 0.006 : 0.011, 0.0042]} />
-            <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
-          </mesh>
-        ))}
-        <mesh position={[PHONE.w / 2 + 0.0004, 0.014, 0]}>
-          <boxGeometry args={[0.0012, 0.016, 0.0042]} />
-          <meshStandardMaterial color="#8e8e93" roughness={0.26} metalness={0.95} />
-        </mesh>
-        {/* The camera plateau on the back, which shows whenever it tilts. */}
-        <group position={[-PHONE.w / 2 + 0.019, PHONE.h / 2 - 0.019, -PHONE.t / 2 - 0.0012]}>
-          <RoundedBox args={[0.032, 0.032, 0.0024]} radius={0.008} smoothness={5}>
-            <meshPhysicalMaterial color="#17171a" roughness={0.22} metalness={0.35} clearcoat={0.8} />
-          </RoundedBox>
-          {[
-            [-0.0065, 0.0065],
-            [0.0065, 0.0065],
-            [0, -0.0075],
-          ].map(([x, y], i) => (
-            <mesh key={i} position={[x, y, -0.0016]} rotation={[Math.PI / 2, 0, 0]}>
-              <cylinderGeometry args={[0.0052, 0.0052, 0.0016, 24]} />
-              <meshPhysicalMaterial color="#0a0a0c" roughness={0.08} metalness={0.6} clearcoat={1} />
-            </mesh>
-          ))}
-        </group>
+        <Phone screen={screen.tex} />
       </group>
     </group>
   );

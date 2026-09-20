@@ -7,6 +7,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import type { Anchor, Ground } from "../placeholders";
 import { Device } from "./device";
 import { between, type Drive } from "./drive";
+import { SenseScene } from "./sense";
 import { TagScene } from "./tag";
 
 export interface ObjectViewHandle {
@@ -51,15 +52,17 @@ const SHOTS: Record<string, Shot> = {
     render: (d) => <TagScene drive={d} />,
   },
   C: {
-    radius: 0.58,
-    centre: [0, 0.22, 0],
+    // The node and a phone side by side: seen from the front, so the screen
+    // is readable, and wide enough to hold both.
+    radius: 1.05,
+    centre: [0.16, 0.34, 0],
     orbit: [
-      [1.05, 0.3],
-      [1.34, 0.44],
+      [0.44, 0.26],
+      [0.24, 0.36],
     ],
-    dolly: [1.05, 1.0],
-    fov: 28,
-    render: (d) => <Device drive={d} open={(p) => between(p, 0.06, 0.94)} />,
+    dolly: [1.04, 0.98],
+    fov: 30,
+    render: (d) => <SenseScene drive={d} />,
   },
   F: {
     radius: 0.33,
