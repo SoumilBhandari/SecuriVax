@@ -1,5 +1,5 @@
 # SecuriVax 102 schematic
-
+![SecuriVax 102 schematic](https://github.com/SoumilBhandari/hophacks/blob/main/Hardware/image/Custom%20PCB.png)
 SecuriVax 102 is the custom-PCB revision. This schematic record belongs only to revision 102 and must be updated from the final PCB schematic before production assembly. The ESP32-C3 and ST25R3916 are not interchangeable with the 101 modules.
 
 ## System overview
@@ -22,20 +22,21 @@ U1 is the ESP32-C3-WROOM-02-N4 controller. U2 is the DHT22 sensor. U3 and U4 are
 | R1/R2/R3  | 10 k / 5.1 k / 1 k   | Bias, USB-C, and LED limiting   | Board-defined           | Confirm against PCB schematic                   |
 
 ## Final PCB pin record
-
+![Final PCB pin record](https://github.com/SoumilBhandari/hophacks/blob/main/Hardware/image/Final%20PCB%20pin%20record.png)
 Populate this table from the exported PCB schematic. Do not copy the 101 GPIO map: U1 and U7 use different hardware.
 
 | Signal          | ESP32-C3 GPIO | PCB net name | Protocol          | Verified |
 | --------------- | ------------: | ------------ | ----------------- | -------- |
-| DHT22 data      |           TBD | TBD          | Timed single-wire | [ ]      |
-| Button 1        |           TBD | TBD          | Digital input     | [ ]      |
-| Button 2        |           TBD | TBD          | Digital input     | [ ]      |
-| Status LED      |           TBD | TBD          | Digital output    | [ ]      |
-| NFC interrupt   |           TBD | TBD          | Reader interrupt  | [ ]      |
-| NFC bus clock   |           TBD | TBD          | Reader bus        | [ ]      |
-| NFC bus data    |           TBD | TBD          | Reader bus        | [ ]      |
-| NFC chip select |           TBD | TBD          | Reader select     | [ ]      |
-| NFC reset       |           TBD | TBD          | Digital output    | [ ]      |
+| DHT22 data      |        GPIO 2 | DHT22_DATA   | Timed single-wire | [ ]      |
+| Button 1        |        GPIO 0 | BUTTON_1     | Digital input     | [ ]      |
+| Button 2        |        GPIO 1 | BUTTON_2     | Digital input     | [ ]      |
+| Status LED      |        GPIO 3 | STATUS_LED   | Digital output    | [ ]      |
+| NFC interrupt   |        GPIO 7 | NFC_IRQ      | Reader interrupt  | [ ]      |
+| NFC bus clock   |        GPIO 4 | NFC_SCK      | Reader bus        | [ ]      |
+| NFC bus data    |        GPIO 5 | NFC_MOSI     | Reader bus        | [ ]      |
+| NFC chip select |        GPIO 6 | NFC_CS       | Reader select     | [ ]      |
+| NFC reset       |       GPIO 10 | NFC_RST      | Digital output    | [ ]      |
+
 
 ## Bring-up order
 
@@ -46,3 +47,7 @@ Populate this table from the exported PCB schematic. Do not copy the 101 GPIO ma
 5. Test U2, U3, U4, and LED1 individually.
 6. Test U7 with a known compatible tag and record reader range.
 7. Copy verified net names and GPIOs into this file and the firmware configuration.
+   
+## PCB File
+
+[Download PCB JSON file](PCB_PCB_New-Project_2026-09-19.json)
