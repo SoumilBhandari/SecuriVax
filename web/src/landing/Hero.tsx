@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link } from "react-router";
 
 import { ChevronDownIcon } from "../components/Icons";
@@ -23,8 +23,13 @@ export function Hero({ line }: { line: string | null }) {
   const after = useRef<HTMLDivElement>(null);
   const hint = useRef<HTMLDivElement>(null);
   const wide = useWide();
-  const start: Anchor = wide ? { ax: 0.5, ay: 0.7, scale: 0.95 } : { ax: 0.5, ay: 0.68, scale: 0.8 };
-  const end: Anchor = wide ? { ax: 0.5, ay: 0.4, scale: 0.56 } : { ax: 0.5, ay: 0.36, scale: 0.46 };
+  // Held by identity, not rebuilt each render. Sequence takes `at` as the
+  // anchor to fall back to and resets to it whenever that prop changes; a
+  // fresh object literal every render made every re-render a reset, which
+  // dropped the carrier back to its full opening size on top of the copy
+  // while the scroll had already moved past it.
+  const start: Anchor = useMemo(() => (wide ? { ax: 0.5, ay: 0.7, scale: 0.95 } : { ax: 0.5, ay: 0.68, scale: 0.8 }), [wide]);
+  const end: Anchor = useMemo(() => (wide ? { ax: 0.5, ay: 0.4, scale: 0.56 } : { ax: 0.5, ay: 0.36, scale: 0.46 }), [wide]);
   const state = useRef<{ p: number; at: Anchor; extra: Extra }>({ p: 0, at: start, extra: {} });
 
   useChapter(
@@ -42,7 +47,7 @@ export function Hero({ line }: { line: string | null }) {
       if (head.current) tl.fromTo(head.current, { opacity: 1, y: 0 }, { opacity: 0, y: -48, duration: 0.22, ease: "power2.in", immediateRender: false }, 0.26);
       if (after.current) reveal(tl, after.current.children, 0.6, { duration: 0.2, stagger: 0.05, y: 40 });
     },
-    [wide, line],
+    [wide],
   );
 
   // The entrance, once: the scene fades up, the lines rise out of their mask, the hint follows.
