@@ -117,14 +117,13 @@ function Nav({ ground, scrolled }: { ground: "light" | "dark"; scrolled: boolean
             Impact
           </Link>
         </div>
-        <div className="flex items-center gap-1">
-          {!user && (
-            <Link to="/login" viewTransition className="landing-nav__link">
-              Sign in
-            </Link>
-          )}
-          <Link to="/boxes" viewTransition className="landing-nav__cta">
-            Open the app
+        <div className="flex items-center gap-2">
+          {/* The app asks to sign in, so "Sign in" and "Open the app" were two
+              buttons for one destination. Signed out there is one way in;
+              signed in it says who you are, and the way in is still there. */}
+          {user && <span className="landing-nav__who">{user.email}</span>}
+          <Link to={user ? "/boxes" : "/login?next=%2Fboxes"} viewTransition className="landing-nav__cta">
+            {user ? "Open the app" : "Sign in"}
           </Link>
         </div>
       </nav>
