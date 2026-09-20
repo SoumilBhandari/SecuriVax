@@ -48,9 +48,9 @@ Use the orthographic drawings for orientation and the dimension drawing for scal
 
 STL files are kept in `Hardware/STL/`. That folder contains STL files only. The current exports are:
 
-| STL file | Model role | Status |
-|---|---|---|
-| [`Part Studio 2.stl`](../../STL/Part%20Studio%202.stl) | One enclosure half; confirm whether it is the top or lower cover from the CAD source | Available |
+| STL file                                               | Model role                                                                              | Status    |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------------- | --------- |
+| [`Part Studio 2.stl`](../../STL/Part%20Studio%202.stl) | One enclosure half; confirm whether it is the top or lower cover from the CAD source    | Available |
 | [`Part Studio 3.stl`](../../STL/Part%20Studio%203.stl) | Mating enclosure half; confirm whether it is the top or lower cover from the CAD source | Available |
 
 The current release contains two STL exports, not three. Do not create or rename a third `cover-button.stl` unless the CAD source confirms that it is a separate part.
@@ -67,19 +67,19 @@ The current release contains two STL exports, not three. Do not create or rename
 
 ## 7. 3D-printing parameters
 
-| Parameter | Recommended starting value |
-|---|---:|
-| Process | FDM |
-| Material | PETG for final parts; PLA for dimensional prototypes |
-| Nozzle | 0.4 mm |
-| Layer height | 0.20 mm |
-| Walls | 4 perimeters around PCB and fastener features |
-| Top / bottom | 5 layers |
-| Infill | 25% gyroid or grid |
-| Supports | Use only where required by the STL; avoid scars near antenna and mating surfaces |
-| Brim | Optional, based on bed adhesion |
-| Fit clearance | Start at 0.20-0.30 mm per mating side and tune with a test print |
-| Post-processing | Deburr openings, test cover fit, and verify antenna clearance |
+| Parameter       |                                                       Recommended starting value |
+| --------------- | -------------------------------------------------------------------------------: |
+| Process         |                                                                              FDM |
+| Material        |                             PETG for final parts; PLA for dimensional prototypes |
+| Nozzle          |                                                                           0.4 mm |
+| Layer height    |                                                                          0.20 mm |
+| Walls           |                                    4 perimeters around PCB and fastener features |
+| Top / bottom    |                                                                         5 layers |
+| Infill          |                                                               25% gyroid or grid |
+| Supports        | Use only where required by the STL; avoid scars near antenna and mating surfaces |
+| Brim            |                                                  Optional, based on bed adhesion |
+| Fit clearance   |                 Start at 0.20-0.30 mm per mating side and tune with a test print |
+| Post-processing |                    Deburr openings, test cover fit, and verify antenna clearance |
 
 ## 8. Print documentation
 

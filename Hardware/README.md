@@ -2,10 +2,10 @@
 
 This folder documents two hardware revisions. Each revision owns its BOM, schematic, CAD explanation, and assembly workflow so it can be reproduced independently.
 
-| Revision | Purpose | Guide |
-|---|---|---|
-| Prototype 101 | Hand-wired ESP32 DevKit, RC522 RFID, two DHT11 sensors, prototype board, and female headers | [Prototype 101](prototype%20101/README.md) |
-| SecuriVax 102 | Custom PCB with ESP32-C3, DHT22, ST25R3916 NFC/RFID, USB-C, regulator, buttons, and LED | [SecuriVax 102](SecuriVax%20%28102%29/README.md) |
+| Revision      | Purpose                                                                                     | Guide                                            |
+| ------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Prototype 101 | Hand-wired ESP32 DevKit, RC522 RFID, two DHT11 sensors, prototype board, and female headers | [Prototype 101](prototype%20101/README.md)       |
+| SecuriVax 102 | Custom PCB with ESP32-C3, DHT22, ST25R3916 NFC/RFID, USB-C, regulator, buttons, and LED     | [SecuriVax 102](SecuriVax%20%28102%29/README.md) |
 
 ## Documentation layout
 
