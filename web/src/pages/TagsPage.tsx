@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 
 import { StageIcon } from "../components/Icons";
-import { BackHeader, Layout, PageTitle, SectionTitle, Split } from "../components/Layout";
+import { BackHeader, ErrorNote, Layout, PageTitle, SectionTitle, Split } from "../components/Layout";
 import { QrCode } from "../components/QrCode";
 import { StageReset } from "../components/StageReset";
 import { api } from "../lib/api";
@@ -17,15 +17,22 @@ export default function TagsPage() {
   const origin = window.location.origin;
   const canTap = useCanTapTags();
 
-  useEffect(() => {
-    api.boxes().then(setBoxes).catch(() => {});
-    api.nodes().then(setNodes).catch(() => {});
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    setError("");
+    // Two empty bordered boxes used to be this page's way of saying the server
+    // is unreachable, which reads as "you have no stickers".
+    Promise.all([api.boxes().then(setBoxes), api.nodes().then(setNodes)]).catch((e) => setError(String(e?.message ?? e)));
   }, []);
+
+  useEffect(load, [load]);
 
   return (
     <Layout>
       <BackHeader />
       <PageTitle eyebrow="Setup" title="Stickers and codes" />
+      {error && <ErrorNote error={error} onRetry={load} />}
       <p className="m-0 -mt-3 text-neutral-300 lg:mb-8 lg:max-w-3xl">
         NFC stickers are for drivers on the way: tapping a box logs a checkpoint, and tapping a carrier then a box hands the box
         over. Write each NFC URL to an NTAG213/215 sticker as a URL record{canTap ? "" : ", from a phone"} (NFC Tools works on

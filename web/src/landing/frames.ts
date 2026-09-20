@@ -24,8 +24,12 @@ let manifest: Promise<Manifest | null> | null = null;
 /** The manifest, fetched once; null when there's no render yet. */
 function loadManifest(): Promise<Manifest | null> {
   if (!manifest) {
+    // There may be no render, and the app is served behind a catch-all that
+    // answers any unknown path with index.html: a 200 full of HTML. Check what
+    // came back before parsing it, so "no render yet" is a plain null instead
+    // of a parse error thrown and swallowed on every cold load.
     manifest = fetch("/hero/manifest.json", { cache: "force-cache" })
-      .then((r) => (r.ok ? (r.json() as Promise<Manifest>) : null))
+      .then((r) => (r.ok && r.headers.get("content-type")?.includes("json") ? (r.json() as Promise<Manifest>) : null))
       .catch(() => null);
   }
   return manifest;

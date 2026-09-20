@@ -2,7 +2,7 @@ import "./index.css";
 
 import { lazy, StrictMode, Suspense, useEffect, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, createHashRouter, Link, Outlet, RouterProvider, ScrollRestoration, useMatches, useParams } from "react-router";
+import { createBrowserRouter, createHashRouter, Link, Navigate, Outlet, RouterProvider, ScrollRestoration, useMatches, useParams } from "react-router";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Layout, Spinner } from "./components/Layout";
@@ -23,6 +23,12 @@ const TagsPage = lazy(() => import("./pages/TagsPage"));
 const LivePage = lazy(() => import("./pages/LivePage"));
 const StagePage = lazy(() => import("./pages/StagePage"));
 
+/** "/boxes/BOX-…" is the URL people guess; the route is "/box/:id". */
+function BoxRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/box/${id}`} replace />;
+}
+
 function NotFound() {
   return (
     <Layout back>
@@ -36,9 +42,12 @@ function NotFound() {
   );
 }
 
-const page = (el: ReactNode) => (
+// A page that is still arriving keeps the nav and the page frame, so the wait
+// reads as this app loading rather than as a black screen with a word on it.
+// The landing page draws its own ground and wants none of this.
+const page = (el: ReactNode, chrome = true) => (
   <ErrorBoundary page>
-    <Suspense fallback={<Spinner />}>{el}</Suspense>
+    <Suspense fallback={chrome ? <Layout><Spinner /></Layout> : <Spinner />}>{el}</Suspense>
   </ErrorBoundary>
 );
 
@@ -74,7 +83,7 @@ const router = (SNAPSHOT ? createHashRouter : createBrowserRouter)([
   {
     element: <Root />,
     children: [
-      { path: "/", element: page(<LandingPage />) },
+      { path: "/", element: page(<LandingPage />, false) },
       { path: "/login", element: page(<LoginPage />), handle: { title: "Sign in" } },
       // Open to look at; changes ask for an operator sign-in when they happen.
       { path: "/boxes", element: page(<HomePage />), handle: { title: "Boxes" } },
@@ -86,6 +95,8 @@ const router = (SNAPSHOT ? createHashRouter : createBrowserRouter)([
       { path: "/climate", element: page(<ClimatePage />), handle: { title: "Climate" } },
       { path: "/plan", element: page(<PlanPage />), handle: { title: "Trip planner" } },
       { path: "/impact", element: page(<ImpactPage />), handle: { title: "Impact" } },
+      // "/boxes/BOX-…" is the URL people guess; the route is "/box/:id".
+      { path: "/boxes/:id", element: <BoxRedirect /> },
       { path: "*", element: <NotFound /> },
     ],
   },

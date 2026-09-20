@@ -7,12 +7,22 @@ import { LiveChart } from "../components/LiveChart";
 import { timeLeft, verdictNote } from "../components/Verdict";
 import { WORD } from "../components/VerdictField";
 import { api } from "../lib/api";
-import { demoRate, humidity, pct } from "../lib/format";
+import { budgetPct, demoRate, humidity } from "../lib/format";
 import { EASE, gsap, prefersReducedMotion, useGSAP } from "../lib/motion";
 import { useFitText } from "../lib/useFitText";
 import { useLive, useReadingNudge } from "../lib/useLive";
 import { useVerdictView } from "../lib/useVerdictView";
 import type { Report } from "../types";
+
+/** The same wording the Live page uses: the projector must not show the raw
+ * status word, which is lowercase and reads like a bug from the back row. */
+const STATUS_WORD: Record<string, string> = {
+  connecting: "Connecting",
+  live: "Live",
+  reconnecting: "Reconnecting",
+  offline: "Offline",
+  snapshot: "Saved copy",
+};
 
 const STAGE_NODE = "DEMO-01";
 const STAGE_BOXES = ["BOX-9001", "BOX-9002"];
@@ -29,6 +39,7 @@ export default function StagePage() {
   const live = useLive(node);
   const [reports, setReports] = useState<Report[]>([]);
   const [loaded, setLoaded] = useState(true);
+  const [unreachable, setUnreachable] = useState(false);
 
   // The boxes in the carrier now, or the two stage boxes before they're loaded.
   const refresh = useCallback(() => {
@@ -39,8 +50,13 @@ export default function StagePage() {
         setLoaded(inside.length > 0);
         return Promise.all((inside.length ? inside : node === STAGE_NODE ? STAGE_BOXES : []).map((id) => api.report(id)));
       })
-      .then(setReports)
-      .catch(() => {});
+      .then((rs) => {
+        setReports(rs);
+        setUnreachable(false);
+      })
+      // An unreachable server used to land as "No boxes in DEMO-01", which is
+      // the projector saying the carrier is empty when it does not know.
+      .catch(() => setUnreachable(true));
   }, [node]);
 
   useEffect(() => {
@@ -82,7 +98,7 @@ export default function StagePage() {
               className="h-2.5 w-2.5 rounded-full"
               style={{ background: fresh ? "var(--accent)" : "var(--line-2)", animation: fresh ? "vt-pulse 1.6s infinite" : undefined }}
             />
-            {fresh ? "Live" : live.status === "live" ? "Waiting for a reading" : live.status}
+            {fresh ? "Live" : live.status === "live" ? "Waiting for a reading" : STATUS_WORD[live.status]}
           </span>
           <ThemeToggle />
         </div>
@@ -94,7 +110,7 @@ export default function StagePage() {
           {last ? (
             <>
               <p className="ui-heading m-0 mt-2">{last.label}</p>
-              <p className="m-0 mt-8 whitespace-nowrap font-display text-[clamp(88px,12vw,192px)] font-semibold leading-[0.9] tracking-[-0.045em] tabular-nums">
+              <p className="m-0 mt-8 font-display text-[clamp(52px,12vw,192px)] font-semibold leading-[0.9] tracking-[-0.045em] tabular-nums">
                 <Rolling value={last.temp_c} decimals={1} />
                 <span className="font-sans text-[clamp(28px,3vw,44px)] font-normal tracking-normal text-neutral-500"> °C</span>
               </p>
@@ -126,8 +142,8 @@ export default function StagePage() {
             <StageBox key={r.box.id} report={r} />
           ))}
           {reports.length === 0 && (
-            <p className="m-0 text-[21px] text-neutral-500" data-rise>
-              No boxes in {node}.
+            <p className="m-0 text-[21px] text-neutral-500" role={unreachable ? "alert" : undefined} data-rise>
+              {unreachable ? "Can't reach the server. Showing nothing rather than something wrong." : `No boxes in ${node}.`}
             </p>
           )}
         </section>
@@ -181,7 +197,7 @@ function StageBox({ report }: { report: Report }) {
           </div>
           <p className="verdict-field__note m-0 mt-3 text-[19px] leading-7 tracking-[-0.022em] lg:text-[22px] lg:leading-8">{verdictNote(r)}</p>
           <p className="verdict-field__dim m-0 mt-1.5 text-[17px] leading-6 tracking-[-0.022em]">
-            <b className="tabular-nums">{pct(r.budget_used)}</b> of the heat budget used{left && ` · ${left} at this temperature`}
+            <b className="tabular-nums">{budgetPct(r.budget_used)}</b> of the heat budget used{left && ` · ${left} at this temperature`}
           </p>
         </div>
       </div>

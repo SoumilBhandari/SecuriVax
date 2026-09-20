@@ -1,6 +1,6 @@
 import { useRef, type RefObject } from "react";
 
-import { gsap, ScrollTrigger, useGSAP } from "../lib/motion";
+import { gsap, prefersReducedMotion, ScrollTrigger, useGSAP } from "../lib/motion";
 
 /**
  * A chapter is a tall section whose inner viewport sticks while the reader
@@ -57,6 +57,13 @@ export function useChapter(
  * so a rebuild mid-scroll can never record a hidden state as the destination.
  */
 export function reveal(tl: gsap.core.Timeline, targets: gsap.TweenTarget, at: number, { duration = 0.16, stagger = 0.035, y = 36 } = {}) {
+  // A reader who asked for less motion still has to be able to read the words.
+  // Hiding them and rising them in is the one step here that can leave copy
+  // invisible if the tween never runs, so for them it simply does not happen.
+  if (prefersReducedMotion()) {
+    gsap.set(targets, { y: 0, opacity: 1 });
+    return;
+  }
   // Staggered members only render their start when their own tween begins; hide them all now.
   gsap.set(targets, { y, opacity: 0 });
   tl.fromTo(targets, { y, opacity: 0 }, { y: 0, opacity: 1, duration, stagger, ease: "power2.out", immediateRender: false }, at);
