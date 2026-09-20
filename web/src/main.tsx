@@ -21,6 +21,7 @@ const ImpactPage = lazy(() => import("./pages/ImpactPage"));
 const TagsPage = lazy(() => import("./pages/TagsPage"));
 const LivePage = lazy(() => import("./pages/LivePage"));
 const StagePage = lazy(() => import("./pages/StagePage"));
+const TeamPage = lazy(() => import("./pages/TeamPage"));
 
 /** "/boxes/BOX-…" is the URL people guess; the route is "/box/:id". */
 function BoxRedirect() {
@@ -105,6 +106,8 @@ const router = (SNAPSHOT ? createHashRouter : createBrowserRouter)([
       // Public: what a sticker opens. No account, on any phone.
       { path: "/box/:id", element: page(<BoxPage />), handle: { title: ":id" } },
       { path: "/node/:id", element: page(<NodePage />), handle: { title: ":id" } },
+      // Credits: whoever follows the link should see it without an account.
+      { path: "/team", element: page(<TeamPage />), handle: { title: "Team" } },
       // Behind a sign-in: everything that browses the fleet rather than one box.
       { path: "/boxes", element: gated(<HomePage />), handle: { title: "Boxes" } },
       { path: "/tags", element: gated(<TagsPage />), handle: { title: "Stickers and codes" } },
