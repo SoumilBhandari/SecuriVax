@@ -40,3 +40,7 @@ docs/img/explode/
 docs/img/landing/
 docs/img/securivax-landing-animations/
 docs/img/securivax-*.zip
+
+# Raw product screenshots: the source for docs/img/verdicts.png and
+# dashboard.png. Regenerate with web/scripts/product-shots.mjs.
+docs/img/shots/
